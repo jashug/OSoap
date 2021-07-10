@@ -68,7 +68,9 @@ Asynchronous IO Signals: SIGIO, SIGURG, SIGPOLL
 Probably not something typically need to worry about.
 
 Operation Error Signals: SIGPIPE, SIGLOST, SIGXCPU, SIGXFSZ
+SIGPIPE is probably synchronous
 Does anybody catch these?
+Vim sets SIGPIPE to ignore.
 
 Miscellaneous Signals: SIGUSR1, SIGUSR2, SIGWINCH, SIGINFO
 SIGWINCH is useful but not entirely necessary.
