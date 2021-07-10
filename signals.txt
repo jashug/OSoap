@@ -1,0 +1,77 @@
+Signals are used on UNIX-like systems for many important purposes.
+See https://www.gnu.org/software/libc/manual/html_node/Standard-Signals.html
+
+---
+
+Ways of delivering signals:
+
+Start a new thread to run the signal handler in. The restrictions on async signal safety gives a
+sort-of kind-of not-really thread safety, and some signal handlers will probably do the right thing
+on a new thread. Those that don't may be reasonably easily changeable to work on a new thread.
+Thread local variables can complicate the ease of adaptation:
+Python had a bug with that https://bugs.python.org/issue42296.
+Windows takes this approach for ConsoleCtrlHandler things, upon which at least some signals are emulated,
+so matching the Windows behavior is a good start.
+Pros: prompt asynchronous delivery
+Cons: breaks POSIX specification
+
+In the middle of a syscall (which may be transparently retried or return EINTR):
+Pros: subset of expected POSIX behavior
+Cons: delivery could happen late, or never (infinite loop)
+
+User-side polling:
+Give programs a function they can call if they want to check for signals.
+Combines well with syscall delivery.
+Implement with sigtimedwait(no delay), followed by dispatch to signal handler.
+Pros: signal handler environment is within the bounds of POSIX
+Cons: relies on programs calling this function often enough
+
+sigwait:
+Very similar (perhaps subsumes?) user-side polling
+Pros: easy to handle exact expected behavior
+
+---
+
+Termination Signals: SIGTERM, SIGINT, SIGQUIT, SIGKILL, SIGHUP
+These are the most important, and hardest to handle.
+They happen asynchronously, and we want them to be delivered promptly.
+Particularly, SIGINT is common.
+SIGKILL (and other deadly-by-default signals) can be handled with Worker.terminate().
+Starting a new thread for handling these signals may be best (but also unexpected).
+Windows does a similar thing for SetConsoleCtrlHandler
+https://docs.microsoft.com/en-us/windows/console/handlerroutine.
+
+Job Control Signals: SIGCHLD, SIGCONT, SIGSTOP, SIGTSTP, SIGTTIN, SIGTTOU
+SIGTTIN and SIGTTOU are effectively synchronous; handle as exceptional cases on return from syscall.
+However, they are supposed to go to all processes in a job, which is async for the others.
+SIGCHLD is an asynchronous signal.
+SIGSTOP can't be handled, but also can't be implemented promptly. The best we can do is stop responding
+to system calls, and maybe check a flag set in shared memory from any imported javascript functions.
+SIGCONT depends a bit on SIGSTOP implementation. We can respond to a blocked syscall, and wake up
+javascript functions that may be waiting on the stop flag. If a handler is defined,
+it can be called on return from the syscall or when we notice that the flag is down.
+SIGTSTP is perhaps the hardest, since it is also one of the likelier to be handled.
+We want the handler to run promptly, which probably means in a new thread?
+
+Program Error Signals: Eg. SIGFPE, SIGILL, SIGSEGV
+These can mostly be forced default: terminate the program immediately.
+Likely shows up as a trap in WebAssembly.
+Very hard to recover from: signal handlers need to either exit or longjmp.
+
+Alarm Signals: SIGALRM, SIGVTALRM, SIGPROF
+Difficult/impossible to support in-thread interruption without a heavily modified compilation pattern.
+Similar to Termination Signals, may want to run in a new thread.
+(But then difficult to introspect current state).
+Again, Windows also lacks this functionality, at least in this way.
+
+Asynchronous IO Signals: SIGIO, SIGURG, SIGPOLL
+Probably not something typically need to worry about.
+
+Operation Error Signals: SIGPIPE, SIGLOST, SIGXCPU, SIGXFSZ
+Does anybody catch these?
+
+Miscellaneous Signals: SIGUSR1, SIGUSR2, SIGWINCH, SIGINFO
+SIGWINCH is useful but not entirely necessary.
+May be deliverable synchronously, on read/write, since it is used to handle full-screen display.
+Cause a reprint, the signal gets delivered, everyone is happy.
+SIGINFO is also useful but not essential. More of an async signal?
