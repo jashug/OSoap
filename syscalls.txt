@@ -9,7 +9,7 @@ Set up the buffer with an exported uint32_t syscall_buffer[SYSCALL_BUFFER_SIZE] 
 This only allows for one thread to be in a syscall at a time. That is going to be a problem.
 Set up a more complicated message-passing synchronization: kernel copies arguments out of the buffer,
 then passes control back so that the next thread can refill it.
-Per-thread response buffer? Thread-locals feel a bit weird for this use, but simple enough to
+Per-thread response buffer? Thread-locals feel a bit weird for this use, but simple enough to:
 when creating a new thread, allocate the necessary memory and let the kernel know about it.
 (Might actually fit well with thread-local storage).
 Syscalls return immediately, but response may be instructions to wait on another location in memory?
