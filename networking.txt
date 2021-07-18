@@ -1,0 +1,23 @@
+Networking:
+
+connections that stay within the virtual machine can be emulated with high fidelity.
+This allows for example local dev servers binding to localhost, and web browsers connecting to them.
+
+For connections that leave the virtual machine, including connections to the host loopback, we are heavily
+constrained by the browser security model. This means pretty much only http requests, and CORS-headers need
+to be set for services on a different origin from where the vm is hosted (this may include localhost,
+if the vm is served remotely).
+
+I am imagining a system where programs can open tcp/ip sockets, and as long as they write a valid HTTP
+request to the socket, the operating system can buffer that request, promote it to an XMLHttpRequest, and
+lower the response back to tcp/ip.
+
+Many services can be accessed over http/https. This includes git, dns, npm, apt, pip.
+
+---
+
+use 10.0.2.2 to refer to host loopback/localhost, and
+fdf1:bf31:12d6::/48, specifically fdf1:bf31:12d6::2 for ipv6
+https://datatracker.ietf.org/doc/html/rfc4193
+
+for internal localhost: 127.0.0.1 (really all of 127.0.0.0/8), and ::1 for ipv6
