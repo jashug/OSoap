@@ -1,0 +1,26 @@
+Hew pretty close to Linux/Posix.
+
+file descriptors refer to a table of open file descriptions
+
+open file descriptions can appear in multiple places in the fd table, and for multiple processes.
+Share the same memory for these. Ex: fdtable = [{ofd}, {ofd}, ...]
+open file descriptions store an offset.
+
+representation of non-open files (inodes):
+for directories, lookup children
+for files, open (= turn into open file description)
+file type: regular file, directory, (character) device, named pipe, symbolic link, socket.
+owner, permissions, timestamps.
+supposed to be in-sync with the permanent storage. Don't let two copies get out of sync.
+id number unique to filesystem
+
+splicing together filesystems needs a bit more thought, though Linux probably has it right
+in Linux, it looks like you keep a table of mount points (roughly inodes) and the mounted filesystem
+so that you can handle transitions as a step separate from in-filesystem lookup of children.
+
+Files are identified by pair of filesystem instance and fs-instance-unique identifier.
+The only way to travel between filesystems is by going through a mount point:
+a mount point maps an (empty? maybe not necessarily) directory in one filesystem
+onto (the root?) of another file system.
+
+Bind mounts are cool, track root per-mount.
