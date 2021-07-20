@@ -1,0 +1,7 @@
+/* Use box-sizing: border-box everywhere, but allow local cascading changes. */
+html {
+  box-sizing: border-box;
+}
+*, *:before, *:after {
+  box-sizing: inherit;
+}
