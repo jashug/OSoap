@@ -24,3 +24,15 @@ a mount point maps an (empty? maybe not necessarily) directory in one filesystem
 onto (the root?) of another file system.
 
 Bind mounts are cool, track root per-mount.
+
+Will need to design a filesystem on top of IndexedDB.
+IndexedDB is shared between tabs in the same origin; need some form of concurrency control.
+Use a modified seqlock: make sure each transaction leaves the filesystem in a consistent state, such
+that it could be removed from one tab and shifted to another.
+When attaching to the fs, increment a counter, and store the value. As long as the counter stays at
+this value, the filesystem has not been changed except by this tab, so all cached data remains consistent.
+In each transaction, read the counter, abort if it is different than expected, raising a "fs lost" error.
+When we lose the filesystem, we can get it back by incrementing the counter again, but we have to clear
+any cached preconceptions about the state of the filesystem.
+This system can probably be enhanced to provide a middle ground where some cached data can be kept.
+(Such as, increment a counter whenever the directory tree changes, but not when files are written.)
