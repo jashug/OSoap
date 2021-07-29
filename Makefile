@@ -25,3 +25,15 @@ tmp/puts.wasm: c_test_programs/puts.c
 	  -Wl,--shared-memory \
 	  -o tmp/puts.wasm \
 	  c_test_programs/puts.c
+
+tmp/argc.wasm: c_test_programs/argc.c
+	clang \
+	  -v \
+	  --sysroot=../sysroot \
+	  --target=wasm32 \
+	  -O3 \
+	  -pthread \
+	  -Wl,--import-memory \
+	  -Wl,--shared-memory \
+	  -o tmp/argc.wasm \
+	  c_test_programs/argc.c

@@ -9,7 +9,7 @@ OBJDIR="tmp/build/microlibc"
 
 CFLAGS="-O2 -DNDEBUG --target=${TARGET} -fno-trapping-math -Wall -mthread-model single --sysroot='${SYSROOT}'"
 
-rm -r "${SYSROOT}"
+if [ -d "${SYSROOT}" ]; then rm -r "${SYSROOT}"; fi
 
 # Populate include directories
 mkdir -p "${SYSROOT_INCLUDE}"
