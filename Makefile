@@ -1,39 +1,37 @@
 .PHONY: all
-all: tmp/just_math.wasm tmp/puts.wasm
+all: tmp/just_math.wasm tmp/puts.wasm tmp/argc.wasm
 
-tmp/just_math.wasm: c_test_programs/just_math.c
-	clang \
-	  --target=wasm32 \
-	  -O3 \
-	  -nostdlib \
-	  -pthread \
-	  -Wl,--import-memory \
-	  -Wl,--shared-memory \
-	  -Wl,--no-entry \
-	  -Wl,--export-all \
-	  -o tmp/just_math.wasm \
-	  c_test_programs/just_math.c
+.PHONY: clean
+clean:
+	rm -rf tmp
 
-tmp/puts.wasm: c_test_programs/puts.c
-	clang \
-	  -v \
-	  --sysroot=../sysroot \
-	  --target=wasm32 \
-	  -O3 \
-	  -pthread \
-	  -Wl,--import-memory \
-	  -Wl,--shared-memory \
-	  -o tmp/puts.wasm \
-	  c_test_programs/puts.c
+SYSROOT_PREREQS ::= ../sysroot ../sysroot/include ../sysroot/lib $(wildcard ../sysroot/include/*) $(wildcard ../sysroot/lib/*)
 
-tmp/argc.wasm: c_test_programs/argc.c
-	clang \
-	  -v \
-	  --sysroot=../sysroot \
-	  --target=wasm32 \
-	  -O3 \
-	  -pthread \
-	  -Wl,--import-memory \
-	  -Wl,--shared-memory \
-	  -o tmp/argc.wasm \
-	  c_test_programs/argc.c
+CC ::= clang
+CFLAGS ::= \
+  --target=wasm32 \
+  --sysroot=../sysroot \
+  -O3 \
+  -pthread \
+  -Wl,--import-memory \
+  -Wl,--shared-memory
+ifdef VERBOSE
+  CFLAGS += -v
+endif
+TARGET_CFLAGS ::=
+
+tmp:
+	mkdir tmp
+
+tmp/%.wasm: c_test_programs/%.c $(SYSROOT_PREREQS) | tmp
+	$(CC) $(CFLAGS) $(TARGET_CFLAGS) -o $@ $<
+
+tmp/just_math.wasm: private TARGET_CFLAGS ::= -nostdlib -Wl,--no-entry -Wl,--export-all
+
+tmp/puts.wasm: private TARGET_CFLAGS ::=
+
+tmp/argc.wasm: private TARGET_CFLAGS ::=
+
+# setjmp is not yet translated to wasm exceptions in llvm
+# aheejin is one likely person to add them
+tmp/setjmp.wasm: private TARGET_CFLAGS ::= -fwasm-exceptions
