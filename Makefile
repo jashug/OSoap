@@ -13,7 +13,6 @@ CFLAGS ::= \
   --sysroot=../sysroot \
   -pthread \
   -O2 \
-  -flto \
   -Wl,--import-memory \
   -Wl,--shared-memory \
   -Wl,--max-memory=4294967296
