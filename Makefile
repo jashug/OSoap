@@ -11,10 +11,12 @@ CC ::= clang
 CFLAGS ::= \
   --target=wasm32 \
   --sysroot=../sysroot \
-  -O3 \
   -pthread \
+  -O2 \
+  -flto \
   -Wl,--import-memory \
-  -Wl,--shared-memory
+  -Wl,--shared-memory \
+  -Wl,--max-memory=4294967296
 ifdef VERBOSE
   CFLAGS += -v
 endif
@@ -23,7 +25,7 @@ TARGET_CFLAGS ::=
 tmp:
 	mkdir tmp
 
-tmp/%.wasm: c_test_programs/%.c $(SYSROOT_PREREQS) | tmp
+tmp/%.wasm: c_test_programs/%.c $(SYSROOT_PREREQS) Makefile | tmp
 	$(CC) $(CFLAGS) $(TARGET_CFLAGS) -o $@ $<
 
 tmp/just_math.wasm: private TARGET_CFLAGS ::= -nostdlib -Wl,--no-entry -Wl,--export-all
