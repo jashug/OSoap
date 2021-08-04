@@ -23,7 +23,7 @@ endif
 TARGET_CFLAGS ::=
 
 tmp:
-	mkdir tmp
+	mkdir -p tmp
 
 tmp/%.wasm: c_test_programs/%.c $(SYSROOT_PREREQS) Makefile | tmp
 	$(CC) $(CFLAGS) $(TARGET_CFLAGS) -o $@ $<
