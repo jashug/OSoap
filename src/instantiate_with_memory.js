@@ -44,7 +44,7 @@ const instantiateWithMemory = async (module, importObj, {namespace, name}) => {
   let memory = null;
   let state = STATE_NO_KNOWLEDGE;
   const advanceState = (newState) => {
-    if (newState <= state) throw new UnexpectedStateError(`$(newState) <= $(state)`);
+    if (newState <= state) throw new UnexpectedStateError(`${newState} <= ${state}`);
     state = newState;
   };
   while (true) {
