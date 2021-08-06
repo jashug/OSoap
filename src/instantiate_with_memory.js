@@ -40,7 +40,6 @@ class UnexpectedStateError extends Error {
 
 const instantiateWithMemory = async (module, importObj, {namespace, name}) => {
   const memoryDescriptor = {initial: 0};
-  let instance = null;
   let memory = null;
   let state = STATE_NO_KNOWLEDGE;
   const advanceState = (newState) => {
