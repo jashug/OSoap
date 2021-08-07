@@ -13,3 +13,7 @@ rules:
     - error
     - checkLoops: false
   semi: error
+  eqeqeq: error
+  comma-dangle:
+    - error
+    - always-multiline
