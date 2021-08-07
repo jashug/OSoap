@@ -1,3 +1,5 @@
+#!/usr/bin/env python3.9
+
 import http.server
 import os, sys
 import socket
