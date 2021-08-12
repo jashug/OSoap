@@ -1,0 +1,23 @@
+TODO: make pid's 64 bits long
+
+When a worker is first created (with new Worker('src/worker.js', {type: 'module'})),
+it is in the idle state.
+
+On start message, worker transions from idle to busy-no-sysbuf state.
+
+On error, a worker transitions from wherever to the idle state. If we have a sysbuf, drop it.
+
+On message 'register_syscall_buffer', transition from busy-no-sysbuf state to busy state.
+
+While in busy state, listen to the sysbuf, and service syscalls.
+
+When in the busy state and recieve syscall 'detach' (work on the name, this may be combinable with
+standard linux syscalls), delete the reference to the sysbuf.
+This is not redundant, because it allows the kernel to avoid a trailing waitAsync from hanging around.
+
+To exit, worker throws a OSoapExit exception with the exit code, which gets passed back to the kernel.
+Should already have exit code from detach syscall, check that they match.
+No, this can all be done with the detach syscall. (Should be immediately followed by throwing an exception
+in order to exit the webassembly, without interposing the event queue.)
+
+In worker, catch traps and try to call detach?

@@ -1,11 +1,16 @@
-const term = new Terminal();
-term.open(document.getElementById('terminal'));
-term.write('Hello from \x1B[1;3;31mxterm.js\x1B[0m $ \r\nnew line\r\nthird line');
+import {spawnProcess} from './threadTable.js';
 
-const testWorker = new Worker('src/worker.js', {type: 'module'});
-window.testWorker = testWorker;
-/*testWorker.postMessage({
-  purpose: "process",
-  module: "/tmp/puts.wasm",
-  memory: {module: "env", name: "memory"},
-});*/
+const term = new Terminal();
+/*const fitAddon = new FitAddon.FitAddon();
+term.loadAddon(fitAddon);*/
+
+// TODO: replace fitAddon with ResizeObserver
+
+term.open(document.getElementById('terminal'));
+//fitAddon.fit();
+
+term.write('Hello from \x1B[1;3;31mxterm.js\x1B[0m $ \r\nnew line\r\nthird line');
+term.write('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' +
+  'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+
+spawnProcess('/tmp/puts.wasm');

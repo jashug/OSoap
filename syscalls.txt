@@ -4,12 +4,6 @@ which allows for blocking syscalls.
 When using waitAsync on the kernel side, be careful not to create a reference cycle to memory
 via the callback.
 
-Set up the buffer with an exported uint32_t syscall_buffer[SYSCALL_BUFFER_SIZE] in libc.
+One syscall_buffer for each thread.
 
-This only allows for one thread to be in a syscall at a time. That is going to be a problem.
-Set up a more complicated message-passing synchronization: kernel copies arguments out of the buffer,
-then passes control back so that the next thread can refill it.
-Per-thread response buffer? Thread-locals feel a bit weird for this use, but simple enough to:
-when creating a new thread, allocate the necessary memory and let the kernel know about it.
-(Might actually fit well with thread-local storage).
-Syscalls return immediately, but response may be instructions to wait on another location in memory?
+On the kernel side, use AbortControler and AbortSignal to cancel in the middle?

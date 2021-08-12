@@ -19,6 +19,10 @@ In the middle of a syscall (which may be transparently retried or return EINTR):
 Pros: subset of expected POSIX behavior
 Cons: delivery could happen late, or never (infinite loop)
 
+Right after a syscall (capture the return value, then run the signal handler):
+Pros: subset of expected POSIX behavior
+Cons: delivery could happen late, or never (infinite loop), slightly different from usual Linux behavior.
+
 User-side polling:
 Give programs a function they can call if they want to check for signals.
 Combines well with syscall delivery.
@@ -29,6 +33,23 @@ Cons: relies on programs calling this function often enough
 sigwait:
 Very similar (perhaps subsumes?) user-side polling
 Pros: easy to handle exact expected behavior
+
+---
+
+Piggybacking on syscalls:
+Make a syscall, get the return value.
+We can now make more syscalls if we want to.
+Before actually returning, check if there are pending signals.
+If there are:
+  run the one immediately available signal
+  syscall-like poll-signal: tell the kernal that we processed a signal, get the next signal if any.
+Repeat the above while there are signals left.
+
+Implement pending_signals and debugger as flag bits in a shared result-side field?
+
+On the kernel side:
+See https://pubs.opengroup.org/onlinepubs/9699919799/functions/V2_chap02.html#tag_15_04
+for details on Signal Generation and Delivery
 
 ---
 
