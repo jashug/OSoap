@@ -24,7 +24,7 @@ const spawnProcess = (executable_url) => {
     sys_buf_addr: 0,
   };
   processTable.set(process.tid, process);
-  startWorker(process,
+  const {releaseWorker, terminateWorker} = startWorker(process,
     (message) => {
       if (message.sys_buf & 3) throw new UserError("sys_buf is not 4 byte aligned");
       process.compiled_module = message.compiled_module;
@@ -35,6 +35,8 @@ const spawnProcess = (executable_url) => {
       throw new UserError(`Worker Error: ${e}`);
     },
   );
+  process.releaseWorker = releaseWorker;
+  process.terminateWorker = terminateWorker;
 };
 
 export {spawnProcess};

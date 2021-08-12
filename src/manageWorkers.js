@@ -49,7 +49,10 @@ const startWorker = (process, onRegisterSysBuf, onError) => {
     releaseWorkerOnce();
     onError(e);
   };
-  return releaseWorkerOnce;
+  return {
+    releaseWorker: releaseWorkerOnce,
+    terminateWorker: () => worker.terminate(),
+  };
 };
 
 export {
