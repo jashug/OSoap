@@ -4,16 +4,20 @@ import {adaptMemory} from './emplaceAdaptiveMemory.js';
 import {UserError} from './UserError.js';
 
 class ExitException extends Error {
-  constructor(...args) {
+  constructor(exit_code, ...args) {
     super(...args);
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, ExitException);
     }
     this.name = 'ExitException';
+    this.exit_code = exit_code;
   }
 }
 
 const runProcess = async (message) => {
+  // Either posts an exit message with the exit code, or
+  // throws an error.
+
   // If !(precompiled || create_memory), we could use instantiateStreaming.
   // However, this case is rare to non-existent, so don't optimize for it
   // without further investigation.
@@ -46,20 +50,26 @@ const runProcess = async (message) => {
         });
         return tid;
       },
-      throw_exit: () => { throw new ExitException(); },
+      throw_exit: (ec) => { throw new ExitException(ec); },
     },
   };
   const instance = await WebAssembly.instantiate(module, imports);
 
   // Run
-  let startReturned = false;
   try {
     instance.exports._start();
-    startReturned = true;
   } catch (e) {
-    if (!(e instanceof ExitException)) throw e;
+    if (e instanceof ExitException) {
+      postMessage({
+        purpose: "exit",
+        exit_code: e.exit_code,
+      });
+      return;
+    } else {
+      throw e;
+    }
   }
-  if (startReturned) throw new UserError("Start function returned");
+  throw new UserError("Start function returned");
 };
 
 const handleMessage = oneAtATimeError(async (e) => {

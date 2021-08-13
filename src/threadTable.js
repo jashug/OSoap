@@ -24,18 +24,21 @@ const spawnProcess = (executable_url) => {
     sys_buf_addr: 0,
   };
   processTable.set(process.tid, process);
-  const {releaseWorker, terminateWorker} = startWorker(process,
+  const terminateWorker = startWorker(process,
     (message) => {
       if (message.sys_buf & 3) throw new UserError("sys_buf is not 4 byte aligned");
       process.compiled_module = message.compiled_module;
       process.memory = message.memory;
       process.sys_buf_addr = message.sys_buf >> 2;
     },
+    // TODO: these exit callbacks should clean up the process table
+    (exit_code) => {
+      console.log(`Exited with code: ${exit_code}`);
+    },
     (e) => {
       throw new UserError(`Worker Error: ${e}`);
     },
   );
-  process.releaseWorker = releaseWorker;
   process.terminateWorker = terminateWorker;
 };
 
