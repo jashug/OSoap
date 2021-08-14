@@ -24,7 +24,7 @@ const idleWorkerMessage = (e) => {
  * the return value is terminateWorker, which may be called once to force
  *   immediate termination of the worker.
  */
-const startWorker = (process, onRegisterSysBuf, onExit, onError) => {
+const startWorker = (process) => {
   const worker = getIdleWorker();
   let workerReleased = false;
   const setReleasedFlag = () => {
@@ -43,15 +43,15 @@ const startWorker = (process, onRegisterSysBuf, onExit, onError) => {
   };
   worker.postMessage({
     purpose: "start",
-    module: process.executable_url,
+    module: process.executableUrl,
     tid: process.tid,
   });
   worker.onmessage = (e) => {
-    if (e.data.purpose === 'register_syscall_buffer') {
-      onRegisterSysBuf(e.data);
+    if (e.data.purpose === 'registerSyscallBuffer') {
+      process.registerSysBuf(e.data);
     } else if (e.data.purpose === 'exit') {
       releaseWorker();
-      onExit(e.data.exit_code);
+      process.onExit(e.data.exitCode);
     } else {
       // No way for user-space programs to send arbitrary messages,
       // so this error is an error in worker.js
@@ -60,7 +60,7 @@ const startWorker = (process, onRegisterSysBuf, onExit, onError) => {
   };
   worker.onerror = (e) => {
     releaseWorker();
-    onError(e);
+    process.onError(e);
   };
   return terminateWorker;
 };

@@ -4,13 +4,13 @@ import {adaptMemory} from './emplaceAdaptiveMemory.js';
 import {UserError} from './UserError.js';
 
 class ExitException extends Error {
-  constructor(exit_code, ...args) {
+  constructor(exitCode, ...args) {
     super(...args);
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, ExitException);
     }
     this.name = 'ExitException';
-    this.exit_code = exit_code;
+    this.exitCode = exitCode;
   }
 }
 
@@ -18,7 +18,7 @@ const runProcess = async (message) => {
   // Either posts an exit message with the exit code, or
   // throws an error.
 
-  // If !(precompiled || create_memory), we could use instantiateStreaming.
+  // If !(precompiled || createMemory), we could use instantiateStreaming.
   // However, this case is rare to non-existent, so don't optimize for it
   // without further investigation.
 
@@ -40,12 +40,12 @@ const runProcess = async (message) => {
     diagnostic,
     env: {
       memory,
-      register_syscall_buffer: (sys_buf, loc) => {
+      register_syscall_buffer: (sysBuf, loc) => {
         postMessage({
-          purpose: "register_syscall_buffer",
-          compiled_module: module,
+          purpose: "registerSyscallBuffer",
+          compiledModule: module,
           memory,
-          sys_buf,
+          sysBuf,
           loc, /* clear_child_tid */
         });
         return tid;
@@ -62,7 +62,7 @@ const runProcess = async (message) => {
     if (e instanceof ExitException) {
       postMessage({
         purpose: "exit",
-        exit_code: e.exit_code,
+        exitCode: e.exitCode,
       });
       return;
     } else {
