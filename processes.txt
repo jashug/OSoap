@@ -1,0 +1,50 @@
+Four states: 'init', 'running', 'syscall', 'zombie'
+
+Processes/threads start in the 'init' state.
+Here, the process has begun execution, but has not yet informed us of the location of its sysbuf.
+
+The next thing a well-behaved process does is send the kernel a message with the sysbuf.
+This moves the process to the 'running' state.
+
+While the process is in the running state, the kernel should listen on the sysbuf for syscalls.
+On receipt of a syscall, mark the process as in the 'syscall' state.
+
+When the kernel is ready to respond, the process moves back to the 'running' state, and the kernel should listen again.
+An exception is the case of the 'detach' syscall, which forgets the sysbuf and moves to the 'init' state.
+
+Finally, a well-behaved process sends the kernel a 'exit' message while it is in the 'init' state.
+This moves the process to the 'zombie' state, and records the exit code.
+
+An exceptional case is the receipt of an Error from the process.
+This cannot happen in the 'zombie' state.
+If this happens while the process is in the 'running' state, we need to clean up the wait on the sysbuf.
+If this happens in the 'init' or 'syscall' states, we do not need to clean up the wait on the sysbuf.
+In all cases, the worker has already been released, and we should forget how to terminate it.
+The process should be marked as having terminated abnormally (sigill or the like?) and moved to the 'zombie' state.
+
+There may come a point where the kernel decides the process needs to die.
+This can be because the process violated a contract and cannot be trusted to die.
+It may also be because the user requested it, "kill -SIGKILL".
+If the process is in the 'zombie' state, this is a NOP.
+Otherwise, terminate the associated worker.
+If the process is in the 'running' state, we need to clean up the wait on the sysbuf.
+The process should be marked as having terminated abnormally (sigkill) and moved to the 'zombie' state.
+The above 3 lines are very similar to the receipt of an Error from the process.
+
+To send a signal to a process.
+(See the signals.txt document)
+If the process is in the 'zombie' state, this is a NOP.
+If the signal is SIGKILL, kill the process as described in the previous paragraph.
+SIGSTOP and SIGCONT are also special.
+If the signal is ignored, do nothing.
+Signals can be either thread-specific or process-wide.
+If a signal is blocked, or masked by a thread, we can't submit it.
+Prefer threads in the 'syscall' state for 'sigwait', where this signal is acceptable.
+Another option is to start a new thread to run the signal handler on. (Breaks POSIX semantics, closer to Windows)
+If we do neither of the two above options, the signal becomes pending, and we put it on a queue (to be picked up at the next return from syscall).
+At this point, we should set the signal bit in the flag word (request the process check for signals).
+Then, threads in the 'syscall' state for interruptable syscalls, we can return EINTR and abort the syscall.
+
+The interface for passing signals is, we set a bit in the flags word to indicate that there are signals to be handled.
+Then the process calls a special syscall accepting one signal. This call can return "nothing do do" if there are no pending acceptable signals.
+So, we can be optimistic in setting this bit whenever we queue a signal.

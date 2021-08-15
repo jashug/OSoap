@@ -15,9 +15,6 @@ When in the busy state and recieve syscall 'detach' (work on the name, this may 
 standard linux syscalls), delete the reference to the sysbuf.
 This is not redundant, because it allows the kernel to avoid a trailing waitAsync from hanging around.
 
-To exit, worker throws a OSoapExit exception with the exit code, which gets passed back to the kernel.
-Should already have exit code from detach syscall, check that they match.
-No, this can all be done with the detach syscall. (Should be immediately followed by throwing an exception
-in order to exit the webassembly, without interposing the event queue.)
+To exit, worker throws a OSoapExit exception with the exit code, which gets passed back to the kernel in a message.
 
-In worker, catch traps and try to call detach?
+In worker, catch traps and try to call detach? No, handle that kernel-side.

@@ -53,6 +53,18 @@ for details on Signal Generation and Delivery
 
 ---
 
+Splitting the options broadly up into two classes, POSIX-conforming (synchronous) and new thread (asynchronous), we can offer choice to user programs.
+- only synchronous delivery
+- only asynchronous delivery
+- synchronous or asynchronous delivery
+- default - conservatively synchronous delivery, may depend on the signal.
+Use two flag bits to sigaction, SA_SAMETHREAD and SA_NEWTHREAD. If neither is set, use default behavior.
+
+More on exit statuses:
+https://pubs.opengroup.org/onlinepubs/9699919799/functions/wait.html
+
+---
+
 Termination Signals: SIGTERM, SIGINT, SIGQUIT, SIGKILL, SIGHUP
 These are the most important, and hardest to handle.
 They happen asynchronously, and we want them to be delivered promptly.

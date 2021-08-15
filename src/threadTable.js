@@ -2,7 +2,7 @@ import {startWorker} from './manageWorkers.js';
 import {UserError} from './UserError.js';
 
 const POW_2_32 = Math.pow(2, 32);
-let tidCounter = 0;
+let tidCounter = 1; // Start PIDs at 1
 
 const getNewTid = () => {
   const oldTid = tidCounter;
