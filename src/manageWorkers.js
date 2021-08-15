@@ -1,3 +1,5 @@
+import {MSG_PURPOSE} from './messagePurpose.js';
+
 const idleWorkers = [];
 
 // Upper bound on idleWorkers.length
@@ -42,14 +44,14 @@ const startWorker = (process) => {
     worker.terminate();
   };
   worker.postMessage({
-    purpose: "start",
+    purpose: MSG_PURPOSE.KTU.START,
     module: process.executableUrl,
     tid: process.tid,
   });
   worker.onmessage = (e) => {
-    if (e.data.purpose === 'registerSyscallBuffer') {
+    if (e.data.purpose === MSG_PURPOSE.UTK.REGISTER_SYSBUF) {
       process.registerSysBuf(e.data);
-    } else if (e.data.purpose === 'exit') {
+    } else if (e.data.purpose === MSG_PURPOSE.UTK.EXIT) {
       releaseWorker();
       process.onExit(e.data.exitCode);
     } else {

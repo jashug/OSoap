@@ -2,6 +2,7 @@ import {diagnostic} from './diagnostic.js';
 import {oneAtATimeError} from './oneAtATimeError.js';
 import {adaptMemory} from './emplaceAdaptiveMemory.js';
 import {UserError} from './UserError.js';
+import {MSG_PURPOSE} from './messagePurpose.js';
 
 class ExitException extends Error {
   constructor(exitCode, ...args) {
@@ -42,7 +43,7 @@ const runProcess = async (message) => {
       memory,
       register_syscall_buffer: (sysBuf, loc) => {
         postMessage({
-          purpose: "registerSyscallBuffer",
+          purpose: MSG_PURPOSE.UTK.REGISTER_SYSBUF,
           compiledModule: module,
           memory,
           sysBuf,
@@ -61,7 +62,7 @@ const runProcess = async (message) => {
   } catch (e) {
     if (e instanceof ExitException) {
       postMessage({
-        purpose: "exit",
+        purpose: MSG_PURPOSE.UTK.EXIT,
         exitCode: e.exitCode,
       });
       return;
@@ -74,7 +75,7 @@ const runProcess = async (message) => {
 
 const handleMessage = oneAtATimeError(async (e) => {
   const message = e.data;
-  if (message.purpose === "start") {
+  if (message.purpose === MSG_PURPOSE.KTU.START) {
     await runProcess(message);
   } else {
     throw new Error(`Unrecognized message purpose ${message.purpose}`);

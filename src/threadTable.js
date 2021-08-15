@@ -1,5 +1,6 @@
 import {startWorker} from './manageWorkers.js';
 import {UserError} from './UserError.js';
+import {SYSBUF_OFFSET} from './syscallBufferLayout.js';
 
 const POW_2_32 = Math.pow(2, 32);
 let tidCounter = 1; // Start PIDs at 1
@@ -40,11 +41,19 @@ class Process {
   }
 
   syncWord() {
-    return new Int32Array(this.memory.buffer, this.sysBufAddr, 1);
+    return new Int32Array(
+      this.memory.buffer,
+      this.sysBufAddr + SYSBUF_OFFSET.sync_word,
+      1,
+    );
   }
 
   flagWord() {
-    return new Uint32Array(this.memory.buffer, this.sysBufAddr + 4, 1);
+    return new Uint32Array(
+      this.memory.buffer,
+      this.sysBufAddr + SYSBUF_OFFSET.flag_word,
+      1,
+    );
   }
 
   listenForSyscall(sync) {

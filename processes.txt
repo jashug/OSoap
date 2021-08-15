@@ -23,7 +23,7 @@ In all cases, the worker has already been released, and we should forget how to 
 The process should be marked as having terminated abnormally (sigill or the like?) and moved to the 'zombie' state.
 
 There may come a point where the kernel decides the process needs to die.
-This can be because the process violated a contract and cannot be trusted to die.
+This can be because the process violated a contract and cannot be trusted to go quietly.
 It may also be because the user requested it, "kill -SIGKILL".
 If the process is in the 'zombie' state, this is a NOP.
 Otherwise, terminate the associated worker.
