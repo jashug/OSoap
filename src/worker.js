@@ -5,13 +5,12 @@ import {UserError} from './UserError.js';
 import {MSG_PURPOSE} from './messagePurpose.js';
 
 class ExitException extends Error {
-  constructor(exitCode, ...args) {
+  constructor(...args) {
     super(...args);
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, ExitException);
     }
     this.name = 'ExitException';
-    this.exitCode = exitCode;
   }
 }
 
@@ -51,7 +50,7 @@ const runProcess = async (message) => {
         });
         return tid;
       },
-      throw_exit: (ec) => { throw new ExitException(ec); },
+      throw_exit: () => { throw new ExitException(); },
     },
   };
   const instance = await WebAssembly.instantiate(module, imports);
@@ -63,7 +62,6 @@ const runProcess = async (message) => {
     if (e instanceof ExitException) {
       postMessage({
         purpose: MSG_PURPOSE.UTK.EXIT,
-        exitCode: e.exitCode,
       });
       return;
     } else {

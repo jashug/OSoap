@@ -1,6 +1,7 @@
 import {startWorker} from './manageWorkers.js';
 import {UserError} from './UserError.js';
-import {SYSBUF_OFFSET} from './syscallBufferLayout.js';
+import {SYSBUF_OFFSET, OSOAP_SYS} from './syscallBufferLayout.js';
+import {dispatchSyscall} from './dispatchSyscall.js';
 
 const POW_2_32 = Math.pow(2, 32);
 let tidCounter = 1; // Start PIDs at 1
@@ -14,29 +15,25 @@ const getNewTid = () => {
   return oldTid;
 };
 
-const __OSOAP_SYS_TURN_USER = 0;
-//const __OSOAP_SYS_TURN_KERNEL = 1;
-const __OSOAP_SYS_FLAG_DEBUGGER = 0x2;
-
-const waitAsyncPromise = (array, addr, value) => {
-  return Promise.resolve(Atomics.waitAsync(array, addr, value).value);
-  // More complicated, perhaps faster version?
-  /*
-  const {async: isAsync, value: result} = Atomics.waitAsync(array, addr, value);
-  if (isAsync) return result;
-  else return Promise.resolve(result);
-  */
+const PSTATE = {
+  INIT: 'init',
+  RUNNING: 'running',
+  SYSCALL: 'syscall',
+  DETACHED: 'detached',
+  ZOMBIE: 'zombie',
 };
 
 class Process {
   constructor(executableUrl) {
+    this.state = PSTATE.INIT;
     this.executableUrl = executableUrl;
     this.tid = getNewTid();
     this.compiledModule = null;
     this.memory = null;
     this.sysBufAddr = 0;
-    this.sysBufClock = 0;
+    this.signalInterruptController = null;
     this.terminateWorker = null;
+    this.wstatus = 0x1234; // Valid in DETACHED and ZOMBIE states
     Object.seal(this); // We want the shape of this object to stay the same
   }
 
@@ -56,64 +53,93 @@ class Process {
     );
   }
 
-  listenForSyscall(sync) {
-    const clock = this.sysBufClock;
-    // int32array == new Int32Array(this.memory.buffer)
-    waitAsyncPromise(sync, 0, __OSOAP_SYS_TURN_USER)
-      .then((wake_cause) => {
-        void wake_cause; // Either "ok" or "not-equal", but we don't care
-        if (this.sysBufClock !== clock || this.memory === null) return;
-        this.respondToSyscall();
-        if (this.memory === null) return;
-        const sync = this.syncWord();
-        Atomics.store(sync, 0, __OSOAP_SYS_TURN_USER);
-        Atomics.notify(sync, 0, 1);
-        this.listenForSyscall(sync);
-      });
+  async listenForSyscall() {
+    // It would be reasonable to proceed synchronously
+    // with either or both of waitAsync and respondToSyscall
+    // in the case that they do not need to do any async operations.
+    // This is an optimization opportunity.
+    // If we make both possibly synchronous, have the worry that
+    // we starve the event loop.
+    let sync = this.syncWord();
+    while (true) {
+      await Atomics.waitAsync(sync, 0, OSOAP_SYS.TURN.USER).value;
+      if (this.state !== PSTATE.RUNNING) break;
+      this.state = PSTATE.SYSCALL;
+      await this.respondToSyscall();
+      if (this.state !== PSTATE.SYSCALL) break;
+      sync = this.syncWord();
+      this.syscallReturnToUser(sync);
+      this.state = PSTATE.RUNNING;
+    }
+  }
+
+  syscallReturnToUser(sync) {
+    Atomics.store(sync, 0, OSOAP_SYS.TURN.USER);
+    Atomics.notify(sync, 0, 1);
   }
 
   respondToSyscall() {
-    this.requestUserDebugger();
-    debugger;
+    const dv = new DataView(this.memory.buffer);
+    const syscall_tag = dv.getUint32(this.sysBufAddr + SYSBUF_OFFSET.tag, true);
+    return dispatchSyscall(syscall_tag)(dv, this);
   }
 
+  // Call in the RUNNING or SYSCALL states
   requestUserDebugger() {
-    Atomics.or(this.flagWord(), 0, __OSOAP_SYS_FLAG_DEBUGGER);
+    Atomics.or(this.flagWord(), 0, OSOAP_SYS.FLAG.DEBUGGER);
   }
 
-  // Should only be called during the processing of a syscall
-  detachSysBuf() {
+  requestUserDie() {
+    Atomics.or(this.flagWord(), 0, OSOAP_SYS.FLAG.DIE);
+  }
+
+  detachSysBuf(wstatus) {
+    if (this.state === PSTATE.ZOMBIE || this.state === PSTATE.DETACHED) return;
+    if (this.state === PSTATE.RUNNING || this.state === PSTATE.SYSCALL) {
+      this.requestUserDie();
+    }
+    if (this.state === PSTATE.SYSCALL) {
+      this.syscallReturnToUser(this.syncWord());
+    } else if (this.state === PSTATE.RUNNING) {
+      // Flush the waitAsync call
+      Atomics.notify(this.syncWord(), 0);
+    }
+    this.wstatus = wstatus;
+    this.state = PSTATE.DETACHED;
     this.memory = null;
-  }
-
-  detachAndCleanUpAsyncWait() {
-    // Well-behaved programs should never force this to be called.
-    if (this.memory !== null) {
-      const syncWord = this.syncWord();
-      this.detachSysBuf();
-      Atomics.notify(syncWord, 0);
+    this.compiledModule = null;
+    if (this.signalInterruptController !== null) {
+      this.signalInterruptController.abort();
     }
   }
 
   abort() {
-    if (this.terminateWorker !== null) {
-      this.terminateWorker();
-      this.terminateWorker = null;
+    if (this.state === PSTATE.ZOMBIE) return;
+    if (this.terminateWorker === null) {
+      throw Error("Should always have worker outside 'zombie' state");
     }
-    this.detachAndCleanUpAsyncWait();
-    // TODO: Communicate that the process has ended
+    this.terminateWorker();
+    this.terminateWorker = null;
+    this.detachSysBuf(9/* SIGKILL */);
+    this.state = PSTATE.ZOMBIE;
   }
 
-  onExit(exitCode) {
-    console.log(`Exited with code: ${exitCode}`);
+  onExit() {
+    this.terminateWorker = null;
+    if (this.state !== PSTATE.DETACHED) this.detachSysBuf(4/*SIGILL*/);
+    this.state = PSTATE.ZOMBIE;
+    console.log("Exited");
   }
 
   onError(e) {
+    this.terminateWorker = null;
+    this.detachSysBuf(4/* SIGILL */);
+    this.state = PSTATE.ZOMBIE;
     throw new UserError(`Worker Error: ${e}`);
   }
 
   registerSysBuf(message) {
-    if (this.memory !== null) throw new UserError("Double register sysBuf");
+    if (this.state !== PSTATE.INIT) throw new UserError("Double register sysBuf");
     const memory = message.memory;
     const buffer = memory.buffer;
     const sysBufAddr = message.sysBuf;
@@ -121,11 +147,11 @@ class Process {
     if (sysBufAddr < 0 || sysBufAddr >= buffer.byteLength) {
       throw new UserError("sysBuf out of range");
     }
+    this.state = PSTATE.RUNNING;
     this.compiledModule = message.compiledModule;
-    this.sysBufClock += 1;
     this.memory = memory;
     this.sysBufAddr = sysBufAddr;
-    this.listenForSyscall(this.syncWord());
+    this.listenForSyscall();
   }
 }
 

@@ -1,18 +1,20 @@
-Four states: 'init', 'running', 'syscall', 'zombie'
+states: 'init', 'running', 'syscall', 'detached', 'zombie'
 
 Processes/threads start in the 'init' state.
 Here, the process has begun execution, but has not yet informed us of the location of its sysbuf.
 
 The next thing a well-behaved process does is send the kernel a message with the sysbuf.
-This moves the process to the 'running' state.
+This moves the process to the 'running' state from the 'init' state.
+If we are not in the 'init' state, (or the 'zombie' state, should never happen), that is if we are in 'running' or 'syscall',
+  ignore the request and instead force-kill the process.
 
 While the process is in the running state, the kernel should listen on the sysbuf for syscalls.
 On receipt of a syscall, mark the process as in the 'syscall' state.
 
 When the kernel is ready to respond, the process moves back to the 'running' state, and the kernel should listen again.
-An exception is the case of the 'detach' syscall, which forgets the sysbuf and moves to the 'init' state.
+An exception is the case of the 'detach' syscall, which forgets the sysbuf and moves to the 'detached' state.
 
-Finally, a well-behaved process sends the kernel a 'exit' message while it is in the 'init' state.
+Finally, a well-behaved process sends the kernel a 'exit' message while it is in the 'detached' state.
 This moves the process to the 'zombie' state, and records the exit code.
 
 An exceptional case is the receipt of an Error from the process.
@@ -29,7 +31,7 @@ If the process is in the 'zombie' state, this is a NOP.
 Otherwise, terminate the associated worker.
 If the process is in the 'running' state, we need to clean up the wait on the sysbuf.
 The process should be marked as having terminated abnormally (sigkill) and moved to the 'zombie' state.
-The above 3 lines are very similar to the receipt of an Error from the process.
+The above 2 lines are very similar to the receipt of an Error from the process.
 
 To send a signal to a process.
 (See the signals.txt document)
@@ -48,3 +50,6 @@ Then, threads in the 'syscall' state for interruptable syscalls, we can return E
 The interface for passing signals is, we set a bit in the flags word to indicate that there are signals to be handled.
 Then the process calls a special syscall accepting one signal. This call can return "nothing do do" if there are no pending acceptable signals.
 So, we can be optimistic in setting this bit whenever we queue a signal.
+
+To kill a cooperating process with a signal, indicate that we have a signal to deliver, then when we respond
+indicate that we want the process to go away, detach the syscall buffer (move to state 'detached').

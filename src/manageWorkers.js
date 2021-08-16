@@ -53,7 +53,7 @@ const startWorker = (process) => {
       process.registerSysBuf(e.data);
     } else if (e.data.purpose === MSG_PURPOSE.UTK.EXIT) {
       releaseWorker();
-      process.onExit(e.data.exitCode);
+      process.onExit();
     } else {
       // No way for user-space programs to send arbitrary messages,
       // so this error is an error in worker.js
