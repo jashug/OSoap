@@ -2,7 +2,7 @@ import {startWorker} from './manageWorkers.js';
 import {UserError} from './UserError.js';
 import {SYSBUF_OFFSET, OSOAP_SYS} from './constants/syscallBufferLayout.js';
 import {SIG} from './constants/signal.js';
-import {dispatchSyscall} from './dispatchSyscall.js';
+import {dispatchSyscall} from './syscall/dispatch.js';
 
 const POW_2_32 = Math.pow(2, 32);
 let tidCounter = 1; // Start PIDs at 1

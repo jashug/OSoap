@@ -1,7 +1,7 @@
-import {SYSBUF_OFFSET, OSOAP_SYS} from './constants/syscallBufferLayout.js';
+import {SYSBUF_OFFSET, OSOAP_SYS} from '../constants/syscallBufferLayout.js';
 
-import {linuxSyscall} from './syscall/linux_syscall.js';
-import {detach} from './syscall/detach.js';
+import {linuxSyscall} from './linux/dispatch.js';
+import {detach} from './detach.js';
 
 const defaultSyscall = (dv, process) => {
   debugger;

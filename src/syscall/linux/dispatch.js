@@ -1,9 +1,9 @@
-import {SYSBUF_OFFSET, OSOAP_SYS} from '../constants/syscallBufferLayout.js';
-import {SYS} from './linux/syscall.js';
-import {E} from './linux/errno.js';
+import {SYSBUF_OFFSET, OSOAP_SYS} from '../../constants/syscallBufferLayout.js';
+import {SYS} from './syscall.js';
+import {E} from './errno.js';
 
-import {ioctl} from './linux/ioctl.js';
-import {writev} from './linux/writev.js';
+import {ioctl} from './ioctl.js';
+import {writev} from './writev.js';
 
 const defaultSyscall = (dv, process) => {
   debugger;
