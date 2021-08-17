@@ -1,4 +1,4 @@
-import {MSG_PURPOSE} from './messagePurpose.js';
+import {MSG_PURPOSE} from './constants/messagePurpose.js';
 
 const idleWorkers = [];
 

@@ -1,4 +1,4 @@
-import {SYSBUF_OFFSET} from '../../syscallBufferLayout.js';
+import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
 import {E} from './errno.js';
 
 const ioctl = (dv, process) => {

@@ -1,4 +1,4 @@
-import {SYSBUF_OFFSET} from '../../syscallBufferLayout.js';
+import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
 
 const writev = (dv, process) => {
   const fd = dv.getInt32(process.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);

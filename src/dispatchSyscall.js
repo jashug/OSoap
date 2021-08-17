@@ -1,4 +1,4 @@
-import {SYSBUF_OFFSET, OSOAP_SYS} from './syscallBufferLayout.js';
+import {SYSBUF_OFFSET, OSOAP_SYS} from './constants/syscallBufferLayout.js';
 
 import {linuxSyscall} from './syscall/linux_syscall.js';
 import {detach} from './syscall/detach.js';

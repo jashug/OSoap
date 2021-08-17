@@ -1,6 +1,7 @@
 import {startWorker} from './manageWorkers.js';
 import {UserError} from './UserError.js';
-import {SYSBUF_OFFSET, OSOAP_SYS} from './syscallBufferLayout.js';
+import {SYSBUF_OFFSET, OSOAP_SYS} from './constants/syscallBufferLayout.js';
+import {SIG} from './constants/signal.js';
 import {dispatchSyscall} from './dispatchSyscall.js';
 
 const POW_2_32 = Math.pow(2, 32);
@@ -120,20 +121,20 @@ class Process {
     }
     this.terminateWorker();
     this.terminateWorker = null;
-    this.detachSysBuf(9/* SIGKILL */);
+    this.detachSysBuf(SIG.KILL);
     this.state = PSTATE.ZOMBIE;
   }
 
   onExit() {
     this.terminateWorker = null;
-    if (this.state !== PSTATE.DETACHED) this.detachSysBuf(4/*SIGILL*/);
+    if (this.state !== PSTATE.DETACHED) this.detachSysBuf(SIG.ILL);
     this.state = PSTATE.ZOMBIE;
-    console.log("Exited");
+    console.log(`Exited, exit status ${this.wstatus.toString(16)}`);
   }
 
   onError(e) {
     this.terminateWorker = null;
-    this.detachSysBuf(4/* SIGILL */);
+    this.detachSysBuf(SIG.ILL);
     this.state = PSTATE.ZOMBIE;
     throw new UserError(`Worker Error: ${e}`);
   }
