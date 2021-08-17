@@ -7,7 +7,7 @@ const THREAD_POOL_SIZE = Number.POSITIVE_INFINITY;
 
 const getIdleWorker = () => {
   if (idleWorkers.length > 0) return idleWorkers.pop();
-  else return new Worker('src/worker.js', {type: 'module'});
+  else return new Worker('src/worker/worker.js', {type: 'module'});
 };
 
 const idleWorkerMessage = (e) => {

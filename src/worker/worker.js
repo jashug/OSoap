@@ -1,8 +1,8 @@
 import {diagnostic} from './diagnostic.js';
-import {oneAtATimeError} from './oneAtATimeError.js';
+import {oneAtATimeError} from '../oneAtATimeError.js';
 import {adaptMemory} from './emplaceAdaptiveMemory.js';
-import {UserError} from './UserError.js';
-import {MSG_PURPOSE} from './constants/messagePurpose.js';
+import {UserError} from '../UserError.js';
+import {MSG_PURPOSE} from '../constants/messagePurpose.js';
 
 class ExitException extends Error {
   constructor(...args) {

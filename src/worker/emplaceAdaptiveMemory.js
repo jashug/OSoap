@@ -1,5 +1,5 @@
 import {importLocationEq, emplaceImport} from './wasmImportManagement.js';
-import {UserError} from './UserError.js';
+import {UserError} from '../UserError.js';
 
 const castImportToMemory = ({module, name, kind, type}) => {
   if (kind !== 'memory') {
