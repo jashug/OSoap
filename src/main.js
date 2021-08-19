@@ -1,3 +1,4 @@
+import {} from './checkEndianness.js';
 import {spawnProcess} from './threadTable.js';
 
 const term = new Terminal();
