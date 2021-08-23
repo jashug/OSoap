@@ -10,6 +10,8 @@ OUTPUT_FILE="src/syscall/linux/errno.js"
   sed -E 's/#define E(\w+)\s+(\w+)/  \1: E\1,/g;s/\b2BIG\b/TOOBIG/g' "${INPUT_FILE}"
   echo "};"
   echo
+  echo "// TODO: maybe make a class LinuxSyscallErrnoError for errors to inherit from"
+  echo
   echo "export {E};"
 } >${TMP_FILE}
 

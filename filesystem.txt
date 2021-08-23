@@ -18,12 +18,20 @@ splicing together filesystems needs a bit more thought, though Linux probably ha
 in Linux, it looks like you keep a table of mount points (roughly inodes) and the mounted filesystem
 so that you can handle transitions as a step separate from in-filesystem lookup of children.
 
-Files are identified by pair of filesystem instance and fs-instance-unique identifier.
+Files are identified by pair of filesystem instance and fs-instance-unique identifier (= device number).
 The only way to travel between filesystems is by going through a mount point:
 a mount point maps an (empty? maybe not necessarily) directory in one filesystem
 onto (the root?) of another file system.
 
 Bind mounts are cool, track root per-mount.
+Require a mount of the underlying filesystem, and don't allow unmount until all bind mounts are unmounted
+(or take the bind mounts down together).
+
+Filesystems need to maintain the root directory specially (implicit link).
+By not allowing hard links to directories, we preserve the tree structure of file systems.
+Thus we do not have to worry about loops., and can use simple refcounting for garbage collection.
+Keep an orphan list for files with nlink=0 but still open in some process; process this list on mount,
+and refuse unmount with this list not empty (or non-orphaned processes still having open files on the fs).
 
 Will need to design a filesystem on top of IndexedDB.
 IndexedDB is shared between tabs in the same origin; need some form of concurrency control.
@@ -36,3 +44,55 @@ When we lose the filesystem, we can get it back by incrementing the counter agai
 any cached preconceptions about the state of the filesystem.
 This system can probably be enhanced to provide a middle ground where some cached data can be kept.
 (Such as, increment a counter whenever the directory tree changes, but not when files are written.)
+
+---
+
+Linux adds some more guarantees to POSIX for non-interruptability of reads and writes.
+Torvalds rant: https://yarchive.net/comp/linux/wakekill.html
+For a normal file with at least n bytes before EOF, read will read all n requested bytes.
+For a normal file opened with O_APPEND, writes (at least short enough ones) will write all n requested bytes contiguously.
+(No short reads or writes.)
+
+---
+
+POSIX fcntl locking (F_SET_LK) is pretty much broken. https://lwn.net/Articles/586904/
+BSD flock is much better, lacking byte-range locks.
+Above article proposes fcntl OFD-local locks with similar semantics to BSD.
+Lock files are filesystem based, and rely on atomicity guarantees of certain operations.
+
+---
+
+Regular files, directories, symbolic links, and fifos should be supported by normal file systems.
+That leaves device files and sockets. (Possibly also message queues, semaphores, shared memory objects, typed memory objects)
+
+Say there is a unique filesystem that holds devices. dev_t and ino_t are the same size (uint64_t), so we can't just embed,
+but we can allocate inodes to devices (uniquely identified by dev_t), and keep track of the backwards mapping as well, while
+also having inodes for directories (and symlinks?)
+
+We don't actually have many devices: go with completely static device numbers?
+For unix sockets, prefer linux abstract namespace, possibly with a filesystem view.
+
+Keep it simple: store both device files and sockets in normal file systems. (Though they may be of limited utility.) Prioritize supporting them in tempfs.
+
+Normal file operations (fs layer):
+read at position
+write at position
+get file length
+append (atomic seek to end and write)
+
+(vfs layer):
+current position
+seek
+
+(fs layer)
+create a new file
+create a hard link
+remove a hard link
+
+---
+
+Need to refcount open file descriptions.
+
+---
+
+close should return EINTR if fd still valid and interrupted by signal, EINPROGRESS if fd closed but interrupted by signal

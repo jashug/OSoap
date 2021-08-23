@@ -141,4 +141,6 @@ const E = {
   HWPOISON: 133,
 };
 
+// TODO: maybe make a class LinuxSyscallErrnoError for errors to inherit from
+
 export {E};

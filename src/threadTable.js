@@ -3,6 +3,8 @@ import {UserError} from './UserError.js';
 import {SYSBUF_OFFSET, OSOAP_SYS} from './constants/syscallBufferLayout.js';
 import {SIG} from './constants/signal.js';
 import {dispatchSyscall} from './syscall/dispatch.js';
+import {FileDescriptor, FileDescriptorTable} from './FileDescriptor.js';
+import {OpenFileDescription} from './OpenFileDescription.js';
 
 const POW_2_32 = Math.pow(2, 32);
 let tidCounter = 1; // Start PIDs at 1
@@ -35,6 +37,10 @@ class Process {
     this.signalInterruptController = null;
     this.terminateWorker = null;
     this.wstatus = 0x1234; // Valid in DETACHED and ZOMBIE states
+    const ofd = new OpenFileDescription();
+    ofd.incRefCount();
+    ofd.incRefCount();
+    this.fdtable = new FileDescriptorTable([new FileDescriptor(ofd, false), new FileDescriptor(ofd, false), new FileDescriptor(ofd, false)]);
     Object.seal(this); // We want the shape of this object to stay the same
   }
 
@@ -109,6 +115,7 @@ class Process {
     this.state = PSTATE.DETACHED;
     this.memory = null;
     this.compiledModule = null;
+    this.fdtable.tearDown();
     if (this.signalInterruptController !== null) {
       this.signalInterruptController.abort();
     }

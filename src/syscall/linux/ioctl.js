@@ -1,5 +1,6 @@
 import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
 import {E} from './errno.js';
+import {SyscallError} from './SyscallError.js';
 
 const ioctl = (dv, process) => {
   const fd = dv.getInt32(process.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
@@ -14,7 +15,7 @@ const ioctl = (dv, process) => {
   } else {
     debugger;
     process.requestUserDebugger();
-    return -E.INVAL;
+    throw new SyscallError(E.INVAL);
   }
 };
 
