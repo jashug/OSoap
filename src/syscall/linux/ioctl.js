@@ -2,9 +2,9 @@ import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
 import {E} from './errno.js';
 import {SyscallError} from './SyscallError.js';
 
-const ioctl = (dv, process) => {
-  const fd = dv.getInt32(process.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
-  const request = dv.getUint32(process.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
+const ioctl = (dv, thread) => {
+  const fd = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
+  const request = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
   void fd;
   void request;
   if (request === 0x5413 /* TIOCGWINSZ */) {
@@ -14,7 +14,7 @@ const ioctl = (dv, process) => {
     return 0;
   } else {
     debugger;
-    process.requestUserDebugger();
+    thread.requestUserDebugger();
     throw new SyscallError(E.INVAL);
   }
 };

@@ -6,9 +6,9 @@ import {SyscallError} from './SyscallError.js';
 import {ioctl} from './ioctl.js';
 import {writev} from './writev.js';
 
-const defaultSyscall = (dv, process) => {
+const defaultSyscall = (dv, thread) => {
   debugger;
-  process.requestUserDebugger();
+  thread.requestUserDebugger();
   throw new SyscallError(E.NOSYS);
 };
 
@@ -23,9 +23,9 @@ const dispatchLinuxSyscall = (syscall_number) => {
   else return syscall;
 };
 
-const tryLinuxSyscall = (syscall, dv, process) => {
+const tryLinuxSyscall = (syscall, dv, thread) => {
   try {
-    return syscall(dv, process);
+    return syscall(dv, thread);
   } catch (e) {
     if (e.linuxSyscallErrno !== undefined) {
       return -e.linuxSyscallErrno;
@@ -35,12 +35,12 @@ const tryLinuxSyscall = (syscall, dv, process) => {
   }
 };
 
-const linuxSyscall = (dv, process) => {
-  const syscall_number = dv.getInt32(process.sysBufAddr + SYSBUF_OFFSET.linux_syscall.n, true);
+const linuxSyscall = (dv, thread) => {
+  const syscall_number = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.n, true);
   const syscall = dispatchLinuxSyscall(syscall_number);
-  const syscall_return = tryLinuxSyscall(syscall, dv, process);
-  dv.setInt32(process.sysBufAddr + SYSBUF_OFFSET.linux_syscall_return, syscall_return, true);
-  dv.setUint32(process.sysBufAddr + SYSBUF_OFFSET.tag, OSOAP_SYS.TAG.R.linux_syscall_return, true);
+  const syscall_return = tryLinuxSyscall(syscall, dv, thread);
+  dv.setInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall_return, syscall_return, true);
+  dv.setUint32(thread.sysBufAddr + SYSBUF_OFFSET.tag, OSOAP_SYS.TAG.R.linux_syscall_return, true);
 };
 
 export {linuxSyscall};

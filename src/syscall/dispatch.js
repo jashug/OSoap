@@ -4,10 +4,10 @@ import {linuxSyscall} from './linux/dispatch.js';
 import {exit_process} from './exit_process.js';
 import {exit_thread} from './exit_thread.js';
 
-const defaultSyscall = (dv, process) => {
+const defaultSyscall = (dv, thread) => {
   debugger;
-  process.requestUserDebugger();
-  dv.setUint32(process.sysBufAddr + SYSBUF_OFFSET.tag, OSOAP_SYS.TAG.R.unknown_syscall, true);
+  thread.requestUserDebugger();
+  dv.setUint32(thread.sysBufAddr + SYSBUF_OFFSET.tag, OSOAP_SYS.TAG.R.unknown_syscall, true);
 };
 
 const SYS_NUM = OSOAP_SYS.TAG.W;

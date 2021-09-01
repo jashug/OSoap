@@ -1,13 +1,9 @@
 import {SYSBUF_OFFSET} from '../constants/syscallBufferLayout.js';
 
 const exit_thread = (dv, thread) => {
-  thread.return_value =
-    dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.detach_exit_code, true);
-  if (thread.isLastThreadInProcess()) {
-    thread.requestUserExit();
-  } else {
-    thread.hangup();
-  }
+  thread.exit(
+    dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.exit_thread_return_value, true)
+  );
 };
 
 export {exit_thread};
