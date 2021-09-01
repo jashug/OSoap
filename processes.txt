@@ -75,9 +75,11 @@ If this is the only thread in the process, instead of immediately detaching we r
 The return value of a thread should only be accessed when the process is 'running' or 'syscall'. Thus on exit, we can leave the return value of all the threads we shut down as garbage.
 
 Child processes become orphans, and are adopted by init.
-If this process exiting causes any process group to become an orphaned process group, and if any member of the newly-orphaned process group is stopped (rather, any thread of any member), then a SIGHUP signal followed by a SIGCONT signal shall be sent to each process in the newly-orphaned process group.
+If this process exiting causes any process group to become an orphaned process group, and if any member of the newly-orphaned process group is stopped, then a SIGHUP signal followed by a SIGCONT signal shall be sent to each process in the newly-orphaned process group.
 If the process exiting is a controlling process (session leader for a session with a controlling terminal), send SIGHUP to the foreground process group, and release the controlling terminal.
 Other things that should happen on process termination:
 https://pubs.opengroup.org/onlinepubs/9699919799/functions/_Exit.html
 
 An orphaned process group is one where every process in the group has a parent that is either in the same group or in a different session.
+
+Threads in one process are stopped and continued all together.

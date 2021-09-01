@@ -17,6 +17,8 @@ const getNewTid = () => {
   return oldTid;
 };
 
+// TODO: removing the ZOMBIE state and separately tracking zombie threads
+// in the process would make a lot of sense.
 const THREAD_STATE = {
   INIT: 'init',
   RUNNING: 'running',
@@ -111,24 +113,44 @@ class Process {
     // TODO: store the actual exit code to return with waitid
     // TODO: make sure this handles process lifetime correctly
     this.wstatus = (exitCode & 0xff) << 8;
+    const threadTerminations = [];
     for (const thread of this.threads.values()) {
       thread.hangup();
+      threadTerminations.push(thread.terminated);
     }
+    const allThreadsTerminated = Promise.all(threadTerminations);
+    allThreadsTerminated.then((abruptList) => {
+      void abruptList;
+      console.log(`All threads for process ${this.processId} have terminated.`);
+      this.threads.clear();
+      this.dispose();
+    });
     console.log(`Process ${this.processId} exited with exit code ${exitCode}.`);
   }
 
+  // completes immediately
   kill() {
     this.wstatus = SIG.KILL;
     // TODO: make sure this handles process lifetime correctly
     for (const thread of this.threads.values()) {
       thread.terminate_now();
     }
+    this.threads.clear();
+    this.dispose();
+  }
+
+  notifyReturnValueGetLastThread(thread) {
+    // The return value of this thread has settled.
+    void thread;
+    return true; // TODO: make this be an accurate account of the last thread
   }
 
   joinProcess(thread) {
     this.threads.set(thread.threadId, thread);
   }
 
+  // TODO: this should be used when a process is joined,
+  // or when it exits if it is not joinable.
   leaveProcess(thread) {
     this.threads.delete(thread.threadId);
     if (this.threads.size === 0) this.dispose();
@@ -159,7 +181,13 @@ class Thread {
     this.signalInterruptController = null;
     this.terminateWorker = null;
     this.return_value = 0x1234; /* Uint32 */
-    this.joinable = true;
+    this.joinable = true; // TODO: add understanding of joinable/detached threads
+    // Resolves with a boolean which is true if the termination was abrupt
+    // (SIGKILL), and false if the user program exited cooperatively.
+    this.terminated = new Promise((resolve, reject) => {
+      this.resolve_terminated_ = resolve;
+      void reject;
+    });
     const ofd = new OpenFileDescription();
     this.fdtable = new FileDescriptorTable([new FileDescriptor(ofd, false), new FileDescriptor(ofd, false), new FileDescriptor(ofd, false)]);
     Object.seal(this); // We want the shape of this object to stay the same
@@ -186,11 +214,9 @@ class Thread {
     );
   }
 
-  isLastThreadInProcess() {
-    // TODO: make this accurate
-    return true;
-  }
-
+  // Processing should not continue for this process after calling this function.
+  // Consider making it throw an error that must be caught.
+  // (With the consequence that an uncought error could crash the kernel.)
   userMisbehaved(message) {
     console.log("User Misbehaved:", message);
     debugger;
@@ -265,9 +291,21 @@ class Thread {
     Atomics.or(this.flagWord(), 0, OSOAP_SYS.FLAG.EXIT);
   }
 
-  // Set this.return_value separately
+  exit(return_value) {
+    // The control flow for this path is somewhat convoluted.
+    // It would be simpler if we tracked return values all in the process.
+    this.return_value = return_value;
+    if (this.process.notifyReturnValueGetFinalThread(this)) {
+      this.requestUserExit();
+    } else {
+      this.hangup();
+    }
+  }
+
+  // Set this.return_value by calling exit
   // Detaches the syscall buffer, asks the user program to exit,
   // and cleans up other resources owned by the thread.
+  // This is the canonical way of entering the detached state.
   hangup() {
     if (this.state === THREAD_STATE.ZOMBIE || this.state === THREAD_STATE.DETACHED) return;
     this.state = THREAD_STATE.DETACHED;
@@ -276,29 +314,39 @@ class Thread {
     }
     this.fdtable.tearDown();
     this.fdtable = null;
-    if (this.signalInterruptController !== null) {
-      this.signalInterruptController.abort();
+    this.signalInterruptController?.abort?.();
+  }
+
+  // This is the canonical way of entering the zombie state.
+  // At this point, we have released the worker, and are only sticking
+  // around to collect the return value.
+  // TODO: if we are detached, shouldn't even stick around.
+  enterZombieState(abrupt_termination) {
+    if (this.state === THREAD_STATE.ZOMBIE) return;
+    if (this.state !== THREAD_STATE.DETACHED) {
+      throw new Error("Zombie without detach");
     }
+    this.state = THREAD_STATE.ZOMBIE;
+    this.resolve_terminated_(abrupt_termination);
   }
 
   terminate_now() {
     // Expects to be called only from process.terminate_now
-    if (this.terminateWorker !== null) {
-      this.terminateWorker();
-      this.terminateWorker = null;
-    }
+    this.terminateWorker?.();
+    this.terminateWorker = null;
     this.hangup();
-    this.state = THREAD_STATE.ZOMBIE;
+    this.enterZombieState(true);
   }
 
   onExit() {
     this.terminateWorker = null;
-    if (this.state !== THREAD_STATE.DETACHED) {
+    if (this.state === THREAD_STATE.DETACHED) {
+      // TODO: if not joinable, clean up right away
+      this.enterZombieState(false);
+      console.log(`Thread exited, return value 0x${this.return_value.toString(16)}`);
+    } else {
       this.userMisbehaved("Exit without detaching");
     }
-    // TODO: if not joinable, clean up right away
-    this.state = THREAD_STATE.ZOMBIE;
-    console.log(`Thread exited, return value 0x${this.return_value.toString(16)}`);
   }
 
   onError(e) {
@@ -312,7 +360,7 @@ class Thread {
 //const processTable = new Map();
 
 const spawnProcess = (executableUrl) => {
-  const process = new Process({joinProcessGroup() {}});
+  const process = new Process({joinProcessGroup() {}, leaveProcessGroup() {}});
   const thread = new Thread(executableUrl, process, process.processid);
   thread.terminateWorker = startWorker(thread);
 };
