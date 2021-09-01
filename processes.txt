@@ -53,3 +53,31 @@ So, we can be optimistic in setting this bit whenever we queue a signal.
 
 To kill a cooperating process with a signal, indicate that we have a signal to deliver, then when we respond
 indicate that we want the process to go away, detach the syscall buffer (move to state 'detached').
+
+=====
+
+Threads start in the 'init' state, then move to 'running' on receipt of the sysbuf.
+Then switch between 'syscall' and 'running'
+Finally in the 'zombie' state, two things have to happen:
+1. the user program has to acknowledge the exit and release the worker
+2. the thread has to wait for another thread to call join, unless the thread was detached.
+These two can happen in either order in theory; If we were to order them makes most sense to require the user program to acknowledge the exit before the thread can be joined.
+
+Now, for processes.
+A process starts with one thread.
+Threads can create other threads, and all threads in a process are peers (there is no notion of a main thread, or parent thread).
+When a thread calls exit (not pthread_exit), other threads may still be running.
+We need to ask all the threads to release their workers immediately. This involves moving to the TURN_DETACHED state,
+along with cancelling or completing any in-progress syscalls (since we will never need the return value).
+When a thread calls pthread_exit, this is specific to the thread.
+If there are other threads in the process, move to the zombie state, remember the return value. Or, if detached, clean up entirely.
+If this is the only thread in the process, instead of immediately detaching we return from the syscall with the exit(0) flag set. This calls exit to orderly clean up the process.
+The return value of a thread should only be accessed when the process is 'running' or 'syscall'. Thus on exit, we can leave the return value of all the threads we shut down as garbage.
+
+Child processes become orphans, and are adopted by init.
+If this process exiting causes any process group to become an orphaned process group, and if any member of the newly-orphaned process group is stopped (rather, any thread of any member), then a SIGHUP signal followed by a SIGCONT signal shall be sent to each process in the newly-orphaned process group.
+If the process exiting is a controlling process (session leader for a session with a controlling terminal), send SIGHUP to the foreground process group, and release the controlling terminal.
+Other things that should happen on process termination:
+https://pubs.opengroup.org/onlinepubs/9699919799/functions/_Exit.html
+
+An orphaned process group is one where every process in the group has a parent that is either in the same group or in a different session.

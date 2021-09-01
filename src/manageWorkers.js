@@ -26,7 +26,7 @@ const idleWorkerMessage = (e) => {
  * the return value is terminateWorker, which may be called once to force
  *   immediate termination of the worker.
  */
-const startWorker = (process) => {
+const startWorker = (thread) => {
   const worker = getIdleWorker();
   let workerReleased = false;
   const setReleasedFlag = () => {
@@ -45,15 +45,17 @@ const startWorker = (process) => {
   };
   worker.postMessage({
     purpose: MSG_PURPOSE.KTU.START,
-    module: process.executableUrl,
-    tid: process.tid,
+    module: thread.executableUrl,
+    tid: thread.tid,
   });
   worker.onmessage = (e) => {
-    if (e.data.purpose === MSG_PURPOSE.UTK.REGISTER_SYSBUF) {
-      process.registerSysBuf(e.data);
+    if (e.data.purpose === MSG_PURPOSE.UTK.SHARE_MODULE_AND_MEMORY) {
+      thread.process.registerModuleAndMemory(e.data);
+    } else if (e.data.purpose === MSG_PURPOSE.UTK.REGISTER_SYSBUF) {
+      thread.registerSysBuf(e.data);
     } else if (e.data.purpose === MSG_PURPOSE.UTK.EXIT) {
       releaseWorker();
-      process.onExit();
+      thread.onExit();
     } else {
       // No way for user-space programs to send arbitrary messages,
       // so this error is an error in worker.js
@@ -62,7 +64,7 @@ const startWorker = (process) => {
   };
   worker.onerror = (e) => {
     releaseWorker();
-    process.onError(e);
+    thread.onError(e);
   };
   return terminateWorker;
 };

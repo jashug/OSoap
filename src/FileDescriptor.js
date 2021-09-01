@@ -36,12 +36,15 @@ class FileDescriptorTable {
   constructor(predefinedFileDescriptors = []) {
     // Array<FileDescriptor | null>
     this.array = [...predefinedFileDescriptors];
+    for (const fd of this.array) {
+      fd.openFileDescription.incRefCount();
+    }
   }
 
   // A function to allocate the first unused slot in the array
+  // Increments the reference count of the open file description stored.
   // Returns the file descriptor allocated.
-  // thunk() returns a new FileDescriptor with thie openFileDescription refcount
-  //   already incremented.
+  // thunk() returns a new FileDescriptor
   // Throws FileDescriptorSpaceExhaustedError if MAX_NUM_FDS reached.
   allocate(thunk) {
     let ix = this.array.indexOf(null);
@@ -51,7 +54,9 @@ class FileDescriptorTable {
     if (ix >= MAX_NUM_FDS) {
       throw new FileDescriptorSpaceExhaustedError();
     }
-    this.array[ix] = thunk();
+    const fd = thunk();
+    fd.openFileDescription.incRefCount();
+    this.array[ix] = fd;
     return ix;
   }
 

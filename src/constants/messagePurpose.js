@@ -5,6 +5,7 @@ const MSG_PURPOSE = {
     START: 'start',
   },
   UTK: {
+    SHARE_MODULE_AND_MEMORY: 'shareModuleAndMemory',
     REGISTER_SYSBUF: 'registerSyscallBuffer',
     EXIT: 'exit',
   },

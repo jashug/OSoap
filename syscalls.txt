@@ -4,6 +4,34 @@ which allows for blocking syscalls.
 When using waitAsync on the kernel side, be careful not to create a reference cycle to memory
 via the callback.
 
-One syscall_buffer for each thread.
+One syscall buffer for each thread.
 
 On the kernel side, use AbortControler and AbortSignal to cancel in the middle?
+
+---
+
+Interaction between syscalls and signals:
+
+https://man7.org/linux/man-pages/man7/signal.7.html
+
+For short syscalls, we can simply complete the syscall, then set a flag telling the user program to check for signals after return.
+This requires the user side to save the returned value before checking for signals, as checking and handling signals will clobber
+the syscall buffer.
+
+For syscalls that can return successful partial completion (read/write on slow devices, sleep(seconds)),
+we can act similarly: return successful partial completion and set a flag to check for signals.
+
+For syscalls that should not be transparently restarted (relative timeouts, select/poll),
+return EINTR and set a flag to check for signals.
+
+For syscalls that should be transparently restarted, we have to decide how to do this.
+Wrap the "set syscall arguments, send syscall" code in a loop.
+Signals can be delivered before the syscall happens (for restartable syscalls and SA_RESTART signals handlers *only*),
+in which case we should process the signal and then retry the syscall if the handler completed normally.
+Signals can also be delivered after the syscall returns (for any syscall, including restartable syscalls),
+in which case we should save the return value and then poll for syscalls.
+
+Polling for syscalls looks like a simple restartable syscall, with the extra guarantee that we don't have to worry about signals being delivered after completion.
+We should call this function after every syscall finishes if the SIGNAL bit is set in the syscall buffer flags.
+
+Linux will wake up the process even for ignored signals, or SIGSTOP. We don't really want to do this; only wake up if there is a signal handler.

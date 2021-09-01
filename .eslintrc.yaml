@@ -19,3 +19,5 @@ rules:
     - always-multiline
   no-debugger: off
   no-throw-literal: error
+  require-await: error
+  no-return-await: error

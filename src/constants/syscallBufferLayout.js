@@ -8,24 +8,29 @@ const SYSBUF_OFFSET = {
     cnt: 48,
   },
   linux_syscall_return: 16,
-  detach_exit_code: 16,
+  exit_process_code: 16,
+  exit_thread_return_value: 16,
+  length: 52,
 };
 
 const OSOAP_SYS = {
-  TURN: {USER: 0, KERNEL: 1},
+  TURN: {USER: 0, KERNEL: 1, DETACHED: 2},
   FLAG: {
     SIGNAL: 0x1,
     DEBUGGER: 0x2,
-    DIE: 0x4,
+    EXIT: 0x4,
   },
   TAG: {
     W: {
       linux_syscall: 1,
-      detach: 3,
+      exit_process: 3,
+      exit_thread: 7, // TODO: renumber
+      poll_signals: 5,
     },
     R: {
       linux_syscall_return: 2,
       unknown_syscall: 4,
+      signal_then_retry: 6,
     },
   },
 };

@@ -35,6 +35,12 @@ const runProcess = async (message) => {
   const memoryLoc = {module: 'env', name: 'memory'};
   const memory = adaptMemory(module, memoryLoc, message.memory);
 
+  postMessage({
+    purpose: MSG_PURPOSE.UTK.SHARE_MODULE_AND_MEMORY,
+    compiledModule: module,
+    memory,
+  });
+
   // Instantiate
   const imports = {
     diagnostic,
@@ -43,8 +49,6 @@ const runProcess = async (message) => {
       register_syscall_buffer: (sysBuf, loc) => {
         postMessage({
           purpose: MSG_PURPOSE.UTK.REGISTER_SYSBUF,
-          compiledModule: module,
-          memory,
           sysBuf,
           loc, /* clear_child_tid */
         });

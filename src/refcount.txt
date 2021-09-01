@@ -1,0 +1,6 @@
+Refcounted objects contain a count or collection of things referencing them,
+when that count is decremented from 1 to 0, a dispose function is called.
+The refcount starts at 0 at creation; this is a special state.
+After creating a new refcounted object, users should ensure that the refcount is incremented
+(by storing a reference in an appropriate loctaion and calling the appropriate incRefCount
+method), or explicitly calling dispose.

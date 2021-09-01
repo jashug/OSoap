@@ -1,0 +1,2 @@
+https://emscripten.org/ - port C or C++ applications to the browser
+https://github.com/humphd/next - making web development possible in a browser

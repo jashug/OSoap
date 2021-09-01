@@ -27,23 +27,23 @@ class FileFlags {
 // and probably other methods for reading and writing.
 class OpenFileDescription {
   constructor() {
-    this.refcount = 1;
+    this.refcount = 0;
   }
 
   decRefCount() {
     if (this.refcount <= 0) throw new Error("Decrement zero refcount");
     if (--this.refcount === 0) {
-      this.close();
+      this.dispose();
     }
   }
 
   incRefCount() {
-    if (this.refcount <= 0) throw new Error("Increment zero refcount");
+    if (this.refcount < 0) throw new Error("Increment negative refcount");
     this.refcount++;
   }
 
   // TODO: this is a stub
-  close() {
+  dispose() {
     console.log("Open File Description being released");
   }
 
