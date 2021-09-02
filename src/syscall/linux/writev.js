@@ -12,7 +12,7 @@ const writev = (dv, thread) => {
     const iov_len = dv.getUint32(iov + i * 8 + 4, true);
     data.push(new Uint8Array(dv.buffer, iov_base, iov_len));
   }
-  return thread.fdtable.get(fd).openFileDescription.writev(data);
+  return thread.process.fdtable.get(fd).openFileDescription.writev(data);
 };
 
 export {writev};

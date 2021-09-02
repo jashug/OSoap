@@ -83,3 +83,7 @@ https://pubs.opengroup.org/onlinepubs/9699919799/functions/_Exit.html
 An orphaned process group is one where every process in the group has a parent that is either in the same group or in a different session.
 
 Threads in one process are stopped and continued all together.
+
+---
+
+If a thread calls pthread_join, but then gets cancelled, the target thread should still be joinable.

@@ -9,7 +9,6 @@ const SYSBUF_OFFSET = {
   },
   linux_syscall_return: 16,
   exit_process_code: 16,
-  exit_thread_return_value: 16,
   length: 52,
 };
 

@@ -89,7 +89,8 @@ class Process {
     this.currentWorkingDirectory = null;
     this.rootDirectory = null;
     this.fileModeCreationMask = null;
-    this.fdtable = null; // TODO: Move fdtable from thread to process.
+    const ofd = new OpenFileDescription();
+    this.fdtable = new FileDescriptorTable([new FileDescriptor(ofd, false), new FileDescriptor(ofd, false), new FileDescriptor(ofd, false)]);
     this.threads = new Map();
     this.wstatus = 0x1234; // Valid in DETACHED and ZOMBIE states
     this.processGroup.joinProcessGroup(this);
@@ -108,23 +109,15 @@ class Process {
     this.memory = memory;
   }
 
+  // TODO: exit and kill should set wstatus by first recieved, not last
   exit(exitCode) {
     // exitCode should be an int32 that is the value passed to _Exit
     // TODO: store the actual exit code to return with waitid
     // TODO: make sure this handles process lifetime correctly
     this.wstatus = (exitCode & 0xff) << 8;
-    const threadTerminations = [];
     for (const thread of this.threads.values()) {
       thread.hangup();
-      threadTerminations.push(thread.terminated);
     }
-    const allThreadsTerminated = Promise.all(threadTerminations);
-    allThreadsTerminated.then((abruptList) => {
-      void abruptList;
-      console.log(`All threads for process ${this.processId} have terminated.`);
-      this.threads.clear();
-      this.dispose();
-    });
     console.log(`Process ${this.processId} exited with exit code ${exitCode}.`);
   }
 
@@ -135,28 +128,21 @@ class Process {
     for (const thread of this.threads.values()) {
       thread.terminate_now();
     }
-    this.threads.clear();
-    this.dispose();
-  }
-
-  notifyReturnValueGetLastThread(thread) {
-    // The return value of this thread has settled.
-    void thread;
-    return true; // TODO: make this be an accurate account of the last thread
   }
 
   joinProcess(thread) {
     this.threads.set(thread.threadId, thread);
   }
 
-  // TODO: this should be used when a process is joined,
-  // or when it exits if it is not joinable.
   leaveProcess(thread) {
     this.threads.delete(thread.threadId);
     if (this.threads.size === 0) this.dispose();
   }
 
   dispose() {
+    this.fdtable.tearDown();
+    this.fdtable = null;
+    // TODO: persist as a zombie until reaped
     this.processGroup.leaveProcessGroup(this);
   }
 }
@@ -180,17 +166,6 @@ class Thread {
     this.sysBufAddr = 0;
     this.signalInterruptController = null;
     this.terminateWorker = null;
-    this.return_value = 0x1234; /* Uint32 */
-    this.joinable = true; // TODO: add understanding of joinable/detached threads
-    // Resolves with a boolean which is true if the termination was abrupt
-    // (SIGKILL), and false if the user program exited cooperatively.
-    this.terminated = new Promise((resolve, reject) => {
-      this.resolve_terminated_ = resolve;
-      void reject;
-    });
-    const ofd = new OpenFileDescription();
-    this.fdtable = new FileDescriptorTable([new FileDescriptor(ofd, false), new FileDescriptor(ofd, false), new FileDescriptor(ofd, false)]);
-    Object.seal(this); // We want the shape of this object to stay the same
     this.process.joinProcess(this);
   }
 
@@ -230,7 +205,6 @@ class Thread {
     const memory = this.process.memory;
     const buffer = memory.buffer;
     const sysBufAddr = message.sysBuf;
-    // TODO: don't crash the kernel on bad sysBufAddr
     if (sysBufAddr & 3) {
       this.userMisbehaved("sysBuf is not 4 byte aligned");
       return;
@@ -291,17 +265,6 @@ class Thread {
     Atomics.or(this.flagWord(), 0, OSOAP_SYS.FLAG.EXIT);
   }
 
-  exit(return_value) {
-    // The control flow for this path is somewhat convoluted.
-    // It would be simpler if we tracked return values all in the process.
-    this.return_value = return_value;
-    if (this.process.notifyReturnValueGetFinalThread(this)) {
-      this.requestUserExit();
-    } else {
-      this.hangup();
-    }
-  }
-
   // Set this.return_value by calling exit
   // Detaches the syscall buffer, asks the user program to exit,
   // and cleans up other resources owned by the thread.
@@ -312,22 +275,15 @@ class Thread {
     if (this.state !== THREAD_STATE.INIT) {
       notifyDetachedState(this.syncWord());
     }
-    this.fdtable.tearDown();
-    this.fdtable = null;
     this.signalInterruptController?.abort?.();
   }
 
-  // This is the canonical way of entering the zombie state.
-  // At this point, we have released the worker, and are only sticking
-  // around to collect the return value.
-  // TODO: if we are detached, shouldn't even stick around.
-  enterZombieState(abrupt_termination) {
-    if (this.state === THREAD_STATE.ZOMBIE) return;
-    if (this.state !== THREAD_STATE.DETACHED) {
-      throw new Error("Zombie without detach");
+  dispose() {
+    if (this.state === THREAD_STATE.ZOMBIE) {
+      throw new Error("Double thread dispose");
     }
     this.state = THREAD_STATE.ZOMBIE;
-    this.resolve_terminated_(abrupt_termination);
+    this.process.leaveProcess(this);
   }
 
   terminate_now() {
@@ -335,15 +291,14 @@ class Thread {
     this.terminateWorker?.();
     this.terminateWorker = null;
     this.hangup();
-    this.enterZombieState(true);
+    this.dispose();
   }
 
   onExit() {
     this.terminateWorker = null;
     if (this.state === THREAD_STATE.DETACHED) {
-      // TODO: if not joinable, clean up right away
-      this.enterZombieState(false);
-      console.log(`Thread exited, return value 0x${this.return_value.toString(16)}`);
+      this.dispose();
+      console.log(`Thread ${this.threadId} exited.`);
     } else {
       this.userMisbehaved("Exit without detaching");
     }
@@ -360,8 +315,11 @@ class Thread {
 //const processTable = new Map();
 
 const spawnProcess = (executableUrl) => {
-  const process = new Process({joinProcessGroup() {}, leaveProcessGroup() {}});
-  const thread = new Thread(executableUrl, process, process.processid);
+  const tid = getNewTid();
+  const session = new Session(tid);
+  const processGroup = new ProcessGroup(session, tid);
+  const process = new Process(processGroup, /*ppid*/0, tid);
+  const thread = new Thread(executableUrl, process, tid);
   thread.terminateWorker = startWorker(thread);
 };
 
