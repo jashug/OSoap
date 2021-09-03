@@ -17,6 +17,12 @@ const getNewTid = () => {
   return oldTid;
 };
 
+const PROCESS_STATUS_STATE = {
+  RUNNING: 'running',
+  CONTINUED: 'continued',
+  TERMINATED: 'terminated',
+};
+
 // TODO: removing the ZOMBIE state and separately tracking zombie threads
 // in the process would make a lot of sense.
 const THREAD_STATE = {
@@ -24,13 +30,12 @@ const THREAD_STATE = {
   RUNNING: 'running',
   SYSCALL: 'syscall',
   DETACHED: 'detached',
-  ZOMBIE: 'zombie',
 };
 
 const sessions = new Map();
 
 class Session {
-  constructor(sessionId = getNewTid()) {
+  constructor(sessionId) {
     this.sessionId = sessionId;
     this.controllingTerminal = null;
     this.processGroups = new Map();
@@ -54,7 +59,7 @@ class Session {
 const processGroups = new Set();
 
 class ProcessGroup {
-  constructor(session, processGroupId = getNewTid()) {
+  constructor(session, processGroupId) {
     this.session = session;
     this.processGroupId = processGroupId;
     this.processes = new Map();
@@ -75,14 +80,20 @@ class ProcessGroup {
   dispose() {
     processGroups.delete(this.processGroupId);
     this.session.leaveSession(this);
+    this.session = null;
   }
 }
 
+const pidTable = new Map();
+
 class Process {
-  constructor(processGroup, parentProcessId, processId = getNewTid()) {
+  constructor(processGroup, parentProcess, processId) {
     this.compiledModule = null;
     this.memory = null;
+    this.status = null;
+    this.isZombie = false;
     this.processGroup = processGroup;
+    this.parentProcess = parentProcess;
     this.processId = processId;
     this.setUserId = {real: null, effective: null, saved: null};
     this.setGroupId = {real: null, effective: null, saved: null};
@@ -92,7 +103,8 @@ class Process {
     const ofd = new OpenFileDescription();
     this.fdtable = new FileDescriptorTable([new FileDescriptor(ofd, false), new FileDescriptor(ofd, false), new FileDescriptor(ofd, false)]);
     this.threads = new Map();
-    this.wstatus = 0x1234; // Valid in DETACHED and ZOMBIE states
+
+    pidTable.set(this.processId, this);
     this.processGroup.joinProcessGroup(this);
   }
 
@@ -104,46 +116,94 @@ class Process {
     return processGroups.has(this.processId);
   }
 
+  notifyDeadChild(process) {
+    void process;
+    // TODO: wake up relevant wait calls, emit SIGCHLD
+    // TODO: return true when SIGCHLD has SA_NOCLDWAIT or is set to SIG_IGN
+    return false;
+  }
+
   registerModuleAndMemory({compiledModule, memory}) {
     this.compiledModule = compiledModule;
     this.memory = memory;
   }
 
-  // TODO: exit and kill should set wstatus by first recieved, not last
+  // exit may be called multiple times, should be a noop after the first
   exit(exitCode) {
     // exitCode should be an int32 that is the value passed to _Exit
     // TODO: store the actual exit code to return with waitid
-    // TODO: make sure this handles process lifetime correctly
-    this.wstatus = (exitCode & 0xff) << 8;
+    this.terminate_((exitCode & 0xff) << 8);
     for (const thread of this.threads.values()) {
       thread.hangup();
     }
-    console.log(`Process ${this.processId} exited with exit code ${exitCode}.`);
   }
 
-  // completes immediately
+  // Completes immediately, can force a exit to hurry up, without changing
+  // the exit status. Is that the desired behavior?
   kill() {
-    this.wstatus = SIG.KILL;
-    // TODO: make sure this handles process lifetime correctly
+    this.terminate_(SIG.KILL);
     for (const thread of this.threads.values()) {
       thread.terminate_now();
     }
   }
 
   joinProcess(thread) {
+    if (this.isZombie) return;
     this.threads.set(thread.threadId, thread);
   }
 
   leaveProcess(thread) {
     this.threads.delete(thread.threadId);
-    if (this.threads.size === 0) this.dispose();
+    if (this.threads.size === 0) {
+      // In normal operation, this exit should be a noop,
+      // since the last thread should have called exit first.
+      this.exit(0);
+    }
   }
 
-  dispose() {
+  terminate_(reason) {
+    if (this.isZombie) return;
+    this.isZombie = true;
+    console.log(`Process ${this.processId} terminated.`);
     this.fdtable.tearDown();
     this.fdtable = null;
-    // TODO: persist as a zombie until reaped
+    this.status = {
+      state: PROCESS_STATUS_STATE.TERMINATED,
+      reason: reason,
+    };
+    if (this.parentProcess?.notifyDeadChild(this)) {
+      // reap yourself
+      this.reap();
+    }
+    // TODO: All children of this process (including zombies)
+    // should be adopted by init.
+    // As part of this, call init.notifyDeadChild(child) for zombies.
+    if (this.isSessionLeader()) {
+      const session = this.processGroup.session;
+      session.terminal?.hangup();
+      session.terminal = null;
+    }
+    // Orphaned process group: A process group in which the parent of every member is either itself a member of the group or is not a member of the group's session.
+    // TODO: If the exit of the process causes a process group to become orphaned, and if any member of the newly-orphaned process group is stopped, then a SIGHUP signal followed by a SIGCONT signal shall be sent to each process in the newly-orphaned process group.
+    // TODO: analyze interaction with asynchronous IO, when we have aio.
+
+    // Other things that happen on termination, according to
+    // https://pubs.opengroup.org/onlinepubs/9699919799/functions/_Exit.html
+    // We have skipped bullets talking about
+    // * shared memory
+    // * semaphores
+    // * memory locks
+    // * memory mappings
+    // * typed memory
+    // * message queues
+  }
+
+  // TODO: also call after parent reaps this process with wait
+  reap() {
+    this.status = null;
     this.processGroup.leaveProcessGroup(this);
+    this.processGroup = null;
+    pidTable.delete(this.processId);
   }
 }
 
@@ -157,8 +217,12 @@ const notifyDetachedState = (sync) => {
   Atomics.notify(sync, 0);
 };
 
+// How long user programs have to exit when asked
+// before they are forcibly terminated.
+const TIME_TO_DIE_MS = 30 * 1000;
+
 class Thread {
-  constructor(executableUrl, process, threadId = getNewTid()) {
+  constructor(executableUrl, process, threadId) {
     this.state = THREAD_STATE.INIT;
     this.executableUrl = executableUrl;
     this.process = process;
@@ -195,6 +259,7 @@ class Thread {
   userMisbehaved(message) {
     console.log("User Misbehaved:", message);
     debugger;
+    if (this.process === null) return;
     this.process.kill();
   }
 
@@ -260,6 +325,7 @@ class Thread {
     Atomics.or(this.flagWord(), 0, OSOAP_SYS.FLAG.DEBUGGER);
   }
 
+  // TODO: can probably be removed
   // Should only be called in the RUNNING or SYSCALL states
   requestUserExit() {
     Atomics.or(this.flagWord(), 0, OSOAP_SYS.FLAG.EXIT);
@@ -270,34 +336,27 @@ class Thread {
   // and cleans up other resources owned by the thread.
   // This is the canonical way of entering the detached state.
   hangup() {
-    if (this.state === THREAD_STATE.ZOMBIE || this.state === THREAD_STATE.DETACHED) return;
+    if (this.state === THREAD_STATE.DETACHED) return;
     this.state = THREAD_STATE.DETACHED;
+    // Arrange to clean up abruptly if the user program isn't cooperative.
+    setTimeout(this.terminate_now.bind(this), TIME_TO_DIE_MS);
     if (this.state !== THREAD_STATE.INIT) {
       notifyDetachedState(this.syncWord());
     }
-    this.signalInterruptController?.abort?.();
-  }
-
-  dispose() {
-    if (this.state === THREAD_STATE.ZOMBIE) {
-      throw new Error("Double thread dispose");
-    }
-    this.state = THREAD_STATE.ZOMBIE;
+    this.signalInterruptController?.abort();
     this.process.leaveProcess(this);
+    this.process = null;
   }
 
   terminate_now() {
-    // Expects to be called only from process.terminate_now
     this.terminateWorker?.();
     this.terminateWorker = null;
     this.hangup();
-    this.dispose();
   }
 
   onExit() {
     this.terminateWorker = null;
     if (this.state === THREAD_STATE.DETACHED) {
-      this.dispose();
       console.log(`Thread ${this.threadId} exited.`);
     } else {
       this.userMisbehaved("Exit without detaching");
@@ -318,7 +377,7 @@ const spawnProcess = (executableUrl) => {
   const tid = getNewTid();
   const session = new Session(tid);
   const processGroup = new ProcessGroup(session, tid);
-  const process = new Process(processGroup, /*ppid*/0, tid);
+  const process = new Process(processGroup, null, tid);
   const thread = new Thread(executableUrl, process, tid);
   thread.terminateWorker = startWorker(thread);
 };

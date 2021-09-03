@@ -13,6 +13,8 @@ request to the socket, the operating system can buffer that request, promote it 
 lower the response back to tcp/ip.
 
 Many services can be accessed over http/https. This includes git, dns, npm, apt, pip.
+Some will require a proxy, for example ssh.
+Running a proxy on localhost should provide reasonable security.
 
 ---
 

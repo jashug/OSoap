@@ -35,6 +35,8 @@ and refuse unmount with this list not empty (or non-orphaned processes still hav
 
 Will need to design a filesystem on top of IndexedDB.
 Look at https://github.com/filerjs/filer, see if it works for our purposes.
+Another possibility is https://github.com/jvilk/BrowserFS.
+Both of these are not currently maintained.
 IndexedDB is shared between tabs in the same origin; need some form of concurrency control.
 Use a modified seqlock: make sure each transaction leaves the filesystem in a consistent state, such
 that it could be removed from one tab and shifted to another.
