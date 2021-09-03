@@ -1,0 +1,18 @@
+The problem is to implement the interface
+int alloc(void)
+void release(int)
+where alloc should return a not-currently-in-use identifier, and release should return that identifier.
+
+We care about time and space. The identifiers are bounded, and alloc should not fail because of fragmentation.
+
+The simplest approach is to keep a stack of free identifiers (and the first never-allocated identifier).
+alloc is pop (or increment never-allocated if the stack is empty), release is push
+This takes space proportional to the number of concurrently released identifiers,
+which in the worst case is roughly the maximum number of concurrent identifiers used.
+
+If we really care a whole lot about space, we can get space O(number of concurrently allocated identifiers).
+The way to do this is to keep a balanced binary tree of alternating allocated and free intervals.
+Then alloc and free take O(log n) time, and the whole thing takes O(n) space where n is the number of concurrently allocated identifiers.
+To manage the trees, we can use a stack of tree node slots, and transparently move tree nodes around to avoid fragmentation completely (like what a garbage collecter can do).
+We can also maintain multiple allocaters in the same block of linear memory, taking space proportional to the concurrent total number of allocated identifiers.
+By putting this in a dynamically sized array, we can return space to the system when the array shrinks (capacity / 4 < size <= capacity, double or halve outside)
