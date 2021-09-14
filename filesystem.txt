@@ -38,6 +38,7 @@ Look at https://github.com/filerjs/filer, see if it works for our purposes.
 Another possibility is https://github.com/jvilk/BrowserFS.
 Both of these are not currently maintained.
 IndexedDB is shared between tabs in the same origin; need some form of concurrency control.
+Use Web Locks API (Chrome only for now) https://developer.mozilla.org/en-US/docs/Web/API/Web_Locks_API
 Use a modified seqlock: make sure each transaction leaves the filesystem in a consistent state, such
 that it could be removed from one tab and shifted to another.
 When attaching to the fs, increment a counter, and store the value. As long as the counter stays at
@@ -99,3 +100,33 @@ Need to refcount open file descriptions.
 ---
 
 close should return EINTR if fd still valid and interrupted by signal, EINPROGRESS if fd closed but interrupted by signal
+
+---
+
+Mounts form a tree structure, which induces a tree structure for the complete file hierarchy.
+cwd/root for a process are effectively pairs of mount and identifier.
+
+A filesystem consists of a tree of directories along with a set of non-directory files, which can be linked from multiple directories.
+Persistant filesystems should keep track of files with open file descriptions but no links. Consider how this works for directories.
+POSIX says orphaned directories must be empty, they have no . or .. links, and you cannot create new entries in the directory.
+Or just return EBUSY.
+
+Distinct filesystems contain distinct files. Use Web Locks API for persistent filesystems.
+The amalgamated file tree consists of a tree of mounts, each mount points to a filesystem (multiple mounts may point to the same filesystem),
+Mounts also track a path inside the filesystem to the effective root. This path (from the real root of the filesystem),
+the links in the path, should be pinned by the filesystem; the path should not change while the mount is alive.
+A similar thing should happen for the mount point/the parent mount.
+
+So filesystems have two kinds of pinned paths: paths from the root to the effective root of one of their mounts, and for each child mount
+of one of this filesystem's mounts a path from the effective root to the mount point. Pinning orphaned files/directories is a bit weird, but plausible.
+Do we have to do the pinning down from the root of the filesystem, or can we start in the middle and ask to pin this file here?
+
+--
+
+An alternative that may be simpler to implement:
+Mount inodes onto inodes.
+In a filesystem, you have the natural root, and you also have a bunch of files which are being used as mount roots.
+When a directory is mounted, it can be moved around freely, but can only be unlinked when it is empty. Unlinking a mounted directory removes the virtual mounting link.
+So the idea is that rm -rf mountpoint clears all the files in the mounted filesystem below the mount root, does not unlink the mount root (leaves an empty directory), and unmounts.
+If a file is mounted, rm mountpoint simply removes the mount. Mounts thus act as high-priority virtual links, that can go across filesystems.
+Mounts still form a tree, each with their own independent set of child mounts.
