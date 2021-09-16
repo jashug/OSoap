@@ -3,6 +3,8 @@ import {oneAtATimeError} from '../oneAtATimeError.js';
 import {adaptMemory} from './emplaceAdaptiveMemory.js';
 import {UserError} from '../UserError.js';
 import {MSG_PURPOSE} from '../constants/messagePurpose.js';
+import {E} from '../syscall/linux/errno.js';
+import {syscallFork} from './syscallFork.js';
 
 class ExitException extends Error {
   constructor(...args) {
@@ -55,24 +57,48 @@ const runProcess = async (message) => {
         return tid;
       },
       throw_exit: () => { throw new ExitException(); },
+      fork: (sys_buf, stack_buf) => {
+        if (forking === null) {
+          if (instance.exports.asyncify_start_unwind === undefined) {
+            return -E.NOSYS;
+          }
+          // Start unwinding the stack to fork
+          instance.exports.asyncify_start_unwind(stack_buf);
+          forking = {sys_buf, stack_buf, pid: -1};
+          return forking.pid;
+        } else {
+          instance.exports.asyncify_stop_rewind();
+          const pid = forking.pid;
+          forking = null;
+          return pid;
+        }
+      },
     },
   };
   const instance = await WebAssembly.instantiate(module, imports);
 
   // Run
-  try {
-    instance.exports._start();
-  } catch (e) {
-    if (e instanceof ExitException) {
-      postMessage({
-        purpose: MSG_PURPOSE.UTK.EXIT,
-      });
-      return;
-    } else {
-      throw e;
+  let forking = null;
+  while (true) {
+    try {
+      instance.exports._start();
+    } catch (e) {
+      if (e instanceof ExitException) {
+        postMessage({
+          purpose: MSG_PURPOSE.UTK.EXIT,
+        });
+        return;
+      } else {
+        throw e;
+      }
+    }
+    if (forking === null) throw new UserError("Start function returned");
+    else {
+      instance.exports.asyncify_stop_unwind();
+      forking.pid = syscallFork(memory, forking.sys_buf);
+      instance.exports.asyncify_start_rewind(forking.stack_buf);
     }
   }
-  throw new UserError("Start function returned");
 };
 
 const handleMessage = oneAtATimeError(async (e) => {

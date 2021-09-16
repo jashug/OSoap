@@ -23,6 +23,29 @@ class FileFlags {
 }
 */
 
+// Used for CWD and root directory, as well as during the process
+// of pathname resolution.
+// Can be moved around; not an immutable type.
+// Holds a virtual link in to the directory.
+// Always points to a directory, never any other type of file.
+class PlainDirectoryPointer {
+  constructor(mount, id) {
+    this.mount = mount;
+    this.id = id;
+    this.mount.fs.virtualLinksIn.inc(this.id);
+  }
+
+  copy() {
+    return new PlainDirectoryPointer(this.mount, this.id);
+  }
+
+  // Always call dispose exactly once.
+  dispose() {
+    this.mount.fs.virtualLinksIn.dec(this.id);
+    this.mount = null;
+  }
+}
+
 // Subclasses should define close,
 // and probably other methods for reading and writing.
 class OpenFileDescription {
@@ -46,12 +69,14 @@ class OpenFileDescription {
   dispose() {
     console.log("Open File Description being released");
   }
+}
 
-  // TODO: this is a stub
-  // data is an array of Uint8Array
+class DevConsoleFileDescription extends OpenFileDescription {
+  // data is a Uint8Array of utf8 data
   writev(data) {
+    // TODO: add error checking (invalid utf8 data, for example)
     const strings = [];
-    const decoder = new TextDecoder(); // TODO: should be shared over multiple calls
+    const decoder = new TextDecoder(); // TODO: should maybe be shared over multiple calls
     let bytes_written = 0;
     for (const arr of data) {
       // FIXME: the copy via new Uint8Array(arr) here is necessary because
@@ -63,6 +88,15 @@ class OpenFileDescription {
     console.log(strings.join(''));
     return bytes_written;
   }
+
+  dispose() {
+    throw new Error("DevConsole should never be disposed");
+    // We keep a reference to the singleton, and never release it,
+    // so if we throw this error it indicates a double-free bug somewhere else.
+  }
 }
 
-export {OpenFileDescription};
+const devConsole = new DevConsoleFileDescription();
+devConsole.incRefCount(); // A never-released reference to this singleton.
+
+export {PlainDirectoryPointer, OpenFileDescription, devConsole};

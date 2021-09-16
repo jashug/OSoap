@@ -3,6 +3,7 @@ import {SYSBUF_OFFSET, OSOAP_SYS} from '../constants/syscallBufferLayout.js';
 import {linuxSyscall} from './linux/dispatch.js';
 import {exit_process} from './exit_process.js';
 import {exit_thread} from './exit_thread.js';
+import {gettid} from './gettid.js';
 
 const defaultSyscall = (dv, thread) => {
   debugger;
@@ -16,6 +17,7 @@ const syscallTable = new Map([
   [SYS_NUM.linux_syscall, linuxSyscall],
   [SYS_NUM.exit_process, exit_process],
   [SYS_NUM.exit_thread, exit_thread],
+  [SYS_NUM.gettid, gettid],
 ]);
 
 const dispatchSyscall = (syscall_tag) => {

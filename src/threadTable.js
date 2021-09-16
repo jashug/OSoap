@@ -3,7 +3,7 @@ import {SYSBUF_OFFSET, OSOAP_SYS} from './constants/syscallBufferLayout.js';
 import {SIG} from './constants/signal.js';
 import {dispatchSyscall} from './syscall/dispatch.js';
 import {FileDescriptor, FileDescriptorTable} from './FileDescriptor.js';
-import {OpenFileDescription} from './OpenFileDescription.js';
+import {devConsole} from './OpenFileDescription.js';
 
 const FIRST_UNUSABLE_PID = Math.pow(2, 31);
 let tidCounter = 1; // Start PIDs at 1
@@ -100,8 +100,7 @@ class Process {
     this.currentWorkingDirectory = null;
     this.rootDirectory = null;
     this.fileModeCreationMask = null;
-    const ofd = new OpenFileDescription();
-    this.fdtable = new FileDescriptorTable([new FileDescriptor(ofd, false), new FileDescriptor(ofd, false), new FileDescriptor(ofd, false)]);
+    this.fdtable = new FileDescriptorTable([new FileDescriptor(devConsole, false), new FileDescriptor(devConsole, false), new FileDescriptor(devConsole, false)]);
     this.threads = new Map();
 
     pidTable.set(this.processId, this);
@@ -231,6 +230,7 @@ class Thread {
     this.signalInterruptController = null;
     this.terminateWorker = null;
     this.process.joinProcess(this);
+    this.signalMask = new Uint32Array(2); // TODO: copy from parent
   }
 
   // get memory() { return this.process.memory; }

@@ -9,6 +9,7 @@ const SYSBUF_OFFSET = {
   },
   linux_syscall_return: 16,
   exit_process_code: 16,
+  pid_return: 16,
   length: 52,
 };
 
@@ -23,12 +24,13 @@ const OSOAP_SYS = {
     W: {
       linux_syscall: 1,
       exit_process: 3,
-      exit_thread: 7, // TODO: renumber
       poll_signals: 5,
+      exit_thread: 7, // TODO: renumber
+      gettid: 9,
     },
     R: {
       linux_syscall_return: 2,
-      unknown_syscall: 4,
+      pid_return: 4,
       signal_then_retry: 6,
     },
   },

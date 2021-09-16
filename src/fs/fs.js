@@ -18,6 +18,10 @@ class Mount {
     this.mountPoint = mountPoint; // an id in parent
     this.fs = fs;
     this.bindRoot = bindRoot; // an id in fs
+    this.mountType = null;
+    // the file type of mountPoint and bindRoot should
+    // both be the same as this.mountType (this ensures that the
+    // cached file type in direntries remains accurate).
     this.parent.addChildMount(this);
     this.fs.virtualLinksIn.inc(this.bindRoot); // Take a regular reference
   }

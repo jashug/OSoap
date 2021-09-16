@@ -5,6 +5,8 @@ import {SyscallError} from './SyscallError.js';
 
 import {ioctl} from './ioctl.js';
 import {writev} from './writev.js';
+import {sigprocmask} from './sigprocmask.js';
+import {fork} from './fork.js';
 
 const defaultSyscall = (dv, thread) => {
   debugger;
@@ -15,6 +17,8 @@ const defaultSyscall = (dv, thread) => {
 const linuxSyscallTable = new Map([
   [SYS.ioctl, ioctl],
   [SYS.writev, writev],
+  [SYS.rt_sigprocmask, sigprocmask],
+  [SYS.fork, fork],
 ]);
 
 const dispatchLinuxSyscall = (syscall_number) => {
