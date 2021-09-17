@@ -10,6 +10,11 @@ const SYSBUF_OFFSET = {
   linux_syscall_return: 16,
   exit_process_code: 16,
   pid_return: 16,
+  fork: {
+    stack_buf: 16,
+    saved_globals: 20,
+    saved_globals_length: 32,
+  },
   length: 52,
 };
 
@@ -23,10 +28,11 @@ const OSOAP_SYS = {
   TAG: {
     W: {
       linux_syscall: 1,
-      exit_process: 3,
-      poll_signals: 5,
-      exit_thread: 7, // TODO: renumber
+      poll_signals: 3,
+      exit_process: 5,
+      exit_thread: 7,
       gettid: 9,
+      fork: 11,
     },
     R: {
       linux_syscall_return: 2,

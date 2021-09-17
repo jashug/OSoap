@@ -28,6 +28,7 @@ CFLAGS ::= \
 ifdef VERBOSE
   CFLAGS += -v
 endif
+WASM_OPT_FLAGS ::= -all -O -g
 TARGET_CFLAGS ::=
 TARGET_WASM_OPT_FLAGS ::=
 
@@ -47,7 +48,7 @@ tmp/opt:
 	mkdir -p tmp/opt
 
 tmp/opt/%.wasm: tmp/%.wasm $(SYSROOT_PREREQS) Makefile | tmp/opt
-	wasm-opt -all $(TARGET_WASM_OPT_FLAGS) -O -o $@ $<
+	wasm-opt $(WASM_OPT_FLAGS) $(TARGET_WASM_OPT_FLAGS) -o $@ $<
 
 tmp/just_math.wasm: private TARGET_CFLAGS ::= -nostdlib -Wl,--no-entry -Wl,--export-all
 
@@ -55,6 +56,7 @@ tmp/puts.wasm: private TARGET_CFLAGS ::=
 
 tmp/argc.wasm: private TARGET_CFLAGS ::=
 
+tmp/fork.wasm: private TARGET_CFLAGS ::= -Wl,--export=__stack_pointer -Wl,--export=__tls_base
 tmp/opt/fork.wasm: private TARGET_WASM_OPT_FLAGS ::= --asyncify --pass-arg=asyncify-imports@env.fork
 
 # setjmp is not yet translated to wasm exceptions in llvm

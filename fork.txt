@@ -1,0 +1,4 @@
+For a program to use fork:
+
+It must be compiled with wasm-opt --asyncify.
+All mutable globals must be exported: use -Wl,--export=__stack_pointer -Wl,--export=__tls_base for clang.

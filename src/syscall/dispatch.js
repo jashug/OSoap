@@ -4,6 +4,7 @@ import {linuxSyscall} from './linux/dispatch.js';
 import {exit_process} from './exit_process.js';
 import {exit_thread} from './exit_thread.js';
 import {gettid} from './gettid.js';
+import {fork} from './fork.js';
 
 const defaultSyscall = (dv, thread) => {
   debugger;
@@ -18,6 +19,7 @@ const syscallTable = new Map([
   [SYS_NUM.exit_process, exit_process],
   [SYS_NUM.exit_thread, exit_thread],
   [SYS_NUM.gettid, gettid],
+  [SYS_NUM.fork, fork],
 ]);
 
 const dispatchSyscall = (syscall_tag) => {
