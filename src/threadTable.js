@@ -221,15 +221,16 @@ const notifyDetachedState = (sync) => {
 const TIME_TO_DIE_MS = 30 * 1000;
 
 class Thread {
-  constructor(process, threadId, executionContext) {
+  constructor(process, threadId, signalMask, executionContext) {
     this.state = THREAD_STATE.INIT;
     this.process = process;
     this.threadId = threadId;
     this.sysBufAddr = 0;
     this.signalInterruptController = null;
+    this.signalMask = new Uint32Array(signalMask);
+    if (this.signalMask.length !== 2) throw new Error("Bad sized signal mask");
     this.terminateWorker = startWorker(this, executionContext);
     this.process.joinProcess(this);
-    this.signalMask = new Uint32Array(2); // TODO: copy from parent
   }
 
   // get memory() { return this.process.memory; }
@@ -366,12 +367,14 @@ class Thread {
 
 //const processTable = new Map();
 
+const initialSignalMask = new Uint32Array(2);
+
 const spawnProcess = (executableUrl) => {
   const tid = getNewTid();
   const session = new Session(tid);
   const processGroup = new ProcessGroup(session, tid);
   const process = new Process(processGroup, null, tid);
-  const thread = new Thread(process, tid, {
+  const thread = new Thread(process, tid, initialSignalMask, {
     forking: {inFork: false, sys_buf: 0, stack_buf: 0, pid: 0},
     module: executableUrl,
     requestShareModuleAndMemory: true,

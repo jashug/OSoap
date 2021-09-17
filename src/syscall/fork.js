@@ -41,7 +41,7 @@ const fork = (dv, thread) => {
     compiledModule: newModule,
     memory: newMemory,
   });
-  const newThread = new Thread(newProcess, newPid, {
+  const newThread = new Thread(newProcess, newPid, thread.signalMask, {
     /* forking.pid is irrelevant; overwritten by syscall buffer value */
     forking: {inFork: true, sys_buf: sysBufAddr, stack_buf: stackBuf, pid: 0},
     module: newModule,
