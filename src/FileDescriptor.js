@@ -32,10 +32,10 @@ class FileDescriptor {
     this.openFileDescription.incRefCount();
   }
 
-  copy(closeOnExec = false) {
-    if (closeOnExec && this.closeOnExec) return null;
+  copy({copyForExec = false, closeOnExec} = {}) {
+    if (copyForExec && this.closeOnExec) return null;
     this.openFileDescription.incRefCount();
-    return new FileDescriptor(this.openFileDescription, this.closeOnExec);
+    return new FileDescriptor(this.openFileDescription, closeOnExec ?? this.closeOnExec);
   }
 
   dispose() {
@@ -45,14 +45,20 @@ class FileDescriptor {
 }
 
 class FileDescriptorTable {
-  constructor(fdtableToCopy = undefined, closeOnExec = false) {
+  constructor(fdtableToCopy = undefined, copyForExec = false) {
     // Array<FileDescriptor | null>
     if (fdtableToCopy === undefined) {
       this.array = [null, null, null];
     } else {
       this.array = [];
       for (const fd of fdtableToCopy.array) {
-        this.array.push(fd?.copy(closeOnExec) ?? null);
+        this.array.push(fd?.copy({copyForExec}) ?? null);
+      }
+      if (copyForExec) {
+        // Reduce the size of the fd array when we exec
+        while (this.array.length > 3 && this.array[this.array.length - 1] === null) {
+          this.array.pop();
+        }
       }
     }
   }
@@ -83,6 +89,31 @@ class FileDescriptorTable {
       if (fd !== null) return fd;
     }
     throw new BadFileDescriptorError();
+  }
+
+  dup(fdi, closeOnExec = false) {
+    const fd = this.get(fdi);
+    this.allocate(() => fd.copy({closeOnExec}));
+  }
+
+  dup2(oldfdi, newfdi, closeOnExec = false) {
+    const oldfd = this.get(oldfdi);
+    try {
+      const newfd = this.get(newfdi);
+      this.close(newfd);
+    } catch (e) {
+      if (!(e instanceof BadFileDescriptorError && newfdi >= 0 && newfdi < 3)) {
+        throw e;
+      }
+      // We don't allow dup2 onto non-open file descriptors
+      // other than std{in,out,err}.
+      // This is not quite POSIX-correct.
+      // TODO: change this to allow dup2 onto arbitrary fds
+      // Keep a map of sparse file descriptors, with keys more than
+      // this.array.length (maybe + 1).
+      // This should be efficiently maintainable.
+    }
+    this.array[newfdi] = oldfd.copy({closeOnExec});
   }
 
   // Throws BadFileDescriptorError if invalid
