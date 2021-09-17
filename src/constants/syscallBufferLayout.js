@@ -18,6 +18,12 @@ const SYSBUF_OFFSET = {
   length: 52,
 };
 
+// TODO: extend syscall interface to allow more flexible
+// control of errno
+// This could look like a field in sys_buf that the user
+// sets to zero beforehand, then sets errno to that value
+// if it comes back non-zero.
+
 const OSOAP_SYS = {
   TURN: {USER: 0, KERNEL: 1, DETACHED: 2},
   FLAG: {
