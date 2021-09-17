@@ -1,5 +1,6 @@
 import {SYSBUF_OFFSET, OSOAP_SYS} from '../constants/syscallBufferLayout.js';
 import {getNewTid, Process, Thread} from '../threadTable.js';
+import {FileDescriptorTable} from '../FileDescriptor.js';
 
 // TODO: make pid_t 64 bits
 
@@ -30,11 +31,15 @@ const fork = (dv, thread) => {
   newDv.setUint32(sysBufAddr + SYSBUF_OFFSET.pid_return, 0, true);
   newDv.setInt32(sysBufAddr + SYSBUF_OFFSET.sync_word, OSOAP_SYS.TURN.USER, true);
 
-  const newProcess = new Process(
-    process.processGroup,
-    process, // parent process
-    newPid,
-  );
+  const newProcess = new Process(process.processGroup, newPid, {
+    parentProcess: process,
+    setUserId: {...process.setUserId},
+    setGroupId: {...process.setGroupId},
+    currentWorkingDirectory: null, // TODO: copy from parent
+    rootDirectory: null, // TODO: copy from parent
+    fileModeCreationMask: null, // TODO: copy from parent
+    fdtable: new FileDescriptorTable(process.fdtable),
+  });
   // TODO: should inherit tons of stuff from the parent,
   // like userid, groupid, working directory, root directory, file descriptors
   newProcess.registerModuleAndMemory({

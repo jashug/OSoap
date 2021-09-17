@@ -86,21 +86,39 @@ class ProcessGroup {
 
 const pidTable = new Map();
 
+const initialProcessData = () => {
+  const fdtable = new FileDescriptorTable();
+  // Add in stdin, stdout, stderr
+  for (let i = 0; i < 3; i++) {
+    fdtable.allocate(() => new FileDescriptor(devConsole, false));
+  }
+  return {
+    parentProcess: null,
+    setUserId: {real: null, effective: null, saved: null},
+    setGroupId: {real: null, effective: null, saved: null},
+    currentWorkingDirectory: null,
+    rootDirectory: null,
+    fileModeCreationMask: null,
+    fdtable,
+  };
+};
+
 class Process {
-  constructor(processGroup, parentProcess, processId) {
+  // Adopts processData without copying
+  constructor(processGroup, processId, processData = initialProcessData()) {
     this.compiledModule = null;
     this.memory = null;
     this.status = null;
     this.isZombie = false;
     this.processGroup = processGroup;
-    this.parentProcess = parentProcess;
     this.processId = processId;
-    this.setUserId = {real: null, effective: null, saved: null};
-    this.setGroupId = {real: null, effective: null, saved: null};
-    this.currentWorkingDirectory = null;
-    this.rootDirectory = null;
-    this.fileModeCreationMask = null;
-    this.fdtable = new FileDescriptorTable([new FileDescriptor(devConsole, false), new FileDescriptor(devConsole, false), new FileDescriptor(devConsole, false)]);
+    this.parentProcess = processData.parentProcess;
+    this.setUserId = processData.setUserId;
+    this.setGroupId = processData.setGroupId;
+    this.currentWorkingDirectory = processData.currentWorkingDirectory;
+    this.rootDirectory = processData.rootDirectory;
+    this.fileModeCreationMask = processData.fileModeCreationMask;
+    this.fdtable = processData.fdtable;
     this.threads = new Map();
 
     pidTable.set(this.processId, this);
@@ -373,7 +391,7 @@ const spawnProcess = (executableUrl) => {
   const tid = getNewTid();
   const session = new Session(tid);
   const processGroup = new ProcessGroup(session, tid);
-  const process = new Process(processGroup, null, tid);
+  const process = new Process(processGroup, tid);
   const thread = new Thread(process, tid, initialSignalMask, {
     forking: {inFork: false, sys_buf: 0, stack_buf: 0, pid: 0},
     module: executableUrl,

@@ -33,11 +33,19 @@ class FileDescriptor {
 }
 
 class FileDescriptorTable {
-  constructor(predefinedFileDescriptors = []) {
+  constructor(fdtableToCopy) {
     // Array<FileDescriptor | null>
-    this.array = [...predefinedFileDescriptors];
-    for (const fd of this.array) {
-      fd.openFileDescription.incRefCount();
+    if (fdtableToCopy === undefined) {
+      this.array = [null, null, null];
+    } else {
+      this.array = [];
+      for (const fd of fdtableToCopy.array) {
+        if (fd === null) this.array.push(null);
+        else {
+          fd.openFileDescription.incRefCount();
+          this.array.push(new FileDescriptor(fd.openFileDescription, fd.closeOnExec));
+        }
+      }
     }
   }
 
