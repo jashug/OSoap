@@ -53,7 +53,6 @@ const handleFork = (exports, sys_buf, stack_buf, forking) => {
   if (forking.inFork) {
     exports.asyncify_stop_rewind();
     forking.inFork = false;
-    return forking.pid;
   } else {
     if (exports.asyncify_start_unwind === undefined) {
       throw new Error("Tried to fork without being asyncified");
@@ -62,8 +61,8 @@ const handleFork = (exports, sys_buf, stack_buf, forking) => {
     forking.stack_buf = stack_buf;
     forking.inFork = true;
     exports.asyncify_start_unwind(stack_buf);
-    return 0; // Get back to wasm so that we can unwind the stack
   }
+  return forking.pid;
 };
 
 // CAUTION: this depends on the user-side implementation of syscalls.
