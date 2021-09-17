@@ -29,7 +29,6 @@ const OSOAP_SYS = {
   FLAG: {
     SIGNAL: 0x1,
     DEBUGGER: 0x2,
-    EXIT: 0x4,
   },
   TAG: {
     W: {

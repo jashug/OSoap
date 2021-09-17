@@ -324,12 +324,6 @@ class Thread {
     Atomics.or(this.flagWord(), 0, OSOAP_SYS.FLAG.DEBUGGER);
   }
 
-  // TODO: can probably be removed
-  // Should only be called in the RUNNING or SYSCALL states
-  requestUserExit() {
-    Atomics.or(this.flagWord(), 0, OSOAP_SYS.FLAG.EXIT);
-  }
-
   // Set this.return_value by calling exit
   // Detaches the syscall buffer, asks the user program to exit,
   // and cleans up other resources owned by the thread.
