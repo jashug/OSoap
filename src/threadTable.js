@@ -221,14 +221,13 @@ const notifyDetachedState = (sync) => {
 const TIME_TO_DIE_MS = 30 * 1000;
 
 class Thread {
-  constructor(executableUrl, process, threadId) {
+  constructor(process, threadId, executionContext) {
     this.state = THREAD_STATE.INIT;
-    this.executableUrl = executableUrl;
     this.process = process;
     this.threadId = threadId;
     this.sysBufAddr = 0;
     this.signalInterruptController = null;
-    this.terminateWorker = null;
+    this.terminateWorker = startWorker(this, executionContext);
     this.process.joinProcess(this);
     this.signalMask = new Uint32Array(2); // TODO: copy from parent
   }
@@ -378,8 +377,12 @@ const spawnProcess = (executableUrl) => {
   const session = new Session(tid);
   const processGroup = new ProcessGroup(session, tid);
   const process = new Process(processGroup, null, tid);
-  const thread = new Thread(executableUrl, process, tid);
-  thread.terminateWorker = startWorker(thread);
+  const thread = new Thread(process, tid, {
+    forking: {inFork: false, sys_buf: 0, stack_buf: 0, pid: 0},
+    module: executableUrl,
+    requestShareModuleAndMemory: true,
+  });
+  void thread;
 };
 
-export {spawnProcess};
+export {getNewTid, Session, ProcessGroup, Process, Thread, spawnProcess};

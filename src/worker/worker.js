@@ -15,7 +15,7 @@ class ExitException extends Error {
   }
 }
 
-const runProcess = async (message) => {
+const handleProcessMessage = async (message) => {
   // Either posts an exit message with the exit code, or
   // throws an error.
 
@@ -27,20 +27,22 @@ const runProcess = async (message) => {
 
   // Compile
   let module;
-  if (message.module instanceof WebAssembly.Module) {
-    module = message.module;
+  if (message.context.module instanceof WebAssembly.Module) {
+    module = message.context.module;
   } else {
-    module = await WebAssembly.compileStreaming(fetch(message.module));
+    module = await WebAssembly.compileStreaming(fetch(message.context.module));
   }
 
   const memoryLoc = {module: 'env', name: 'memory'};
-  const memory = adaptMemory(module, memoryLoc, message.memory);
+  const memory = adaptMemory(module, memoryLoc, message.context.memory);
 
-  postMessage({
-    purpose: MSG_PURPOSE.UTK.SHARE_MODULE_AND_MEMORY,
-    compiledModule: module,
-    memory,
-  });
+  if (message.context.requestShareModuleAndMemory) {
+    postMessage({
+      purpose: MSG_PURPOSE.UTK.SHARE_MODULE_AND_MEMORY,
+      compiledModule: module,
+      memory,
+    });
+  }
 
   // Instantiate
   const imports = {
@@ -65,10 +67,10 @@ const runProcess = async (message) => {
   const exports = instance.exports;
 
   // Run
-  const forking = {inFork: false, sys_buf: 0, stack_buf: 0, pid: 0};
+  const forking = message.context.forking;
   try {
     runWithFork(module, exports, memory, forking, () => {
-      instance.exports._start();
+      exports._start();
     });
   } catch (e) {
     if (e instanceof ExitException) {
@@ -86,7 +88,7 @@ const runProcess = async (message) => {
 const handleMessage = oneAtATimeError(async (e) => {
   const message = e.data;
   if (message.purpose === MSG_PURPOSE.KTU.START) {
-    await runProcess(message);
+    await handleProcessMessage(message);
   } else {
     throw new Error(`Unrecognized message purpose ${message.purpose}`);
   }

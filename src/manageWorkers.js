@@ -26,7 +26,7 @@ const idleWorkerMessage = (e) => {
  * the return value is terminateWorker, which may be called once to force
  *   immediate termination of the worker.
  */
-const startWorker = (thread) => {
+const startWorker = (thread, executionContext) => {
   const worker = getIdleWorker();
   let workerReleased = false;
   const setReleasedFlag = () => {
@@ -45,8 +45,8 @@ const startWorker = (thread) => {
   };
   worker.postMessage({
     purpose: MSG_PURPOSE.KTU.START,
-    module: thread.executableUrl,
     tid: thread.tid,
+    context: executionContext,
   });
   worker.onmessage = (e) => {
     if (e.data.purpose === MSG_PURPOSE.UTK.SHARE_MODULE_AND_MEMORY) {
