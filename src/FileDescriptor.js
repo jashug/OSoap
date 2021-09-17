@@ -29,28 +29,36 @@ class FileDescriptor {
   constructor(openFileDescription, closeOnExec) {
     this.openFileDescription = openFileDescription;
     this.closeOnExec = closeOnExec;
+    this.openFileDescription.incRefCount();
+  }
+
+  copy(closeOnExec = false) {
+    if (closeOnExec && this.closeOnExec) return null;
+    this.openFileDescription.incRefCount();
+    return new FileDescriptor(this.openFileDescription, this.closeOnExec);
+  }
+
+  dispose() {
+    this.openFileDescription.decRefCount();
+    this.openFileDescription = null;
   }
 }
 
 class FileDescriptorTable {
-  constructor(fdtableToCopy) {
+  constructor(fdtableToCopy = undefined, closeOnExec = false) {
     // Array<FileDescriptor | null>
     if (fdtableToCopy === undefined) {
       this.array = [null, null, null];
     } else {
       this.array = [];
       for (const fd of fdtableToCopy.array) {
-        if (fd === null) this.array.push(null);
-        else {
-          fd.openFileDescription.incRefCount();
-          this.array.push(new FileDescriptor(fd.openFileDescription, fd.closeOnExec));
-        }
+        this.array.push(fd?.copy(closeOnExec) ?? null);
       }
     }
   }
 
   // A function to allocate the first unused slot in the array
-  // Increments the reference count of the open file description stored.
+  // The file descriptor returned by thunk should be a new reference.
   // Returns the file descriptor allocated.
   // thunk() returns a new FileDescriptor
   // Throws FileDescriptorSpaceExhaustedError if MAX_NUM_FDS reached.
@@ -63,7 +71,6 @@ class FileDescriptorTable {
       throw new FileDescriptorSpaceExhaustedError();
     }
     const fd = thunk();
-    fd.openFileDescription.incRefCount();
     this.array[ix] = fd;
     return ix;
   }
@@ -83,14 +90,11 @@ class FileDescriptorTable {
     const fd = this.get(i);
     // this.get ensures that this.array[i] is valid
     this.array[i] = null;
-    fd.openFileDescription.decRefCount();
+    fd.dispose();
   }
 
   tearDown() {
-    for (const fd of this.array) {
-      if (fd === null) continue;
-      fd.openFileDescription.decRefCount();
-    }
+    for (const fd of this.array) fd?.dispose();
     this.array = [];
   }
 }

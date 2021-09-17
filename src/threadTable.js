@@ -222,6 +222,18 @@ class Process {
     this.processGroup = null;
     pidTable.delete(this.processId);
   }
+
+  forkProcessData() {
+    return {
+      parentProcess: this,
+      setUserId: {...this.setUserId},
+      setGroupId: {...this.setGroupId},
+      currentWorkingDirectory: null, // TODO: copy
+      rootDirectory: null, // TODO: copy
+      fileModeCreationMask: null, // TODO: copy
+      fdtable: new FileDescriptorTable(this.fdtable),
+    };
+  }
 }
 
 const syscallReturnToUser = (sync) => {
