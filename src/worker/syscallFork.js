@@ -55,6 +55,7 @@ const handleFork = (exports, sys_buf, stack_buf, forking) => {
     forking.inFork = false;
   } else {
     if (exports.asyncify_start_unwind === undefined) {
+      debugger;
       throw new Error("Tried to fork without being asyncified");
     }
     forking.sys_buf = sys_buf;

@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -e
+cd "${OSOAP_ROOT}/ncurses-6.2"
+TARGET=wasm32
+SYSROOT="${OSOAP_ROOT}/sysroot"
+export CC="clang "
+export CFLAGS="--target=${TARGET} --sysroot=${SYSROOT} -g -pthread"
+export BUILD_CC="clang"
+export BUILD_CFLAGS="-g"
+export LD="wasm-ld"
+export LDFLAGS="-Wl,--import-memory -Wl,--shared-memory -Wl,--max-memory=4294967296"
+export AR="llvm-ar"
+export RANLIB="llvm-ranlib"
+./configure --prefix="${SYSROOT}" --host="${TARGET}" --without-cxx --disable-stripping --enable-overwrite
+make
+make install
+
+pushd test
+./configure --prefix="${SYSROOT}" --host="${TARGET}"
+make
+popd # test
