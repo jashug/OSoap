@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+set -e
+cd "${OSOAP_ROOT}/bash"
+make distclean
+TARGET=wasm32
+SYSROOT="${OSOAP_ROOT}/sysroot"
+export CC="clang"
+export CFLAGS="--target=${TARGET} --sysroot=${SYSROOT} -g"
+export CFLAGS_FOR_BUILD="-g"
+export LD=wasm-ld
+export LDFLAGS="-Wl,--import-memory -Wl,--shared-memory -Wl,--max-memory=4294967296"
+export AR=llvm-ar
+export CPP=clang-cpp
+export CPPFLAGS="--sysroot=${SYSROOT}"
+export RANLIB=llvm-ranlib
+./configure --prefix="${SYSROOT}" --host=${TARGET} && make
+
+# argz.h cannot be compiled!
+# termcap.h cannot be compiled!
+# termio.h cannot be compiled!
+
+# missing sigsetjmp siglongjmp
+
+# checking whether the ctype macros accept non-ascii characters... configure: WARNING: cannot check ctype macros if cross compiling -- defaulting to no
+# no
+# checking if dup2 fails to clear the close-on-exec flag... configure: WARNING: cannot check dup2 if cross compiling -- defaulting to no
+# no
+# checking whether pgrps need synchronization... configure: WARNING: cannot check pgrp synchronization if cross compiling -- defaulting to no
+# no
+# checking for type of signal functions... posix
+# checking for sys_errlist and sys_nerr... no
+# checking for sys_siglist in system C library... configure: WARNING: cannot check for sys_siglist if cross compiling -- defaulting to no
+# no
+# checking for _sys_siglist in signal.h or unistd.h... no
+# checking for _sys_siglist in system C library... configure: WARNING: cannot check for _sys_siglist if cross compiling -- defaulting to no
+# no
+# checking for offset of exit status in return status from wait... configure: WARNING: cannot check WEXITSTATUS offset if cross compiling -- defaulting to 0
+# 0
+# checking for struct timespec in <time.h>... yes
+# checking for struct stat.st_atim.tv_nsec... yes
+# checking whether struct stat.st_atim is of type struct timespec... yes
+# checking for sbrk... yes
+# checking for working sbrk... configure: WARNING: cannot check working sbrk if cross-compiling
+# yes
+# checking for the existence of strsignal... yes
+# checking if opendir() opens non-directories... configure: WARNING: cannot check opendir if cross compiling -- defaulting to no
+# no
+# checking whether ulimit can substitute for getdtablesize... configure: WARNING: cannot check ulimit if cross compiling -- defaulting to no
+# no
+# checking whether fpurge is declared... no
+# checking to see if getenv can be redefined... configure: WARNING: cannot check getenv redefinition if cross compiling -- defaulting to yes
+# yes
+# checking if getcwd() will dynamically allocate memory with 0 size... configure: WARNING: cannot check whether getcwd allocates memory when cross-compiling -- defaulting to no
+# no
+# checking for presence of POSIX-style sigsetjmp/siglongjmp... configure: WARNING: cannot check for sigsetjmp/siglongjmp if cross-compiling -- defaulting to missing
+# missing
+# checking whether or not strcoll and strcmp differ... configure: WARNING: cannot check strcoll if cross compiling -- defaulting to no
+# no
+# checking for standard-conformant snprintf... configure: WARNING: cannot check standard snprintf if cross-compiling
+# yes
+# checking for standard-conformant vsnprintf... configure: WARNING: cannot check standard vsnprintf if cross-compiling
+# yes
+# checking for standard-conformant putenv declaration... yes
+# checking for standard-conformant unsetenv declaration... yes
+# checking for printf floating point output in hex notation... configure: WARNING: cannot check printf if cross compiling -- defaulting to no
+# no
+# checking whether fnmatch can be used to check bracket equivalence classes... configure: WARNING: cannot check fnmatch if cross compiling -- defaulting to no
+# no
+# checking if signal handlers must be reinstalled when invoked... configure: WARNING: cannot check signal handling if cross compiling -- defaulting to no
+# no
+# checking for presence of necessary job control definitions... present
+# checking for presence of named pipes... configure: WARNING: cannot check for named pipes if cross-compiling -- defaulting to missing
+# missing
+# checking whether termios.h defines TIOCGWINSZ... no
+# checking whether sys/ioctl.h defines TIOCGWINSZ... yes
+# checking for TIOCSTAT in sys/ioctl.h... no
+# checking for FIONREAD in sys/ioctl.h... yes
+# checking whether WCONTINUED flag to waitpid is unavailable or available but broken... configure: WARNING: cannot check WCONTINUED if cross compiling -- defaulting to no
+# no
+# checking for speed_t in sys/types.h... no
+# checking whether getpw functions are declared in pwd.h... yes
+# checking for unusable real-time signals due to large values... configure: WARNING: cannot check real-time signals if cross compiling -- defaulting to yes
+# yes
