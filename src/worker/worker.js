@@ -30,7 +30,9 @@ const handleProcessMessage = async (message) => {
   if (message.context.module instanceof WebAssembly.Module) {
     module = message.context.module;
   } else {
-    module = await WebAssembly.compileStreaming(fetch(message.context.module));
+    module = await WebAssembly.compileStreaming(fetch(message.context.module, {
+      headers: {'Accept': 'application/wasm'},
+    }));
   }
 
   const memoryLoc = {module: 'env', name: 'memory'};

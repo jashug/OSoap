@@ -3,6 +3,7 @@ import {SYSBUF_OFFSET, OSOAP_SYS} from './constants/syscallBufferLayout.js';
 import {SIG} from './constants/signal.js';
 import {dispatchSyscall} from './syscall/dispatch.js';
 import {FileDescriptor, FileDescriptorTable} from './FileDescriptor.js';
+import {SignalDispositionSet} from './SignalDispositionSet.js';
 import {devConsole} from './OpenFileDescription.js';
 
 const FIRST_UNUSABLE_PID = Math.pow(2, 31);
@@ -100,6 +101,7 @@ const initialProcessData = () => {
     rootDirectory: null,
     fileModeCreationMask: null,
     fdtable,
+    signalDisposition: new SignalDispositionSet(),
   };
 };
 
@@ -119,6 +121,8 @@ class Process {
     this.rootDirectory = processData.rootDirectory;
     this.fileModeCreationMask = processData.fileModeCreationMask;
     this.fdtable = processData.fdtable;
+    // Map<signum, immutable {handler: void *, flags: uint32, mask: BigUint64}>
+    this.signalDisposition = processData.signalDisposition;
     this.threads = new Map();
 
     pidTable.set(this.processId, this);
@@ -232,6 +236,7 @@ class Process {
       rootDirectory: null, // TODO: copy
       fileModeCreationMask: null, // TODO: copy
       fdtable: new FileDescriptorTable(this.fdtable),
+      signalDisposition: new SignalDispositionSet(this.signalDisposition),
     };
   }
 }
@@ -257,8 +262,7 @@ class Thread {
     this.threadId = threadId;
     this.sysBufAddr = 0;
     this.signalInterruptController = null;
-    this.signalMask = new Uint32Array(signalMask);
-    if (this.signalMask.length !== 2) throw new Error("Bad sized signal mask");
+    this.signalMask = signalMask;
     this.terminateWorker = startWorker(this, executionContext);
     this.process.joinProcess(this);
   }
@@ -397,14 +401,12 @@ class Thread {
 
 //const processTable = new Map();
 
-const initialSignalMask = new Uint32Array(2);
-
 const spawnProcess = (executableUrl) => {
   const tid = getNewTid();
   const session = new Session(tid);
   const processGroup = new ProcessGroup(session, tid);
   const process = new Process(processGroup, tid);
-  const thread = new Thread(process, tid, initialSignalMask, {
+  const thread = new Thread(process, tid, 0n, {
     forking: {inFork: false, sys_buf: 0, stack_buf: 0, pid: 0},
     module: executableUrl,
     requestShareModuleAndMemory: true,

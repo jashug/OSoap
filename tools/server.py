@@ -12,6 +12,12 @@ class CORPIsolatedHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Cross-Origin-Opener-Policy", "same-origin")
         super().end_headers()
 
+    def guess_type(self, path):
+        acceptable = self.headers.get('Accept', "*/*")
+        if acceptable == 'application/wasm':
+            return 'application/wasm'
+        return super().guess_type(path)
+
 def get_best_family(*address):
     infos = socket.getaddrinfo(*address, type=socket.SOCK_STREAM, flags=socket.AI_PASSIVE)
     family, type, proto, canonname, sockaddr = next(iter(infos))

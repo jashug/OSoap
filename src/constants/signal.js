@@ -10,7 +10,6 @@ const SA = {
   RESTART: 0x10000000,
   NODEFER: 0x40000000,
   RESETHAND: 0x80000000,
-  RESTORER: 0x04000000,
 };
 
 const SIG = {
@@ -49,4 +48,32 @@ const SIG = {
   SYS: 31,
 };
 
-export {MINSIGSTKSZ, SIGSTKSZ, SA, SIG};
+const SIG_CANT_BE_CAUGHT = new Set([SIG.KILL, SIG.STOP]);
+
+const NSIG = 64;
+const SIG_MASK_BYTES = NSIG >> 3;
+
+const SIG_DFL = 0;
+const SIG_IGN = -1;
+const SIG_ERR = -2;
+
+const SIGACTION_OFFSET = {
+  handler: 0,
+  flags: 4,
+  mask: 8,
+  length: 16,
+};
+
+export {
+  MINSIGSTKSZ,
+  SIGSTKSZ,
+  SA,
+  SIG,
+  NSIG,
+  SIG_MASK_BYTES,
+  SIGACTION_OFFSET,
+  SIG_DFL,
+  SIG_IGN,
+  SIG_ERR,
+  SIG_CANT_BE_CAUGHT,
+};
