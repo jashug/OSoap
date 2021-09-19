@@ -24,8 +24,16 @@ export LDFLAGS="-Wl,--import-memory -Wl,--shared-memory -Wl,--max-memory=4294967
 export AR="llvm-ar"
 export RANLIB="llvm-ranlib"
 if [ "$CONFIGURE" = "yes" ]; then
-  make distclean
-  ./configure --prefix="${SYSROOT}" --host="${TARGET}" --without-cxx --disable-stripping --enable-overwrite
+  make distclean || true
+  ./configure \
+    --prefix="${SYSROOT}" \
+    --host="${TARGET}" \
+    --without-cxx \
+    --without-manpages \
+    --disable-stripping \
+    --enable-overwrite \
+    --with-default-terminfo-dir="/sysroot/share/terminfo" \
+    --with-terminfo-dirs="/sysroot/share/terminfo"
 else
   make clean
 fi
@@ -34,7 +42,7 @@ make install
 
 pushd test
 if [ "$CONFIGURE" = "yes" ]; then
-  make distclean
+  make distclean || true
   ./configure --prefix="${SYSROOT}" --host="${TARGET}" --disable-stripping
 else
   make clean

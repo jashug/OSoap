@@ -7,6 +7,7 @@ import {ioctl} from './ioctl.js';
 import {writev} from './writev.js';
 import {sigprocmask} from './sigprocmask.js';
 import {sigaction} from './sigaction.js';
+import {statx} from './statx.js';
 
 const defaultSyscall = (syscallNumber) => (dv, thread) => {
   console.log(`Unimplemented syscall ${syscallNumber}`);
@@ -28,6 +29,7 @@ const linuxSyscallTable = new Map([
   [SYS.writev, writev],
   [SYS.rt_sigprocmask, sigprocmask],
   [SYS.rt_sigaction, sigaction],
+  [SYS.statx, statx],
   deprecatedSyscall(SYS.fork, "use OSoap syscall fork"),
   deprecatedSyscall(SYS.exit, "use OSoap syscall exit"),
   deprecatedSyscall(SYS.gettid, "use OSoap syscall gettid"),
