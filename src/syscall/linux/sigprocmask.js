@@ -26,7 +26,7 @@ const sigprocmask = (dv, thread) => {
   }
   */
   if (oldset !== 0) {
-    dv.setBitUint64(oldset, thread.signalMask, true);
+    dv.setBigUint64(oldset, thread.signalMask, true);
   }
   if (set !== 0) {
     const sigset = dv.getBigUint64(set, true);
