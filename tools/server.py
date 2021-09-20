@@ -4,6 +4,12 @@ import http.server
 import os, sys
 import socket
 
+client_specifiable_mime_types = {
+    'application/wasm',
+    'application/octet-stream',
+    'application/json',
+}
+
 class CORPIsolatedHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     """Add Cross-Origin-Resource-Policy isolation headers to all requests."""
 
@@ -14,8 +20,8 @@ class CORPIsolatedHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def guess_type(self, path):
         acceptable = self.headers.get('Accept', "*/*")
-        if acceptable == 'application/wasm':
-            return 'application/wasm'
+        if acceptable in client_specifiable_mime_types:
+            return acceptable
         return super().guess_type(path)
 
 def get_best_family(*address):
