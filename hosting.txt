@@ -1,0 +1,17 @@
+Azure Static Web Apps seems to have the functionality I am currently using.
+
+Set globalHeaders to include
+Cross-Origin-Embedder-Policy: require-corp
+Cross-Origin-Opener-Policy: same-origin
+Access-Control-Allow-Origin: *
+
+We can also set headers per-route, which gives lots of flexibility.
+
+Allowing the client to request different mime-types for different files might require
+keeping copies of all the filesystem data with different extensions.
+Hopefully we can use symlinks or hardlinks to avoid duplicating the data.
+Symlinks seem the most likely solution.
+
+This might not turn out to be an issue at all;
+maybe serving all data files as application/wasm will work,
+or maybe we can have routes check a query parameter or something.
