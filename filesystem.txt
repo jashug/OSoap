@@ -130,3 +130,35 @@ When a directory is mounted, it can be moved around freely, but can only be unli
 So the idea is that rm -rf mountpoint clears all the files in the mounted filesystem below the mount root, does not unlink the mount root (leaves an empty directory), and unmounts.
 If a file is mounted, rm mountpoint simply removes the mount. Mounts thus act as high-priority virtual links, that can go across filesystems.
 Mounts still form a tree, each with their own independent set of child mounts.
+
+=====
+
+Path lookup:
+
+Keep FileLocation for curdir and rootdir. Syscalls may be able to specify file descriptors/OpenFileDescription to replace either or both of these.
+OpenFileDescription should implement a superset of the FileLocation API (with a significant difference being OpenFileDescription may not need to check permissions if opened properly).
+We know that the curdir and rootdir are directories, but we may not know the search permissions.
+If the path is absolute, start at the rootdir FileLocation, if relative start at the curdir FileLocation.
+For each non-final component, check that we have search permissions, then lookup the child, then check that the child is a directory.
+Then we stop, with having looked up the parent directory and having the name of the last component.
+After each step, we have stat-ed/looked up the inode of the child, the new predecessor directory. We should reuse this for the permissions check.
+Also want to ensure that there is no race between checking the permissions on the directory and looking up the child.
+One step looks more like lookup an inode, check that it is a directory, check that we have search permissions, retrieve the child inode number.
+Then we have special cases: Sometimes we know that it is a directory (OK, that check is easy to have duplicated).
+Sometimes we don't need to check for search permissions (If we have an OpenFileDescription for a directory with O_SEARCH).
+Does an OpenFileDescription cache all of the inode? I don't think it does. An OpenFileDescription should probably cache the file type though, right? Do we need to look up the inode at all
+in that case? We probably still do, as most filesystems indirect file contents through the inode.
+So have an operation search(name, skipSearchPermissionCheck = False) on mounts (or roughly that layer).
+I forgot about symlinks. There, we need to lookup the inode, see that it is a symlink (and we have read permissions? no, symlink permissions are ignored), then read the symlink contents.
+So the search operation returns {hardlink: inode} OR {symlink: path}. The component name is only used in the case of a directory/hardlink.
+The second-to-last component also needs special-ish handling. We want to follow symlinks til we reach a directory, at which point we have just read the directory inode and need to
+decide what to do. We also may not need search permissions on the second-to-last component.
+
+Yeah, this is all just easier if hard links store file type along with inode number.
+We know curdir and rootdir are directories, OpenFileDescriptions can at least tell if they are a directory (can't be a symlink for *at type operations, I think)
+Then we maybe read the file inode for permissions, then read the file contents for the hard child link, and if it is a symlink we push that onto the stack, a directory we adopt,
+otherwise error. We end up with an inode that we know refers to a directory, but we haven't performed any IO on that directory yet, along with the final component and trailing slash flag.
+
+Then dealing with refcounts: seems a bit silly to take a reference to the current directory, then immediately forget it because the path is absolute.
+For path handling, take a function (isAbsolute) => owned reference that looks slightly different at the beginning and when handling a symlink.
+(Expects to be called once, so can release a reference to the current directory in the case of an absolute symlink.)

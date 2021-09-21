@@ -23,46 +23,31 @@ class FileFlags {
 }
 */
 
-// Used for CWD and root directory, as well as during the process
-// of pathname resolution.
-// Can be moved around; not an immutable type.
-// Holds a virtual link in to the directory.
-// Always points to a directory, never any other type of file.
-class PlainDirectoryPointer {
-  constructor(mount, id) {
-    this.mount = mount;
-    this.id = id;
-    this.mount.fs.virtualLinksIn.inc(this.id);
-  }
-
-  copy() {
-    return new PlainDirectoryPointer(this.mount, this.id);
-  }
-
-  // Always call dispose exactly once.
-  dispose() {
-    this.mount.fs.virtualLinksIn.dec(this.id);
-    this.mount = null;
-  }
-}
-
-// Subclasses should define close,
-// and probably other methods for reading and writing.
+/* Interface for OpenFileDescription:
+ * writev
+ * fstat
+ *   (virtual file descriptors should still try to put something
+ *    unique-ish in st_dev and st_ino)
+ *   devices should return the st_dev and st_ino of the file they
+ *   were opened from in the filesystem.
+ * dispose - called automatically when refCount goes to 0
+ * search - looks up a directory entry
+ */
 class OpenFileDescription {
   constructor() {
-    this.refcount = 0;
+    this.refCount = 0;
   }
 
   decRefCount() {
-    if (this.refcount <= 0) throw new Error("Decrement zero refcount");
-    if (--this.refcount === 0) {
+    if (this.refCount <= 0) throw new Error("Decrement zero refCount");
+    if (--this.refCount === 0) {
       this.dispose();
     }
   }
 
   incRefCount() {
-    if (this.refcount < 0) throw new Error("Increment negative refcount");
-    this.refcount++;
+    if (this.refCount < 0) throw new Error("Increment negative refCount");
+    this.refCount++;
   }
 
   // TODO: this is a stub
@@ -99,4 +84,4 @@ class DevConsoleFileDescription extends OpenFileDescription {
 const devConsole = new DevConsoleFileDescription();
 devConsole.incRefCount(); // A never-released reference to this singleton.
 
-export {PlainDirectoryPointer, OpenFileDescription, devConsole};
+export {OpenFileDescription, devConsole};

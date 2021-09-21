@@ -22,6 +22,7 @@ class Mount {
     // the file type of mountPoint and bindRoot should
     // both be the same as this.mountType (this ensures that the
     // cached file type in direntries remains accurate).
+    this.refCount = 0;
     this.parent.addChildMount(this);
     this.fs.virtualLinksIn.inc(this.bindRoot); // Take a regular reference
   }
@@ -45,17 +46,27 @@ class Mount {
   removeChildMount(childMount) {
     const mountPoint = childMount.mountPoint;
     const existed = this.children.delete(mountPoint);
-    if (!existed) throw new Error("Remove non-existent cihld mount");
+    if (!existed) throw new Error("Remove non-existent child mount");
     this.fs.virtualLinksOut.dec(mountPoint);
   }
 
   unmount() {
-    if (this.children.size() > 0) {
+    if (this.children.size() > 0 || this.refCount > 0) {
       // TODO: error EBUSY, should unmount children first
       throw new Error("TODO");
     }
     this.fs.virtualLinksIn.dec(this.bindRoot);
     this.parent.removeChildMount(this);
+  }
+
+  incRef(id) {
+    this.fs.virtualLinksIn.inc(id);
+    this.refCount += 1;
+  }
+
+  decRef(id) {
+    this.fs.virtualLinksIn.dec(id);
+    this.refCount -= 1;
   }
 }
 

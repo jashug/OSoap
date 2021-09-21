@@ -43,7 +43,7 @@ def walk_src(src_path, root_fd, meta_path, data_path):
         fd = os.open(path, WRITE_FLAGS, dir_fd=root_fd)
         return os.fdopen(fd, 'wb' if binary else 'w')
 
-    def visit(cur_path):
+    def visit(cur_path, parent_inode):
         nonlocal inode_counter
         cur_stat = os.stat(cur_path, follow_symlinks=False)
 
@@ -51,11 +51,12 @@ def walk_src(src_path, root_fd, meta_path, data_path):
         assert cur_stat.st_ino != 0
         identity = (cur_stat.st_dev, cur_stat.st_ino)
         if identity in identity_map:
-            return identity_map[identity]
+            inode, fmt = identity_map[identity]
+            assert fmt != 'd'
+            return inode, fmt
         else:
             inode = inode_counter
             inode_counter += 1
-            identity_map[identity] = inode
         meta_file_path = meta_path / str(inode)
         data_file_path = data_path / str(inode)
 
@@ -63,17 +64,22 @@ def walk_src(src_path, root_fd, meta_path, data_path):
         if stat.S_ISDIR(cur_mode):
             fmt = 'd'
             print(f"{os.fspath(cur_path)} = {inode}: Directory")
+            if parent_inode is None: parent_inode = inode
             with os.scandir(cur_path) as children:
                 dentries = [
-                    (child, visit(child))
+                    (child, visit(child, inode))
                     for child in children
                 ]
             listing = [
-                {'name': child.name, 'inode': child_inode}
-                for child, child_inode in dentries
+                {'name': child.name, 'inode': child_inode, 'fmt': child_fmt}
+                for child, (child_inode, child_fmt) in dentries
             ]
+            contents = {
+                'children': listing,
+                'parent': parent_inode,
+            }
             with open_root_file(data_file_path, binary=False) as fout:
-                json.dump(listing, fout)
+                json.dump(contents, fout)
         elif stat.S_ISREG(cur_mode):
             fmt = 'f'
             print(f"{os.fspath(cur_path)} = {inode}: Regular File")
@@ -83,9 +89,11 @@ def walk_src(src_path, root_fd, meta_path, data_path):
             fmt = 'l'
             contents = os.readlink(cur_path)
             print(f"{os.fspath(cur_path)} = {inode}: Symlink -> {contents}")
-            os.symlink(contents, data_file_path, dir_fd=root_fd)
+            with open_root_file(data_file_path, binary=False) as fout:
+                fout.write(contents)
         else:
             raise Exception("Unknown file type")
+        identity_map[identity] = inode, fmt
         metadata = {
             'mode': PERMISSIONS,
             'fmt': fmt,
@@ -97,8 +105,8 @@ def walk_src(src_path, root_fd, meta_path, data_path):
         }
         with open_root_file(meta_file_path, binary=False) as fout:
             json.dump(metadata, fout)
-        return inode
-    visit(src_path)
+        return inode, fmt
+    visit(src_path, None)
 
 if __name__ == "__main__":
     root_fd, root_path = clear_fs_directory(Path('filesystem'))
