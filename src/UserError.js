@@ -22,4 +22,4 @@ class UserMisbehaved extends Error {
   }
 }
 
-export {UserError};
+export {UserError, UserMisbehaved};
