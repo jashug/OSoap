@@ -12,4 +12,14 @@ class UserError extends Error {
   }
 }
 
+class UserMisbehaved extends Error {
+  constructor(...args) {
+    super(...args);
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, UserError);
+    }
+    this.name = "UserMisbehaved";
+  }
+}
+
 export {UserError};

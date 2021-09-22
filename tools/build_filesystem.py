@@ -33,6 +33,10 @@ WRITE_FLAGS = os.O_WRONLY | os.O_CREAT
 uid = 0
 gid = 0
 
+FMT_REGULAR = 1
+FMT_DIRECTORY = 2
+FMT_SYMLINK = 3
+
 def walk_src(src_path, root_fd, meta_path, data_path):
     inode_counter = 1
     identity_map = {}
@@ -52,7 +56,7 @@ def walk_src(src_path, root_fd, meta_path, data_path):
         identity = (cur_stat.st_dev, cur_stat.st_ino)
         if identity in identity_map:
             inode, fmt = identity_map[identity]
-            assert fmt != 'd'
+            assert fmt != FMT_DIRECTORY
             return inode, fmt
         else:
             inode = inode_counter
@@ -62,7 +66,7 @@ def walk_src(src_path, root_fd, meta_path, data_path):
 
         cur_mode = cur_stat.st_mode
         if stat.S_ISDIR(cur_mode):
-            fmt = 'd'
+            fmt = FMT_DIRECTORY
             print(f"{os.fspath(cur_path)} = {inode}: Directory")
             if parent_inode is None: parent_inode = inode
             with os.scandir(cur_path) as children:
@@ -81,12 +85,12 @@ def walk_src(src_path, root_fd, meta_path, data_path):
             with open_root_file(data_file_path, binary=False) as fout:
                 json.dump(contents, fout)
         elif stat.S_ISREG(cur_mode):
-            fmt = 'f'
+            fmt = FMT_REGULAR
             print(f"{os.fspath(cur_path)} = {inode}: Regular File")
             with open(cur_path, 'rb') as fin, open_root_file(data_file_path) as fout:
                 shutil.copyfileobj(fin, fout)
         elif stat.S_ISLNK(cur_mode):
-            fmt = 'l'
+            fmt = FMT_SYMLINK
             contents = os.readlink(cur_path)
             print(f"{os.fspath(cur_path)} = {inode}: Symlink -> {contents}")
             with open_root_file(data_file_path, binary=False) as fout:

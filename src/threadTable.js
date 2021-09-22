@@ -5,6 +5,7 @@ import {dispatchSyscall} from './syscall/dispatch.js';
 import {FileDescriptor, FileDescriptorTable} from './FileDescriptor.js';
 import {SignalDispositionSet} from './SignalDispositionSet.js';
 import {devConsole} from './OpenFileDescription.js';
+import {UserMisbehaved} from './UserError.js';
 
 const FIRST_UNUSABLE_PID = Math.pow(2, 31);
 let tidCounter = 1; // Start PIDs at 1
@@ -340,7 +341,13 @@ class Thread {
       await Atomics.waitAsync(sync, 0, OSOAP_SYS.TURN.USER).value;
       if (this.state !== THREAD_STATE.RUNNING) break;
       this.state = THREAD_STATE.SYSCALL;
-      await this.respondToSyscall();
+      try {
+        await this.respondToSyscall();
+      } catch (e) {
+        if (e instanceof UserMisbehaved) {
+          this.userMisbehaved(e.message);
+        } else throw e;
+      }
       if (this.state !== THREAD_STATE.SYSCALL) break;
       sync = this.syncWord();
       syscallReturnToUser(sync);

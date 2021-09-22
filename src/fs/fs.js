@@ -1,8 +1,4 @@
 import {MultiSet} from '../util/MultiSet.js';
-/* Paths could be parsed into
- * { absolute: bool, components: Array<?>, trailingSlash: bool }
- * I'm not sure what type a component should be, a DOMString, a Uint8Buffer?
- */
 
 class FileSystem {
   constructor() {
