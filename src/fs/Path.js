@@ -4,9 +4,9 @@ import {E} from '../syscall/linux/errno.js';
 const PATH_MAX = 4096; // from limits.h
 
 const SLASH_CODE = '/'.charCodeAt(0);
-const DOT_CODE = '.'.charCodeAt(0);
-
 const nonSlashChar = (c) => c !== SLASH_CODE;
+
+const DOT_CODE = '.'.charCodeAt(0);
 const isDot = (component) => component.length === 1 && component[0] === DOT_CODE;
 const isDotDot = (component) => {
   return component.length === 2 &&
@@ -64,17 +64,17 @@ const pathFromString = (array) => {
   const prefix = [];
   let curComponentIndex = firstComponentIndex;
   while (true) {
-    const nextSlashIndex = array.indexOf(0, curComponentIndex);
+    const nextSlashIndex = array.indexOf(SLASH_CODE, curComponentIndex);
     if (nextSlashIndex === -1) {
       return new Path(absolute, prefix, array.subarray(curComponentIndex), false);
     }
     const curComponent = array.subarray(curComponentIndex, nextSlashIndex);
-    const nextComponentIndex =
+    const numSlashes =
       array.subarray(nextSlashIndex).findIndex(nonSlashChar);
-    if (nextComponentIndex === -1) {
+    if (numSlashes === -1) {
       return new Path(absolute, prefix, curComponent, true);
     }
-    curComponentIndex = nextComponentIndex;
+    curComponentIndex = nextSlashIndex + numSlashes;
     prefix.push(curComponent);
   }
 };
