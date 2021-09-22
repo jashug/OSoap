@@ -5,26 +5,26 @@ import {isDot, isDotDot} from './Path.js';
 // Given a path and a current directory location and a root directory location,
 // we can resolve a path.
 
-// predecessor is owned, rootDir is borrowed, returns an owned reference.
+// predecessor is consumed, rootDir is borrowed, returns an owned reference.
 const walkComponent = async (component, predecessor, rootDir, options = {}) => {
   const {followSymlinks = true} = options;
   if (isDot(component)) return predecessor;
-  if (isDotDot(component)) {
-    return predecessor.parentDirectory();
-  }
-  const childEntryPromise = predecessor.search(component);
-  if (!followSymlinks) return childEntryPromise;
-
-  const childEntry = await childEntryPromise;
-  const fileType = childEntry.fileType;
-  if (fileType === FMT.SYMLINK) {
-    const linkContents = await childEntry.readlink();
-    const resultPromise = resolveToEntry(linkContents, predecessor, rootDir);
+  try {
+    if (isDotDot(component)) {
+      return await predecessor.parentDirectory();
+    }
+    const childEntry = await predecessor.search(component);
+    if (!followSymlinks) return childEntry;
+    const fileType = childEntry.fileType;
+    if (fileType === FMT.SYMLINK) {
+      const linkContents = await childEntry.readlink();
+      const resultPromise = resolveToEntry(linkContents, predecessor, rootDir);
+      return resultPromise;
+    } else {
+      return childEntry;
+    }
+  } finally {
     predecessor.decRefCount();
-    return resultPromise;
-  } else {
-    predecessor.decRefCount();
-    return childEntry;
   }
 };
 
