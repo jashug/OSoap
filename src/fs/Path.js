@@ -21,6 +21,7 @@ const equalComponents = (lhs, rhs) => {
 const componentToBinaryString = (component) => {
   return String.fromCharCode.apply(null, component);
 };
+const laxUTF8Decoder = new TextDecoder();
 const componentDecoder = new TextDecoder('utf-8', {fatal: true});
 const componentToUTF8String = (component) => {
   try {
@@ -32,18 +33,35 @@ const componentToUTF8String = (component) => {
     } else throw e;
   }
 };
+const attemptComponentToUTF8String = (component) => {
+  return laxUTF8Decoder.decode(component);
+};
 
 class Path {
   constructor(absolute, prefix, lastComponent, trailingSlash) {
     this.absolute = absolute;
     this.prefix = prefix;
     this.lastComponent = lastComponent;
-    // if lastComponent is null, trailingSlash should be false
+    // if lastComponent is null, trailingSlash should be false and this.prefix.length should be 0
     this.trailingSlash = trailingSlash;
   }
 
   isEmptyPath() {
-    return !this.absolute && this.prefix.length === 0 && this.lastComponent === null;
+    return !this.absolute && this.lastComponent === null;
+  }
+
+  toString() {
+    const parts = [];
+    if (this.absolute) parts.push('/');
+    for (const component of this.prefix) {
+      parts.push(attemptComponentToUTF8String(component));
+      parts.push('/');
+    }
+    if (this.lastComponent !== null) {
+      parts.push(attemptComponentToUTF8String(this.lastComponent));
+      if (this.trailingSlash) parts.push('/');
+    }
+    return parts.join('');
   }
 }
 
