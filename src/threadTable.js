@@ -6,6 +6,7 @@ import {FileDescriptor, FileDescriptorTable} from './FileDescriptor.js';
 import {SignalDispositionSet} from './SignalDispositionSet.js';
 import {devConsole} from './OpenFileDescription.js';
 import {UserMisbehaved} from './UserError.js';
+import {absoluteRootLocation} from './fs/init.js';
 
 const FIRST_UNUSABLE_PID = Math.pow(2, 31);
 let tidCounter = 1; // Start PIDs at 1
@@ -98,8 +99,8 @@ const initialProcessData = () => {
     parentProcess: null,
     setUserId: {real: null, effective: null, saved: null},
     setGroupId: {real: null, effective: null, saved: null},
-    currentWorkingDirectory: null,
-    rootDirectory: null,
+    currentWorkingDirectory: absoluteRootLocation,
+    rootDirectory: absoluteRootLocation,
     fileModeCreationMask: null,
     fdtable,
     signalDisposition: new SignalDispositionSet(),

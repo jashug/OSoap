@@ -14,17 +14,22 @@ class Mount {
     this.mountPoint = mountPoint; // an id in parent
     this.fs = fs;
     this.bindRoot = bindRoot; // an id in fs
+    // TODO: check and set mountType
     this.mountType = null;
     // the file type of mountPoint and bindRoot should
     // both be the same as this.mountType (this ensures that the
     // cached file type in direntries remains accurate).
     this.refCount = 0;
-    this.parent.addChildMount(this);
+    this.parent?.addChildMount(this);
     this.fs.virtualLinksIn.inc(this.bindRoot); // Take a regular reference
   }
 
   addChildMount(childMount) {
     const mountPoint = childMount.mountPoint;
+    if (this.parent === null && this.bindRoot === mountPoint) {
+      throw new Error("Attempted to mount on absolute root");
+      // TODO: give a gentler error rather than crashing the kernel
+    }
     this.fs.virtualLinksOut.inc(mountPoint);
     // The above prevents this directory from being unlinked,
     // even if it looks empty in this mount.

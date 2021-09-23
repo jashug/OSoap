@@ -13,6 +13,26 @@ const isDotDot = (component) => {
     component[0] === DOT_CODE && component[1] === DOT_CODE;
 };
 
+const equalComponents = (lhs, rhs) => {
+  if (lhs === rhs) return true;
+  if (lhs.length !== rhs.length) return false;
+  return lhs.every((element, index) => element === rhs[index]);
+};
+const componentToBinaryString = (component) => {
+  return String.fromCharCode.apply(null, component);
+};
+const componentDecoder = new TextDecoder('utf-8', {fatal: true});
+const componentToUTF8String = (component) => {
+  try {
+    return componentDecoder.decode(component);
+  } catch (e) {
+    if (e instanceof TypeError) {
+      // Not valid UTF-8
+      return null;
+    } else throw e;
+  }
+};
+
 class Path {
   constructor(absolute, prefix, lastComponent, trailingSlash) {
     this.absolute = absolute;
@@ -90,4 +110,7 @@ export {
   pathFromCString,
   isDot,
   isDotDot,
+  equalComponents,
+  componentToBinaryString,
+  componentToUTF8String,
 };

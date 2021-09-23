@@ -75,7 +75,7 @@ def walk_src(src_path, root_fd, meta_path, data_path):
                     for child in children
                 ]
             listing = [
-                {'name': child.name, 'inode': child_inode, 'fmt': child_fmt}
+                [child.name, {'id': child_inode, 'fmt': child_fmt}]
                 for child, (child_inode, child_fmt) in dentries
             ]
             contents = {
@@ -94,7 +94,7 @@ def walk_src(src_path, root_fd, meta_path, data_path):
             contents = os.readlink(cur_path)
             print(f"{os.fspath(cur_path)} = {inode}: Symlink -> {contents}")
             with open_root_file(data_file_path, binary=False) as fout:
-                fout.write(contents)
+                json.dump(contents, fout)
         else:
             raise Exception("Unknown file type")
         identity_map[identity] = inode, fmt

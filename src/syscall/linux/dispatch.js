@@ -11,7 +11,7 @@ import {statx} from './statx.js';
 
 const defaultSyscall = (syscallNumber) => (dv, thread) => {
   console.log(`Unimplemented syscall ${syscallNumber}`);
-  // debugger;
+  debugger;
   thread.requestUserDebugger();
   throw new SyscallError(E.NOSYS);
 };
@@ -39,9 +39,9 @@ const dispatchLinuxSyscall = (syscallNumber) => {
   return linuxSyscallTable.get(syscallNumber) ?? defaultSyscall(syscallNumber);
 };
 
-const tryLinuxSyscall = (syscall, dv, thread) => {
+const tryLinuxSyscall = async (syscall, dv, thread) => {
   try {
-    return syscall(dv, thread);
+    return await syscall(dv, thread);
   } catch (e) {
     if (e.linuxSyscallErrno !== undefined) {
       return -e.linuxSyscallErrno;
@@ -53,10 +53,10 @@ const tryLinuxSyscall = (syscall, dv, thread) => {
   }
 };
 
-const linuxSyscall = (dv, thread) => {
+const linuxSyscall = async (dv, thread) => {
   const syscall_number = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.n, true);
   const syscall = dispatchLinuxSyscall(syscall_number);
-  const syscall_return = tryLinuxSyscall(syscall, dv, thread);
+  const syscall_return = await tryLinuxSyscall(syscall, dv, thread);
   dv.setInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall_return, syscall_return, true);
   dv.setUint32(thread.sysBufAddr + SYSBUF_OFFSET.tag, OSOAP_SYS.TAG.R.linux_syscall_return, true);
 };
