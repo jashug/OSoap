@@ -7,4 +7,15 @@ const FMT = {
   SOCKET: 6,
 }
 
-export {FMT};
+const FMT_TO_MODE = new Map([
+  [FMT.REGULAR, 0o100000],
+  [FMT.DIRECTORY, 0o040000],
+  [FMT.SYMLINK, 0o120000],
+  [FMT.DEVICE, 0o020000],
+  [FMT.FIFO, 0o010000],
+  [FMT.SOCKET, 0o140000],
+]);
+
+const fmtToMode = (fmt) => FMT_TO_MODE.get(fmt);
+
+export {FMT, fmtToMode};

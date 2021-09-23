@@ -1,6 +1,6 @@
 import {FileSystem} from './fs.js';
 import {componentToUTF8String} from './Path.js';
-import {FMT} from '../constants/fs.js';
+import {FMT, fmtToMode} from '../constants/fs.js';
 import {NoEntryError} from './errors.js';
 import {LRUCache} from '../util/LRUCache.js';
 
@@ -10,9 +10,11 @@ const CONTENT_JSON = 'application/json';
 const CONTENT_BYTES = 'application/octet-stream';
 
 const loadDirectory = (dirData) => {
+  for (const pair of dirData.children) pair[1].id = BigInt(pair[1].id);
   dirData.children = new Map(dirData.children);
+  dirData.parent = BigInt(dirData.parent);
   return dirData;
-}
+};
 
 class ReadOnlyHttpFS extends FileSystem {
   constructor(url) {
@@ -28,6 +30,8 @@ class ReadOnlyHttpFS extends FileSystem {
     const url = `${this.url}/meta/${id}`;
     const response = await fetch(url, {headers: {Accept: CONTENT_JSON}});
     meta = await response.json();
+    meta.size = BigInt(meta.size);
+    meta.timestamp = BigInt(meta.timestamp);
     this.metaCache.set(id, meta);
     return meta;
   }
@@ -66,6 +70,23 @@ class ReadOnlyHttpFS extends FileSystem {
     if (metadata.fmt !== FMT.DIRECTORY) throw new Error("Not a directory");
     const data = await this.loadDataJson(id, loadDirectory);
     return data.parent;
+  }
+
+  async stat(id) {
+    const metadata = await this.loadMetadata(id);
+    const timestamp = {sec: metadata.timestamp, nsec: 0};
+    return {
+      blksize: 1024,
+      nlink: metadata.nlinks,
+      uid: metadata.uid,
+      gid: metadata.gid,
+      mode: metadata.mode | fmtToMode(metadata.fmt),
+      size: metadata.size,
+      blocks: ((metadata.size - 1n) >> 9n) + 1n,
+      atime: timestamp,
+      ctime: timestamp,
+      mtime: timestamp,
+    };
   }
 }
 

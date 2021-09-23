@@ -34,7 +34,7 @@ class RamFS extends FileSystem {
   constructor() {
     super();
     this.files = new Map();
-    this.idCounter = 1;
+    this.idCounter = 1n;
     this.rootId = this.idCounter++;
     const rootDirectory = new Directory(this.rootId);
     this.files.set(this.rootId, rootDirectory);
@@ -63,6 +63,12 @@ class RamFS extends FileSystem {
       this.files.get(id).children.get(componentToBinaryString(component));
     if (!entry) throw new NoEntryError();
     return entry;
+  }
+
+  stat(id, syncFlag) {
+    // TODO
+    debugger;
+    throw new Error("Unimplemented");
   }
 }
 

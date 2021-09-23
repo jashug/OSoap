@@ -1,9 +1,12 @@
 import {MultiSet} from '../util/MultiSet.js';
 
+let nonDeviceMountsCounter = 1;
+
 class FileSystem {
-  constructor() {
+  constructor(dev = {major: 0, minor: nonDeviceMountsCounter++}) {
     this.virtualLinksIn = new MultiSet(); // rmdir on these create orphan directories (unlinked but open)
     this.virtualLinksOut = new MultiSet(); // These return EBUSY on rmdir
+    this.dev = dev;
   }
 }
 

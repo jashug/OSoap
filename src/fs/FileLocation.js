@@ -26,6 +26,10 @@ class FileLocation {
     this.mount.decRef(this.id);
     this.mount = null;
   }
+
+  stat(syncFlag, mask) {
+    return this.mount.fs.stat(this.id, syncFlag, mask);
+  }
 }
 
 const search = async (mount, id, component) => {

@@ -1,5 +1,5 @@
 import {FMT} from '../constants/fs.js';
-import {NotADirectoryError} from './errors.js';
+import {NoEntryError, NotADirectoryError} from './errors.js';
 import {isDot, isDotDot} from './Path.js';
 
 // Given a path and a current directory location and a root directory location,
@@ -49,7 +49,14 @@ const resolvePrefix = async (path, curDir, rootDir, options = {}) => {
 
 // Successfully resolves empty paths
 const resolveToEntry = async (path, curDir, rootDir, options = {}) => {
-  const {followPrefixSymlinks = true, followLastSymlink = true} = options;
+  const {
+    followPrefixSymlinks = true,
+    followLastSymlink = true,
+    allowEmptyPath = true,
+  } = options;
+  if (!path.absolute && path.lastComponent === null && !allowEmptyPath) {
+    throw new NoEntryError();
+  }
   const predecessorPromise = resolvePrefix(path, curDir, rootDir, {
     followSymlinks: followPrefixSymlinks,
   });
