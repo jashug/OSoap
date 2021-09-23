@@ -1,7 +1,7 @@
 import {FileSystem} from './fs.js';
 import {componentToUTF8String} from './Path.js';
-import {FMT, fmtToMode} from '../constants/fs.js';
-import {NoEntryError} from './errors.js';
+import {FMT, fmtToMode, ACCESS} from '../constants/fs.js';
+import {NoEntryError, ReadOnlyFilesystemError} from './errors.js';
 import {LRUCache} from '../util/LRUCache.js';
 
 const ROOT_ID = 1;
@@ -15,6 +15,12 @@ const loadDirectory = (dirData) => {
   dirData.parent = BigInt(dirData.parent);
   return dirData;
 };
+
+// TODO: permissions checks
+// This needs the various methods to be passed some context, particularly
+// the user and group ids, possibly along with a superuser override.
+// May be easiest to pass the thread, or maybe the process, if that has all
+// relevant data.
 
 class ReadOnlyHttpFS extends FileSystem {
   constructor(url) {
@@ -87,6 +93,13 @@ class ReadOnlyHttpFS extends FileSystem {
       ctime: timestamp,
       mtime: timestamp,
     };
+  }
+
+  async access(id, mode) {
+    if (mode & ACCESS.W) throw new ReadOnlyFilesystemError();
+    const metadata = await this.loadMetadata(id);
+    // TODO: permissions checks
+    void metadata;
   }
 }
 

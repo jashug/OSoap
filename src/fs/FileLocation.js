@@ -30,6 +30,10 @@ class FileLocation {
   stat(syncFlag, mask) {
     return this.mount.fs.stat(this.id, syncFlag, mask);
   }
+
+  access(mode) {
+    return this.mount.fs.access(this.id, mode);
+  }
 }
 
 const search = async (mount, id, component) => {

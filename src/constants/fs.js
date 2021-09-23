@@ -18,4 +18,10 @@ const FMT_TO_MODE = new Map([
 
 const fmtToMode = (fmt) => FMT_TO_MODE.get(fmt);
 
-export {FMT, fmtToMode};
+const ACCESS = {
+  R: 4,
+  W: 2,
+  X: 1,
+}
+
+export {FMT, fmtToMode, ACCESS};
