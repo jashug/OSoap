@@ -34,6 +34,10 @@ class FileLocation {
   access(mode) {
     return this.mount.fs.access(this.id, mode);
   }
+
+  openExisting(flags) {
+    return this.mount.fs.openExisting(this.id, flags);
+  }
 }
 
 const search = async (mount, id, component) => {

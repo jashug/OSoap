@@ -84,19 +84,24 @@ const statx = async (dv, thread) => {
   const curdir = thread.process.currentWorkingDirectory;
   const rootdir = thread.process.rootDirectory;
   // We don't have automounts, so can ignore AT.NO_AUTOMOUNT
-  const filePointer = await resolveToEntry(path, curdir, rootdir, {
+  const {statInfo, id, dev} = await resolveToEntry(path, curdir, rootdir, {
     allowEmptyPath: flags & AT.EMPTY_PATH,
     followLastSymlink: !(flags & AT.SYMLINK_NOFOLLOW),
+  }, async (filePointer) => {
+    const syncFlag = parseSyncFlag(flags);
+    return {
+      statInfo: await filePointer.stat(syncFlag, mask),
+      id: filePointer.id,
+      dev: filePointer.mount.fs.dev,
+    };
   });
-  const syncFlag = parseSyncFlag(flags);
-  const statInfo = await filePointer.stat(syncFlag, mask);
   let returnedMask = STATX.BASIC_STATS;
   dv.setUint32(statbuf + STATX_OFFSET.blksize, statInfo.blksize, true);
   dv.setUint32(statbuf + STATX_OFFSET.nlink, statInfo.nlink, true);
   dv.setUint32(statbuf + STATX_OFFSET.uid, statInfo.uid, true);
   dv.setUint32(statbuf + STATX_OFFSET.gid, statInfo.gid, true);
   dv.setUint16(statbuf + STATX_OFFSET.mode, statInfo.mode, true);
-  dv.setBigUint64(statbuf + STATX_OFFSET.ino, filePointer.id, true);
+  dv.setBigUint64(statbuf + STATX_OFFSET.ino, id, true);
   dv.setBigUint64(statbuf + STATX_OFFSET.size, statInfo.size, true);
   dv.setBigUint64(statbuf + STATX_OFFSET.blocks, statInfo.blocks, true);
   dv.setBigUint64(statbuf + STATX_OFFSET.attribute_mask, 0n, true);
@@ -109,8 +114,8 @@ const statx = async (dv, thread) => {
   setTimespec(dv, statbuf + STATX_OFFSET.mtime, statInfo.mtime);
   dv.setUint32(dv, statbuf + STATX_OFFSET.rdev_major, statInfo.rdev?.major ?? 0, true);
   dv.setUint32(dv, statbuf + STATX_OFFSET.rdev_minor, statInfo.rdev?.minor ?? 0, true);
-  dv.setUint32(dv, statbuf + STATX_OFFSET.dev_major, filePointer.mount.fs.dev.major, true);
-  dv.setUint32(dv, statbuf + STATX_OFFSET.dev_minor, filePointer.mount.fs.dev.minor, true);
+  dv.setUint32(dv, statbuf + STATX_OFFSET.dev_major, dev.major, true);
+  dv.setUint32(dv, statbuf + STATX_OFFSET.dev_minor, dev.minor, true);
   dv.setUint32(statbuf + STATX_OFFSET.mask, returnedMask, true);
   return 0;
 };

@@ -1,8 +1,9 @@
 import {FileSystem} from './fs.js';
 import {componentToUTF8String} from './Path.js';
-import {FMT, fmtToMode, ACCESS} from '../constants/fs.js';
+import {FMT, fmtToMode, ACCESS, O} from '../constants/fs.js';
 import {NoEntryError, ReadOnlyFilesystemError} from './errors.js';
 import {LRUCache} from '../util/LRUCache.js';
+import {OpenFileDescription} from '../OpenFileDescription.js';
 
 const ROOT_ID = 1;
 
@@ -15,6 +16,38 @@ const loadDirectory = (dirData) => {
   dirData.parent = BigInt(dirData.parent);
   return dirData;
 };
+
+class OpenRegularFileDescription extends OpenFileDescription {
+  constructor(blobPromise) {
+    super();
+    this.contentsPromise = blobPromise.then((blob) => {
+      return new Uint8Array(blob.arrayBuffer);
+    });
+    this.offset = 0;
+  }
+
+  dispose() {
+  }
+
+  async readv(data) {
+    const contents = await this.contentsPromise;
+    let bytesRead = 0;
+    for (const arr of data) {
+      if (this.offset + arr.length <= contents.length) {
+        arr.set(contents.subarray(this.offset, arr.length));
+        this.offset += arr.length;
+        bytesRead += arr.length;
+      } else {
+        arr.set(contents.subarray(this.offset));
+        const lastChunk = contents.length - this.offset;
+        this.offset += lastChunk;
+        bytesRead += lastChunk;
+        break;
+      }
+    }
+    return bytesRead;
+  }
+}
 
 // TODO: permissions checks
 // This needs the various methods to be passed some context, particularly
@@ -100,6 +133,13 @@ class ReadOnlyHttpFS extends FileSystem {
     const metadata = await this.loadMetadata(id);
     // TODO: permissions checks
     void metadata;
+  }
+
+  openExisting(id, flags) {
+    // We know this is a regular file
+    if (flags & O.WRITE) throw new ReadOnlyFilesystemError();
+    const blobPromise = this.loadDataBlob(id);
+    return new OpenRegularFileDescription(blobPromise);
   }
 }
 

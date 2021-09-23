@@ -12,10 +12,11 @@ const access = async (dv, thread) => {
   const path = pathFromCString(dv.buffer, pathname + dv.byteOffset);
   const curdir = thread.process.currentWorkingDirectory;
   const rootdir = thread.process.rootDirectory;
-  const filePointer = await resolveToEntry(path, curdir, rootdir, {
+  await resolveToEntry(path, curdir, rootdir, {
     allowEmptyPath: false,
+  }, (filePointer) => {
+    filePointer.access(mode);
   });
-  filePointer.access(mode);
   return 0;
 };
 

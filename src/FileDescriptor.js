@@ -65,18 +65,17 @@ class FileDescriptorTable {
 
   // A function to allocate the first unused slot in the array
   // The file descriptor returned by thunk should be a new reference.
-  // Returns the file descriptor allocated.
-  // thunk() returns a new FileDescriptor
+  // Returns the file descriptor number allocated.
   // Throws FileDescriptorSpaceExhaustedError if MAX_NUM_FDS reached.
-  allocate(thunk) {
+  allocate(fd) {
     let ix = this.array.indexOf(null);
     if (ix === -1) {
       ix = this.array.push(null) - 1;
     }
     if (ix >= MAX_NUM_FDS) {
+      fd.dispose();
       throw new FileDescriptorSpaceExhaustedError();
     }
-    const fd = thunk();
     this.array[ix] = fd;
     return ix;
   }
@@ -93,7 +92,7 @@ class FileDescriptorTable {
 
   dup(fdi, closeOnExec = false) {
     const fd = this.get(fdi);
-    this.allocate(() => fd.copy({closeOnExec}));
+    this.allocate(fd.copy({closeOnExec}));
   }
 
   dup2(oldfdi, newfdi, closeOnExec = false) {

@@ -25,7 +25,10 @@ const walkComponent = async (component, predecessor, rootDir, options = {}) => {
     const fileType = childEntry.fileType;
     if (fileType === FMT.SYMLINK) {
       const linkContents = await childEntry.readlink();
-      const result = await resolveToEntry(linkContents, predecessor, rootDir);
+      const result = await resolveToEntry(linkContents, predecessor, rootDir, {}, (result) => {
+        result.incRefCount();
+        return result;
+      });
       if (mustBeDirectory) assertDirectory(result);
       return result;
     } else {
@@ -56,7 +59,7 @@ const resolvePrefix = async (path, curDir, rootDir, options = {}) => {
 };
 
 // Successfully resolves empty paths unless allowEmptyPath: false
-const resolveToEntry = async (path, curDir, rootDir, options = {}) => {
+const resolveToEntry = async (path, curDir, rootDir, options, f) => {
   const {
     followPrefixSymlinks = true,
     followLastSymlink = true,
@@ -72,19 +75,28 @@ const resolveToEntry = async (path, curDir, rootDir, options = {}) => {
     return predecessorPromise;
   }
   const predecessor = await predecessorPromise;
-  const lastComponentPromise = walkComponent(
+  const lastComponent = await walkComponent(
     path.lastComponent, predecessor, rootDir,
     {followSymlinks: followLastSymlink, mustBeDirectory: path.trailingSlash},
   );
-  return lastComponentPromise;
+  try {
+    return await f(lastComponent);
+  } finally {
+    lastComponent.decRefCount();
+  }
 };
 
-const resolveParent = (path, curDir, rootDir, options = {}) => {
+const resolveParent = async (path, curDir, rootDir, options, f) => {
   const {followSymlinks = true, allowEmptyPath = true} = options;
   if (!allowEmptyPath && path.isEmptyPath()) {
     throw new NoEntryError();
   }
-  return resolvePrefix(path, curDir, rootDir, {followSymlinks});
+  const parent = await resolvePrefix(path, curDir, rootDir, {followSymlinks});
+  try {
+    return await f(parent);
+  } finally {
+    parent.decRefCount();
+  }
 };
 
 export {resolvePrefix, resolveToEntry, resolveParent};

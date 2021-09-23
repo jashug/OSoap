@@ -4,6 +4,7 @@ import {E} from './errno.js';
 import {SyscallError} from './SyscallError.js';
 
 import {ioctl} from './ioctl.js';
+import {readv} from './readv.js';
 import {writev} from './writev.js';
 import {sigprocmask} from './sigprocmask.js';
 import {sigaction} from './sigaction.js';
@@ -29,6 +30,7 @@ const deprecatedSyscall = (syscallNum, suggestedAlternate) => {
 
 const linuxSyscallTable = new Map([
   [SYS.ioctl, ioctl],
+  [SYS.readv, readv],
   [SYS.writev, writev],
   [SYS.rt_sigprocmask, sigprocmask],
   [SYS.rt_sigaction, sigaction],

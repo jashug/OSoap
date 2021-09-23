@@ -93,7 +93,7 @@ const initialProcessData = () => {
   const fdtable = new FileDescriptorTable();
   // Add in stdin, stdout, stderr
   for (let i = 0; i < 3; i++) {
-    fdtable.allocate(() => new FileDescriptor(devConsole, false));
+    fdtable.allocate(new FileDescriptor(devConsole, false));
   }
   return {
     parentProcess: null,
