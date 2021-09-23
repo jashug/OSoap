@@ -12,6 +12,7 @@ import {statx} from './statx.js';
 import {clock_gettime} from './clock.js';
 import {access} from './access.js';
 import {open} from './open.js';
+import {close} from './close.js';
 
 const defaultSyscall = (syscallNumber) => (dv, thread) => {
   console.log(`Unimplemented syscall ${syscallNumber}`);
@@ -38,6 +39,7 @@ const linuxSyscallTable = new Map([
   [SYS.clock_gettime, clock_gettime],
   [SYS.access, access],
   [SYS.open, open],
+  [SYS.close, close],
   deprecatedSyscall(SYS.fork, "use OSoap syscall fork"),
   deprecatedSyscall(SYS.exit, "use OSoap syscall exit"),
   deprecatedSyscall(SYS.gettid, "use OSoap syscall gettid"),

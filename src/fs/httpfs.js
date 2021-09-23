@@ -18,11 +18,9 @@ const loadDirectory = (dirData) => {
 };
 
 class OpenRegularFileDescription extends OpenFileDescription {
-  constructor(blobPromise) {
+  constructor(contentsPromise) {
     super();
-    this.contentsPromise = blobPromise.then((blob) => {
-      return new Uint8Array(blob.arrayBuffer);
-    });
+    this.contentsPromise = contentsPromise;
     this.offset = 0;
   }
 
@@ -45,6 +43,7 @@ class OpenRegularFileDescription extends OpenFileDescription {
         break;
       }
     }
+    console.log(`Read ${bytesRead} bytes`);
     return bytesRead;
   }
 }
@@ -85,10 +84,13 @@ class ReadOnlyHttpFS extends FileSystem {
     return data;
   }
 
-  async loadDataBlob(id) {
+  async loadDataContents(id) {
     const url = `${this.url}/data/${id}`;
     const response = await fetch(url, {headers: {Accept: CONTENT_BYTES}});
-    return response.blob();
+    const blob = await response.blob();
+    const arrayBuffer = await blob.arrayBuffer();
+    const contents = new Uint8Array(arrayBuffer);
+    return contents;
   }
 
   async search(id, component) {
@@ -138,7 +140,7 @@ class ReadOnlyHttpFS extends FileSystem {
   openExisting(id, flags) {
     // We know this is a regular file
     if (flags & O.WRITE) throw new ReadOnlyFilesystemError();
-    const blobPromise = this.loadDataBlob(id);
+    const blobPromise = this.loadDataContents(id);
     return new OpenRegularFileDescription(blobPromise);
   }
 }

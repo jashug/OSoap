@@ -1,3 +1,6 @@
+import {NoTTYError} from './syscall/linux/InvalidError.js';
+import {IOCTL} from './constants/ioctl.js';
+import {getWinSize} from './ioctl/winsz.js';
 /*
 // Performs the same purpose as Linux struct file.f_mode
 // TODO: Make sure these flags are all useful
@@ -54,6 +57,16 @@ class OpenFileDescription {
   dispose() {
     console.log("Open File Description being released");
   }
+
+  ioctl(request) {
+    if (request === IOCTL.TIOC.GWINSZ) {
+      // musl uses this for isatty, so matters early.
+      throw new NoTTYError();
+    } else {
+      debugger;
+      throw new NoTTYError();
+    }
+  }
 }
 
 class DevConsoleFileDescription extends OpenFileDescription {
@@ -78,6 +91,14 @@ class DevConsoleFileDescription extends OpenFileDescription {
     throw new Error("DevConsole should never be disposed");
     // We keep a reference to the singleton, and never release it,
     // so if we throw this error it indicates a double-free bug somewhere else.
+  }
+
+  ioctl(request, argp, dv) {
+    if (request === IOCTL.TIOC.GWINSZ) {
+      getWinSize(argp, dv, {row: 25, col: 80, ypixel: 25 * 8, xpixel: 80 * 8});
+      return 0;
+    }
+    super.ioctl(request);
   }
 }
 
