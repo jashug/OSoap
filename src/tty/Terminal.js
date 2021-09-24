@@ -1,4 +1,4 @@
-import {TERMIOS_OFFSET, IFLG, OFLG, CFLG, LFLG, V, _POSIX_VDISABLE} from '../constants/termios.js';
+import {TERMIOS_OFFSET, IFLG, OFLG, CFLG, LFLG, V, BAUD, _POSIX_VDISABLE} from '../constants/termios.js';
 import {IOCTL} from '../constants/ioctl.js';
 import {getWinSize} from '../ioctl/winsz.js';
 
@@ -70,15 +70,48 @@ class Terminal {
 
   // returns true if it was able to process request,
   // false if should fall back
-  ioctl(request, argp, dv) {
+  async ioctl(request, argp, dv) {
     if (request === IOCTL.TIOC.GWINSZ) {
       getWinSize(argp, dv, this.size);
     } else if (request === IOCTL.TC.GETS) {
-      debugger;
+      // get termios
+      this.getTermios(argp, dv);
+    } else if (request === IOCTL.TC.SETS) {
+      // set termios
+      this.setTermios(argp, dv);
+    } else if (request === IOCTL.TC.SETSW) {
+      // set termios with drain
+      await this.drain();
+      this.setTermios(argp, dv);
+    } else if (request === IOCTL.TC.SETSF) {
+      // set termios with drain and flush
+      await this.drain();
+      this.flush();
+      this.setTermios(argp, dv);
     } else {
       return false;
     }
     return true;
+  }
+
+  getTermios(argp, dv) {
+    dv.setUint32(argp + TERMIOS_OFFSET.iflag, this.iflag, true);
+    dv.setUint32(argp + TERMIOS_OFFSET.oflag, this.oflag, true);
+    dv.setUint32(argp + TERMIOS_OFFSET.cflag, this.cflag, true);
+    dv.setUint32(argp + TERMIOS_OFFSET.lflag, this.lflag, true);
+    const cc = new Uint8Array(dv.buffer, dv.byteOffset + argp + TERMIOS_OFFSET.cc_array, TERMIOS_OFFSET.cc_array_length);
+    cc.set(this.cc);
+    dv.setUint32(argp + TERMIOS_OFFSET.ispeed, BAUD.B4000000, true);
+    dv.setUint32(argp + TERMIOS_OFFSET.ospeed, BAUD.B4000000, true);
+  }
+
+  setTermios(argp, dv) {
+    this.iflag = dv.getUint32(argp + TERMIOS_OFFSET.iflag, true);
+    this.oflag = dv.getUint32(argp + TERMIOS_OFFSET.oflag, true);
+    this.cflag = dv.getUint32(argp + TERMIOS_OFFSET.cflag, true);
+    this.lflag = dv.getUint32(argp + TERMIOS_OFFSET.lflag, true);
+    const cc = new Uint8Array(dv.buffer, dv.byteOffset + argp + TERMIOS_OFFSET.cc_array, TERMIOS_OFFSET.cc_array_length);
+    this.cc.set(cc);
   }
 }
 

@@ -9,19 +9,17 @@ class OpenTerminalDescription extends OpenFileDescription {
   dispose() {
   }
 
-  ioctl(request, argp, dv) {
-    if (this.term.ioctl(request, argp, dv)) return 0;
+  async ioctl(request, argp, dv) {
+    if (await this.term.ioctl(request, argp, dv)) return 0;
     else return super.ioctl(request, argp, dv);
   }
 
   writev(data) {
-    debugger;
-    void data;
+    return this.term.writev(data);
   }
 
   readv(data) {
-    debugger;
-    void data;
+    return this.term.readv(data);
   }
 }
 

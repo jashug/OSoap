@@ -4,8 +4,8 @@ import {E} from './errno.js';
 import {SyscallError} from './SyscallError.js';
 
 import {ioctl} from './ioctl.js';
-import {readv} from './readv.js';
-import {writev} from './writev.js';
+import {read, readv} from './read.js';
+import {write, writev} from './write.js';
 import {sigprocmask} from './sigprocmask.js';
 import {sigaction} from './sigaction.js';
 import {statx} from './statx.js';
@@ -30,19 +30,21 @@ const deprecatedSyscall = (syscallNum, suggestedAlternate) => {
 };
 
 const linuxSyscallTable = new Map([
+  [SYS.read, read],
+  [SYS.write, write],
+  [SYS.open, open],
+  [SYS.close, close],
+  [SYS.rt_sigaction, sigaction],
+  [SYS.rt_sigprocmask, sigprocmask],
   [SYS.ioctl, ioctl],
   [SYS.readv, readv],
   [SYS.writev, writev],
-  [SYS.rt_sigprocmask, sigprocmask],
-  [SYS.rt_sigaction, sigaction],
-  [SYS.statx, statx],
-  [SYS.clock_gettime, clock_gettime],
   [SYS.access, access],
-  [SYS.open, open],
-  [SYS.close, close],
   deprecatedSyscall(SYS.fork, "use OSoap syscall fork"),
   deprecatedSyscall(SYS.exit, "use OSoap syscall exit"),
   deprecatedSyscall(SYS.gettid, "use OSoap syscall gettid"),
+  [SYS.clock_gettime, clock_gettime],
+  [SYS.statx, statx],
 ]);
 
 const dispatchLinuxSyscall = (syscallNumber) => {
