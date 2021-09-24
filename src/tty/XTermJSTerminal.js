@@ -37,6 +37,9 @@ class XTermJSTerminal extends KTerminal {
     debugger;
     void data;
   }
+
+  get rows() { return this.term.rows; }
+  get cols() { return this.term.cols; }
 }
 
 export {XTermJSTerminal};

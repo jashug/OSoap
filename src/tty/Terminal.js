@@ -64,8 +64,12 @@ class Terminal {
     return this._foregroundProcessGroup;
   }
 
+  get rows() { return 25; }
+  get cols() { return 80; }
   get size() {
-    return {row: 25, col: 80, ypixel: 25 * 8, xpixel: 80 * 8};
+    const row = this.rows;
+    const col = this.col;
+    return {row, col, ypixel: row * 8, xpixel: col * 8};
   }
 
   // returns true if it was able to process request,
