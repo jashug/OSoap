@@ -1,4 +1,12 @@
 import {Terminal as KTerminal} from './Terminal.js';
+import {OFLG} from '../constants/termios.js';
+
+/*const writevToString = (data) => {
+  const decoder = new TextDecoder();
+  const strings = [];
+  for (const arr of data) strings.push(decoder.decode(new Uint8Array(arr), {stream: true}));
+  return strings.join('');
+};*/
 
 class XTermJSTerminal extends KTerminal {
   constructor(div) {
@@ -17,9 +25,12 @@ class XTermJSTerminal extends KTerminal {
   }
 
   writev(data) {
-    // TODO: processing of the output stream!
+    if (this.oflags & OFLG.OPOST && this.oflags & ~OFLG.OPOST) {
+      debugger;
+      // TODO: processing of the output stream!
+    }
     // TODO: Add flow control!
-    for (const arr of data) this.term.write(arr);
+    for (const arr of data) this.term.write(new Uint8Array(arr));
   }
 
   readv(data) {
