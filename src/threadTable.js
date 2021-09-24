@@ -4,7 +4,6 @@ import {SIG} from './constants/signal.js';
 import {dispatchSyscall} from './syscall/dispatch.js';
 import {FileDescriptor, FileDescriptorTable} from './FileDescriptor.js';
 import {SignalDispositionSet} from './SignalDispositionSet.js';
-import {devConsole} from './OpenFileDescription.js';
 import {UserMisbehaved} from './UserError.js';
 import {absoluteRootLocation} from './fs/init.js';
 
@@ -89,11 +88,11 @@ class ProcessGroup {
 
 const pidTable = new Map();
 
-const initialProcessData = () => {
+const initialProcessData = (openFile) => {
   const fdtable = new FileDescriptorTable();
   // Add in stdin, stdout, stderr
   for (let i = 0; i < 3; i++) {
-    fdtable.allocate(new FileDescriptor(devConsole, false));
+    fdtable.allocate(new FileDescriptor(openFile, false));
   }
   return {
     parentProcess: null,
@@ -109,7 +108,7 @@ const initialProcessData = () => {
 
 class Process {
   // Adopts processData without copying
-  constructor(processGroup, processId, processData = initialProcessData()) {
+  constructor(processGroup, processId, processData) {
     this.compiledModule = null;
     this.memory = null;
     this.status = null;
@@ -409,11 +408,12 @@ class Thread {
 
 //const processTable = new Map();
 
-const spawnProcess = (executableUrl) => {
+// openFile is an OpenFileDescription that starts as std{in,out,err}
+const spawnProcess = (executableUrl, openFile) => {
   const tid = getNewTid();
   const session = new Session(tid);
   const processGroup = new ProcessGroup(session, tid);
-  const process = new Process(processGroup, tid);
+  const process = new Process(processGroup, tid, initialProcessData(openFile));
   const thread = new Thread(process, tid, 0n, {
     forking: {inFork: false, sys_buf: 0, stack_buf: 0, pid: 0},
     module: executableUrl,
