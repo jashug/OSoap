@@ -43,7 +43,6 @@ class OpenRegularFileDescription extends OpenFileDescription {
         break;
       }
     }
-    console.log(`Read ${bytesRead} bytes`);
     return bytesRead;
   }
 }
