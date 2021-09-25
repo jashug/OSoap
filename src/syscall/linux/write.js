@@ -2,7 +2,7 @@ import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
 import {parseIOVec} from './parseIOVec.js';
 
 const doWrite = (thread, fd, data) => {
-  return thread.process.fdtable.get(fd).openFileDescription.writev(data);
+  return thread.process.fdtable.get(fd).openFileDescription.writev(data, thread);
 };
 
 const writev = (dv, thread) => {

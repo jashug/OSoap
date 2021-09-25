@@ -66,6 +66,19 @@ class OpenFileDescription {
       throw new NoTTYError();
     }
   }
+
+  // These support select calls
+  readyForReading() {
+    return true;
+  }
+
+  readyForWriting() {
+    return true;
+  }
+
+  errorConditionPending() {
+    return false;
+  }
 }
 
 export {OpenFileDescription};

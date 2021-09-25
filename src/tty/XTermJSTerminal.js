@@ -24,6 +24,9 @@ class XTermJSTerminal extends KTerminal {
     debugger;
   }
 
+  get rows() { return this.term.rows; }
+  get cols() { return this.term.cols; }
+
   writev(data) {
     if (this.oflags & OFLG.OPOST && this.oflags & ~OFLG.OPOST) {
       debugger;
@@ -33,13 +36,20 @@ class XTermJSTerminal extends KTerminal {
     for (const arr of data) this.term.write(new Uint8Array(arr));
   }
 
-  readv(data) {
+  readv(data, thread) {
     debugger;
+    thread.requestUserDebugger();
     void data;
   }
 
-  get rows() { return this.term.rows; }
-  get cols() { return this.term.cols; }
+  readyForReading() {
+    return false;
+  }
+
+  readyForWriting() {
+    // TODO: also flow control
+    return true;
+  }
 }
 
 export {XTermJSTerminal};
