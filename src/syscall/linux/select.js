@@ -4,37 +4,45 @@ import {InvalidError} from './InvalidError.js';
 const FD_SETSIZE = 1024;
 // const FD_SETSIZE_WORDS = FD_SETSIZE / 32;
 
-const getFdSet = (dv, loc, nfds, fdtable) => {
-  if (loc === 0) return [];
-  const words = [];
-  const nwords = ((nfds + 31) >> 5);
-  const readend = loc + (nwords << 2);
-  for (let i = loc; i < readend; i += 4) {
-    words.push(dv.getUint32(i, true));
-  }
-  const fds = [];
-  for (let i = 0; i < nfds; i++) {
-    if (words[i >> 5] & (1 << (i & 31))) {
-      fds.push({i, fd: fdtable.get(i).openFileDescription});
+class FdSet {
+  constructor(dv, loc, nfds, fdtable) {
+    this.words = [];
+    this.loc = loc;
+    this.dv = dv;
+    this.fds = [];
+    if (loc !== 0) {
+      const nwords = ((nfds + 31) >> 5);
+      const endptr = loc + (nwords << 2);
+      for (let i = this.loc; i < endptr; i += 4) {
+        this.words.push(dv.getUint32(i, true));
+      }
+      for (let i = 0; i < nfds; i++) {
+        if (this.words[i >> 5] & (1 << (i & 31))) {
+          this.fds.push({i, fd: fdtable.get(i).openFileDescription,
+            markNotReady: () => this.markNotReady(i),
+            markReady: () => this.markReady(i),
+          });
+        }
+      }
     }
   }
-  return fds;
-};
 
-const clearFdSet = (dv, loc, nfds, fds) => {
-  const words = [];
-  const nwords = ((nfds + 31 >> 5));
-  const writeend = loc + (nwords << 2);
-  for (let i = 0; i < nwords; i++) {
-    words.push(0);
+  [Symbol.iterator]() { return this.fds[Symbol.iterator](); }
+
+  markNotReady(i) {
+    this.words[i >> 5] &= ~(1 << (i & 31));
   }
-  for (const {i} of fds) {
-    words[i >> 5] |= (1 << (i & 31));
+
+  markReady(i) {
+    this.words[i >> 5] |= (1 << (i & 31));
   }
-  for (let i = writeend - 4; i >= loc; i -= 4) {
-    dv.setUint32(i, ~words.pop(), true);
+
+  writeBack() {
+    for (let i = 0; i < this.words.length; i++) {
+      this.dv.setUint32(this.loc + i * 4, this.words[i], true);
+    }
   }
-};
+}
 
 const readTimeVal = (dv, loc) => {
   if (loc === 0) return null;
@@ -51,30 +59,27 @@ const select = (dv, thread) => {
   const exceptfds = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 3, true);
   const timeoutLoc = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 4, true);
   const timeout = readTimeVal(dv, timeoutLoc); // null means infinite
-  const readFdSet = getFdSet(dv, readfds, nfds, thread.process.fdtable);
-  const writeFdSet = getFdSet(dv, writefds, nfds, thread.process.fdtable);
-  const exceptFdSet = getFdSet(dv, exceptfds, nfds, thread.process.fdtable);
+  const readFdSet = new FdSet(dv, readfds, nfds, thread.process.fdtable);
+  const writeFdSet = new FdSet(dv, writefds, nfds, thread.process.fdtable);
+  const exceptFdSet = new FdSet(dv, exceptfds, nfds, thread.process.fdtable);
 
   let readyFds = 0;
   // poll fds
-  const readToClear = [];
   for (const fd of readFdSet) {
     if (fd.fd.readyForReading() === true) readyFds++;
-    else readToClear.push(fd);
+    else fd.markNotReady();
   }
-  clearFdSet(dv, readfds, nfds, readToClear);
-  const writeToClear = [];
+  readFdSet.writeBack();
   for (const fd of writeFdSet) {
     if (fd.fd.readyForWriting() === true) readyFds++;
-    else writeToClear.push(fd);
+    else fd.markNotReady();
   }
-  clearFdSet(dv, writefds, nfds, writeToClear);
-  const exceptionToClear = [];
+  writeFdSet.writeBack();
   for (const fd of exceptFdSet) {
     if (fd.fd.errorConditionPending() === true) readyFds++;
-    else exceptionToClear.push(fd);
+    else fd.markNotReady();
   }
-  clearFdSet(dv, exceptfds, nfds, exceptionToClear);
+  exceptFdSet.writeBack();
 
   if (readyFds === 0 && timeout.sec !== 0 && timeout.usec !== 0) {
     // TODO: block until ready
