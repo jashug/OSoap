@@ -18,3 +18,8 @@ window.term = term;
 
 // spawnProcess('/tmp/puts.wasm', devConsole);
 spawnProcess('/ncurses-test-programs/blue', new OpenTerminalDescription(term));
+
+// TODO: normally in chrome, JS can't intercept ctrl-w, ctrl-n, ctrl-t
+// In app mode, you can catch these changes.
+// Use window.beforeunload to catch ctrl-w and warn the user that the page
+// will close.

@@ -1,6 +1,7 @@
 import {TERMIOS_OFFSET, IFLG, OFLG, CFLG, LFLG, V, BAUD, _POSIX_VDISABLE} from '../constants/termios.js';
 import {IOCTL} from '../constants/ioctl.js';
 import {getWinSize} from '../ioctl/winsz.js';
+import {Queue} from '../util/Queue.js';
 
 const default_iflag = (
   IFLG.BRKINT | // breaks cause an interrupt signal
@@ -9,7 +10,7 @@ const default_iflag = (
 0);
 const default_oflag = (
   OFLG.OPOST | // postprocess output
-  OFLG.ONLCR | // translate newline to newline carriage return
+  OFLG.ONLCR | // translate newline to carriage return newline
 0);
 const default_cflag = (
   CFLG.CREAD | // allow input to be recieved
@@ -23,6 +24,7 @@ const default_lflag = (
   LFLG.ISIG | // enable interrupt, quit, and suspend special characters
   // LFLG.ECHOCTL | // echo control characters in hat notation
   // LFLG.ECHOKE | // kill all lines by obeying the echocrt and echoe settings
+  LFLG.TOSTOP | // send SIGTTOU
 0);
 
 const defaultControlCharacters = new Uint8Array(TERMIOS_OFFSET.cc_array_length);
@@ -53,6 +55,7 @@ class Terminal {
     this.cflag = default_cflag;
     this.lflag = default_lflag;
     this.cc = new Uint8Array(defaultControlCharacters);
+    this.inputQueue = new Queue();
   }
 
   // Consider asking for notification when the fg process group dies,
@@ -66,15 +69,63 @@ class Terminal {
 
   get rows() { return 25; }
   get cols() { return 80; }
+  get ypixel() { return this.row * 8; }
+  get xpixel() { return this.col * 8; }
   get size() {
     const row = this.rows;
     const col = this.col;
-    return {row, col, ypixel: row * 8, xpixel: col * 8};
+    return {row, col, ypixel: this.ypixel, xpixel: this.xpixel};
+  }
+
+  getUSVStringInput(data) {
+    if (data.length === 0) return;
+    if (data.length > 100) {
+      console.log("Some unexpectedly long data");
+      debugger;
+    }
+    console.log(JSON.stringify(data));
+    // enqueue processed data
+    for (const c of data) {
+    }
+  }
+
+  async readv(data, thread) {
+    // TODO: worry about SIGTTIN
+    await new Promise(() => {});
+    debugger;
+    thread.requestUserDebugger();
+    void data;
+  }
+
+  readyForReading() {
+    return Boolean(this.inputQueue.size > 0);
+  }
+
+  async writev(data, thread) {
+    // TODO: SIGTTOU
+    void thread;
+    if (this.oflags & OFLG.OPOST && this.oflags & ~OFLG.OPOST) {
+      const oflagsString = this.oflags.toString(8);
+      void oflagsString;
+      debugger;
+      // TODO: processing the output stream
+    } else {
+      const copiedData = [];
+      for (const arr of data) {
+        copiedData.push(new Uint8Array(arr));
+      }
+      await this.writeBytesBlocking(copiedData);
+    }
+  }
+
+  readyForWriting() {
+    // Override in subclass if terminal can block indefinitely.
+    return true;
   }
 
   // returns true if it was able to process request,
   // false if should fall back
-  async ioctl(request, argp, dv) {
+  async ioctl(request, argp, dv, thread) {
     if (request === IOCTL.TIOC.GWINSZ) {
       getWinSize(argp, dv, this.size);
     } else if (request === IOCTL.TC.GETS) {
@@ -82,16 +133,16 @@ class Terminal {
       this.getTermios(argp, dv);
     } else if (request === IOCTL.TC.SETS) {
       // set termios
-      this.setTermios(argp, dv);
+      this.setTermios(argp, dv, thread);
     } else if (request === IOCTL.TC.SETSW) {
       // set termios with drain
       await this.drain();
-      this.setTermios(argp, dv);
+      this.setTermios(argp, dv, thread);
     } else if (request === IOCTL.TC.SETSF) {
       // set termios with drain and flush
       await this.drain();
       this.flush();
-      this.setTermios(argp, dv);
+      this.setTermios(argp, dv, thread);
     } else {
       return false;
     }
@@ -109,7 +160,8 @@ class Terminal {
     dv.setUint32(argp + TERMIOS_OFFSET.ospeed, BAUD.B4000000, true);
   }
 
-  setTermios(argp, dv) {
+  setTermios(argp, dv, thread) {
+    void thread; // TODO: SIGTTOU
     this.iflag = dv.getUint32(argp + TERMIOS_OFFSET.iflag, true);
     this.oflag = dv.getUint32(argp + TERMIOS_OFFSET.oflag, true);
     this.cflag = dv.getUint32(argp + TERMIOS_OFFSET.cflag, true);

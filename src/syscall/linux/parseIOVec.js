@@ -13,7 +13,7 @@ const parseIOVec = (dv, iov, iovcnt) => {
     totalLen += iov_len;
   }
   if (totalLen >= Math.pow(2, 31)) throw new InvalidError();
-  return data;
+  return {data, totalLen};
 };
 
 export {parseIOVec};
