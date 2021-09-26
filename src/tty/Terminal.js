@@ -48,8 +48,7 @@ defaultControlCharacters[V.MIN] = 1;
 
 const NL_CHAR = '\n'.codePointAt(0);
 const CR_CHAR = '\r'.codePointAt(0);
-void NL_CHAR;
-void CR_CHAR;
+const CRNL_SEQ = new Uint8Array([CR_CHAR, NL_CHAR]);
 
 const encoder = new TextEncoder();
 
@@ -234,11 +233,28 @@ class Terminal {
   async writev(data, thread, totalLen) {
     // TODO: SIGTTOU
     void thread;
-    if (this.oflags & OFLG.OPOST && this.oflags & ~OFLG.OPOST) {
-      const oflagsString = this.oflags.toString(8);
-      void oflagsString;
-      debugger;
-      // TODO: processing the output stream
+    if (this.oflag & OFLG.OPOST && this.oflag & ~OFLG.OPOST) {
+      if (this.oflag & ~(OFLG.OPOST | OFLG.ONLCR)) {
+        const oflagString = this.oflag.toString(8);
+        void oflagString;
+        debugger;
+      } else if (this.oflag & OFLG.ONLCR) {
+        // process nl into crnl
+        const copiedData = [];
+        for (const arr of data) {
+          let startOfLine = 0;
+          let endOfLine = arr.indexOf(NL_CHAR);
+          while (endOfLine !== -1) {
+            copiedData.push(new Uint8Array(arr.subarray(startOfLine, endOfLine)));
+            copiedData.push(CRNL_SEQ);
+            startOfLine = endOfLine + 1;
+            endOfLine = arr.indexOf(NL_CHAR, startOfLine);
+          }
+          copiedData.push(new Uint8Array(arr.subarray(startOfLine)));
+        }
+        await this.writeBytesBlocking(copiedData);
+        return totalLen;
+      }
     } else {
       const copiedData = [];
       for (const arr of data) {
