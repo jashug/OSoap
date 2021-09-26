@@ -8,7 +8,7 @@ import {Lock} from '../util/Lock.js';
   return strings.join('');
 };*/
 
-const CHUNK_LENGTH = 200000; // bytes in one of two chunks
+const CHUNK_LENGTH = 2000000; // bytes in one of two chunks
 const EMPTY_BYTE_ARRAY = new Uint8Array();
 
 class XTermJSTerminal extends KTerminal {
