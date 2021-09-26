@@ -1,6 +1,5 @@
-import {SyscallError} from './SyscallError.js';
-import {E} from './errno.js';
 import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
+import {InvalidError} from './InvalidError.js';
 
 // This and more in time.h
 const CLOCK = {
@@ -10,7 +9,7 @@ const CLOCK = {
 
 const unknownClockId = (clockId) => () => {
   console.log(`Request for unknown clock id ${clockId}`);
-  throw new SyscallError(E.INVAL);
+  throw new InvalidError();
 };
 
 const gettime = new Map([
@@ -28,7 +27,7 @@ const gettime = new Map([
     // TODO
     debugger;
     console.log("TODO: monotone clock");
-    throw new SyscallError(E.INVAL);
+    throw new InvalidError();
   }],
 ]);
 

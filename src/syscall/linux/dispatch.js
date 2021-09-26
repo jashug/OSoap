@@ -14,6 +14,7 @@ import {access} from './access.js';
 import {open} from './open.js';
 import {close} from './close.js';
 import {select} from './select.js';
+import {nanosleep} from './sleep.js';
 
 const defaultSyscall = (syscallNumber) => (dv, thread) => {
   console.log(`Unimplemented syscall ${syscallNumber}`);
@@ -42,6 +43,7 @@ const linuxSyscallTable = new Map([
   [SYS.writev, writev],
   [SYS.access, access],
   [SYS.select, select],
+  [SYS.nanosleep, nanosleep],
   deprecatedSyscall(SYS.fork, "use OSoap syscall fork"),
   deprecatedSyscall(SYS.exit, "use OSoap syscall exit"),
   deprecatedSyscall(SYS.gettid, "use OSoap syscall gettid"),
