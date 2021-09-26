@@ -17,7 +17,7 @@ window.term = term;
 //  'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
 
 // spawnProcess('/tmp/puts.wasm', devConsole);
-spawnProcess('/ncurses-test-programs/blue', new OpenTerminalDescription(term));
+spawnProcess('/ncurses-test-programs/hanoi', new OpenTerminalDescription(term));
 
 // TODO: normally in chrome, JS can't intercept ctrl-w, ctrl-n, ctrl-t
 // In app mode, you can catch these changes.

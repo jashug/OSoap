@@ -15,12 +15,12 @@ class OpenTerminalDescription extends OpenFileDescription {
     else return super.ioctl(request, argp, dv, thread);
   }
 
-  writev(data, thread) {
-    return this.term.writev(data, thread);
+  writev(data, thread, totalLen) {
+    return this.term.writev(data, thread, totalLen);
   }
 
-  readv(data, thread) {
-    return this.term.readv(data, thread);
+  readv(data, thread, totalLen) {
+    return this.term.readv(data, thread, totalLen);
   }
 
   readyForReading() {

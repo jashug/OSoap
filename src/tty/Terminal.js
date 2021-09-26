@@ -231,7 +231,7 @@ class Terminal {
     // does some postprocessing.
   }
 
-  async writev(data, thread) {
+  async writev(data, thread, totalLen) {
     // TODO: SIGTTOU
     void thread;
     if (this.oflags & OFLG.OPOST && this.oflags & ~OFLG.OPOST) {
@@ -245,6 +245,7 @@ class Terminal {
         copiedData.push(new Uint8Array(arr));
       }
       await this.writeBytesBlocking(copiedData);
+      return totalLen;
     }
   }
 

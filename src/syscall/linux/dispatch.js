@@ -73,6 +73,7 @@ const linuxSyscall = async (dv, thread) => {
   const syscall_number = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.n, true);
   const syscall = dispatchLinuxSyscall(syscall_number);
   const syscall_return = await tryLinuxSyscall(syscall, dv, thread);
+  if (syscall_return === undefined) throw new Error("Linux syscalls should return");
   dv.setInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall_return, syscall_return, true);
   dv.setUint32(thread.sysBufAddr + SYSBUF_OFFSET.tag, OSOAP_SYS.TAG.R.linux_syscall_return, true);
 };
