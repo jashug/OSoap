@@ -46,6 +46,13 @@ defaultControlCharacters[V.EOL2] = _POSIX_VDISABLE;
 defaultControlCharacters[V.TIME] = 0;
 defaultControlCharacters[V.MIN] = 1;
 
+const NL_CHAR = '\n'.codePointAt(0);
+const CR_CHAR = '\r'.codePointAt(0);
+void NL_CHAR;
+void CR_CHAR;
+
+const encoder = new TextEncoder();
+
 class Terminal {
   constructor() {
     this._foregroundProcessGroup = null;
@@ -56,6 +63,9 @@ class Terminal {
     this.lflag = default_lflag;
     this.cc = new Uint8Array(defaultControlCharacters);
     this.inputQueue = new Queue();
+    this.bytesInInputQueue = 0;
+    this.currentLine = [];
+    this.readWaiters = new Set();
   }
 
   // Consider asking for notification when the fg process group dies,
@@ -77,28 +87,148 @@ class Terminal {
     return {row, col, ypixel: this.ypixel, xpixel: this.xpixel};
   }
 
+  flush() {
+    console.log("Flush!");
+    this.inputQueue.clear();
+    this.bytesInInputQueue = 0;
+    this.currentLine = [];
+  }
+
+  get intrKey() { return this.cc[V.INTR]; }
+  get quitKey() { return this.cc[V.QUIT]; }
+  get eraseKey() { return this.cc[V.ERASE]; }
+  get killKey() { return this.cc[V.KILL]; }
+  get eofKey() { return this.cc[V.EOF]; }
+  get swtcKey() { return this.cc[V.SWTC]; }
+  get startKey() { return this.cc[V.START]; }
+  get stopKey() { return this.cc[V.STOP]; }
+  get suspKey() { return this.cc[V.SUSP]; }
+  get eolKey() { return this.cc[V.EOL]; }
+  get reprintKey() { return this.cc[V.REPRINT]; }
+  get discardKey() { return this.cc[V.DISCARD]; }
+  get weraseKey() { return this.cc[V.WERASE]; }
+  get lnextKey() { return this.cc[V.LNEXT]; }
+  get eol2Key() { return this.cc[V.EOL2]; }
+
+  get ccTime() { return this.cc[V.TIME]; } // tenths of a second
+  get ccMin() { return this.cc[V.MIN]; } // bytes
+
   getUSVStringInput(data) {
     if (data.length === 0) return;
     if (data.length > 100) {
       console.log("Some unexpectedly long data");
       debugger;
     }
-    console.log(JSON.stringify(data));
     // enqueue processed data
+    const toEcho = [];
     for (const c of data) {
+      let dontEcho = false;
+      const codePoint = c.codePointAt(0);
+      if (this.lflag & LFLG.ISIG) {
+        if (codePoint === this.intrKey && codePoint !== _POSIX_VDISABLE) {
+          console.log("INTR!");
+          if (!(this.lflag & LFLG.NOFLSH)) this.flush();
+          // TODO: also stop the output in the middle, maybe
+          dontEcho = true;
+        } else if (codePoint === this.quitKey && codePoint !== _POSIX_VDISABLE) {
+          console.log("QUIT!");
+          if (!(this.lflag & LFLG.NOFLSH)) this.flush();
+          dontEcho = true;
+        } else if (codePoint === this.suspKey && codePoint !== _POSIX_VDISABLE) {
+          console.log("SUSP!");
+          if (!(this.lflag & LFLG.NOFLSH)) this.flush();
+          dontEcho = true;
+        }
+      }
+      if (this.iflag & IFLG.IXON) {
+        if (codePoint === this.startKey && codePoint !== _POSIX_VDISABLE) {
+          console.log("Start!");
+          dontEcho = true;
+        } else if (codePoint === this.stopKey && codePoint !== _POSIX_VDISABLE) {
+          console.log("Stop!");
+          dontEcho = true;
+        }
+      }
+      if (this.lflag & LFLG.ICANON) {
+        debugger;
+      } else {
+        this.enqueueInputCharacter(c);
+      }
+      if (!dontEcho && this.lflag & LFLG.IECHO) {
+        toEcho.push(c);
+      }
     }
+    this.writeStringsBlocking(toEcho);
+  }
+
+  enqueueInputCharacter(c) {
+    const arr = encoder.encode(c);
+    this.inputQueue.enqueue(arr);
+    this.bytesInInputQueue += arr.length;
+    for (const waiter of this.readWaiters) waiter.check();
   }
 
   async readv(data, thread) {
     // TODO: worry about SIGTTIN
-    await new Promise(() => {});
-    debugger;
-    thread.requestUserDebugger();
+    const ccTime = this.ccTime;
+    const ccMin = this.ccMin;
+    if (ccTime !== 0) {
+      debugger;
+      thread.requestUserDebugger();
+      await new Promise(() => {});
+    } else {
+      return new Promise((resolve) => {
+        const outerThis = this;
+        const inputQueue = this.inputQueue;
+        const waiter = {
+          check() {
+            if (outerThis.bytesInInputQueue < ccMin) return;
+            // Success!
+            let bytesRead = 0;
+            for (const arr of data) {
+              let position = 0;
+              while (inputQueue.size > 0) {
+                const item = inputQueue.dequeue();
+                if (position + item.length < arr.length) {
+                  arr.set(item, position);
+                  position += item.length;
+                  bytesRead += item.length;
+                } else {
+                  const split = arr.length - position;
+                  arr.set(item.subarray(0, split), position);
+                  if (split < item.length) {
+                    inputQueue.pushFront(arr.subarray(split));
+                  }
+                  bytesRead += split;
+                  break;
+                }
+              }
+            }
+            outerThis.readWaiters.delete(this);
+            outerThis.bytesInInputQueue -= bytesRead;
+            resolve(bytesRead);
+          },
+        };
+        this.readWaiters.add(waiter);
+        waiter.check();
+      });
+    }
     void data;
   }
 
   readyForReading() {
-    return Boolean(this.inputQueue.size > 0);
+    const ccTime = this.ccTime;
+    const ccMin = this.ccMin;
+    if (ccTime === 0) {
+      return Boolean(this.bytesInInputQueue >= ccMin);
+    } else {
+      return Boolean(this.bytesInInputQueue >= Math.max(ccMin, 1));
+    }
+  }
+
+  drain() {
+    // Drain doesn't have to do anything, unless writeBytesBlocking
+    // does some postprocessing.
   }
 
   async writev(data, thread) {

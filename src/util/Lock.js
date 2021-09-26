@@ -11,26 +11,44 @@ class Lock {
   constructor() {
     this.unlocked = Promise.resolve();
     this._unlock = alreadyUnlocked;
+    this.locked = false;
   }
 
   async aquire() {
-    await this.unlocked;
+    while (this.locked) await this.unlocked;
+    this._aquire();
+  }
+
+  // Must only be called when !this.locked
+  _aquire() {
+    if (this.locked) throw new Error("Attempting synchronous locking of locked lock");
     this.unlocked = new Promise((resolve) => {
-      this._unlock = () => {
-        resolve();
-        this._unlock = alreadyUnlocked;
-      };
+      this._unlock = resolve;
     });
+    this.locked = true;
   }
 
   release() {
+    if (!this.locked) alreadyUnlocked();
+    this.locked = false;
     this._unlock();
   }
 
-  async withLock(f) {
-    await this.aquire();
+  async withLockAsync(f) {
+    while (this.locked) await this.unlocked;
+    this._aquire();
     try {
       return await f();
+    } finally {
+      this.release();
+    }
+  }
+
+  async withLockSync(f) {
+    while (this.locked) await this.unlocked;
+    this._aquire();
+    try {
+      return f();
     } finally {
       this.release();
     }

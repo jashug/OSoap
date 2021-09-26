@@ -24,6 +24,11 @@ class Queue {
   pushFront(item) {
     this.front.push(item);
   }
+
+  clear() {
+    this.front = [];
+    this.back = [];
+  }
 }
 
 export {Queue};

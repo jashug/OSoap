@@ -7,6 +7,7 @@ class OpenTerminalDescription extends OpenFileDescription {
   }
 
   dispose() {
+    this.term.flush();
   }
 
   async ioctl(request, argp, dv, thread) {

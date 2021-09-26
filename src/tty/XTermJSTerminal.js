@@ -24,24 +24,27 @@ class XTermJSTerminal extends KTerminal {
     this.writeLock = new Lock();
   }
 
-  drain() {
-    return new Promise((resolve) => this.term.write("", resolve));
-  }
-
-  flush() {
-    debugger;
-  }
-
   get rows() { return this.term.rows; }
   get cols() { return this.term.cols; }
 
   // data should be an array of non-shared Uint8Arrays
+  writeBytesBlocking(data) {
+    return this.writeDataBlocking(data, Uint8Array.prototype.subarray);
+  }
+
+  // data should be an array of USVString
+  writeStringsBlocking(data) {
+    this.writeDataBlocking(data, String.prototype.substring);
+  }
+
+  // data should be an array of objects that have .length and
+  // which subarray acts on.
   // Blocks until all bytes have been transferred to the terminal,
   // not until the terminal has processed those bytes.
   // Blocks due to flow control.
-  writeBytesBlocking(data) {
+  writeDataBlocking(data, subarray) {
     // Holding our write lock makes writes atomic
-    return this.writeLock.withLock(async () => {
+    return this.writeLock.withLockAsync(async () => {
       for (let arr of data) {
         while (arr.length > 0) {
           const start = this.bytesWrittenInChunk;
@@ -49,11 +52,11 @@ class XTermJSTerminal extends KTerminal {
           if (end < CHUNK_LENGTH) {
             this.bytesWrittenInChunk = end;
             this.term.write(arr);
-            arr = arr.subarray(arr.length);
+            arr = subarray.call(arr, arr.length);
           } else {
             const split = CHUNK_LENGTH - start;
-            this.term.write(arr.subarray(0, split));
-            arr = arr.subarray(split);
+            this.term.write(subarray.call(arr, 0, split));
+            arr = subarray.call(arr, split);
             await this.secondChunkReady;
             this.bytesWrittenInChunk = 0;
             this.secondChunkReady = new Promise((resolve) => {
