@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -e
+
+cd "${OSOAP_ROOT}/readline"
+TARGET=wasm32
+SYSROOT="${OSOAP_ROOT}/sysroot"
+export CC="clang "
+export CFLAGS="--target=${TARGET} --sysroot=${SYSROOT} -g -pthread"
+export BUILD_CC="clang"
+export BUILD_CFLAGS="-g"
+export LD="wasm-ld"
+export LDFLAGS="-Wl,--import-memory -Wl,--shared-memory -Wl,--max-memory=4294967296"
+export AR="llvm-ar"
+export RANLIB="llvm-ranlib"
+
+if [ -f Makefile ]; then make distclean; fi
+./configure \
+  --prefix="${SYSROOT}" \
+  --host="${TARGET}" \
+  --enable-shared=no \
+  --with-curses
+make
+make install
+
+# termio.h present but cannot be compiled

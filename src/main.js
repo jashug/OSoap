@@ -16,7 +16,7 @@ window.term = term;
 // term.term.write('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' +
 //  'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
 
-// spawnProcess('/tmp/puts.wasm', new OpenTerminalDescription(term));
+// spawnProcess('/tmp/puts.wasm', new OpenTerminalDescription(term), []);
 spawnProcess('/ncurses-test-programs/hanoi', new OpenTerminalDescription(term),
   [utf8Encoder.encode('hanoi'), utf8Encoder.encode('-X')],
 );

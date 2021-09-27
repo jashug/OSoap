@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 cd "${OSOAP_ROOT}/bash"
-make distclean
+if [ -f Makefile ]; then make distclean; fi
 TARGET=wasm32
 SYSROOT="${OSOAP_ROOT}/sysroot"
 export CC="clang"
@@ -11,9 +11,12 @@ export LD=wasm-ld
 export LDFLAGS="-Wl,--import-memory -Wl,--shared-memory -Wl,--max-memory=4294967296"
 export AR=llvm-ar
 export CPP=clang-cpp
-export CPPFLAGS="--sysroot=${SYSROOT}"
+export CPPFLAGS="--sysroot=${SYSROOT} -DNO_MAIN_ENV_ARG"
 export RANLIB=llvm-ranlib
-./configure --prefix="${SYSROOT}" --host=${TARGET} && make
+./configure --prefix="${SYSROOT}" --host=${TARGET} --with-installed-readline --without-bash-malloc
+make
+
+# !!! NEEDS setjmp AND longjmp
 
 # argz.h cannot be compiled!
 # termcap.h cannot be compiled!
