@@ -77,8 +77,11 @@ class OpenFileDescription {
   }
 
   errorConditionPending() {
-    return false;
+    return rejectedReadyPromise;
   }
 }
 
-export {OpenFileDescription};
+const rejectedReadyPromise = Promise.reject(new Error());
+rejectedReadyPromise.catch(() => {});
+
+export {OpenFileDescription, rejectedReadyPromise};

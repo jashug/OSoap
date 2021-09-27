@@ -65,6 +65,7 @@ class Terminal {
     this.bytesInInputQueue = 0;
     this.currentLine = [];
     this.readWaiters = new Set();
+    this._readyForReading = null;
   }
 
   // Consider asking for notification when the fg process group dies,
@@ -218,11 +219,27 @@ class Terminal {
   readyForReading() {
     const ccTime = this.ccTime;
     const ccMin = this.ccMin;
-    if (ccTime === 0) {
-      return Boolean(this.bytesInInputQueue >= ccMin);
-    } else {
-      return Boolean(this.bytesInInputQueue >= Math.max(ccMin, 1));
+    const effectiveMin = ccTime === 0 ? ccMin : Math.max(ccMin, 1);
+    if (this.bytesInInputQueue >= effectiveMin) return true;
+    if (this._readyForReading === null) {
+      this._readyForReading = new Promise((resolve) => {
+        const outerThis = this;
+        const waiter = {
+          check() {
+            if (outerThis.bytesInInputQueue < effectiveMin) return;
+            outerThis.readWaiters.delete(this);
+            if (outerThis._readyForReading === currentReadyForReading) {
+              outerThis._readyForReading = null;
+            }
+            resolve();
+          },
+        };
+        this.readWaiters.add(waiter);
+        waiter.check();
+      });
+      const currentReadyForReading = this._readyForReading;
     }
+    return this._readyForReading;
   }
 
   drain() {
@@ -309,12 +326,14 @@ class Terminal {
 
   setTermios(argp, dv, thread) {
     void thread; // TODO: SIGTTOU
+    const oldMin = this.ccMin;
     this.iflag = dv.getUint32(argp + TERMIOS_OFFSET.iflag, true);
     this.oflag = dv.getUint32(argp + TERMIOS_OFFSET.oflag, true);
     this.cflag = dv.getUint32(argp + TERMIOS_OFFSET.cflag, true);
     this.lflag = dv.getUint32(argp + TERMIOS_OFFSET.lflag, true);
     const cc = new Uint8Array(dv.buffer, dv.byteOffset + argp + TERMIOS_OFFSET.cc_array, TERMIOS_OFFSET.cc_array_length);
     this.cc.set(cc);
+    if (this.ccMin !== oldMin) this._readyForReading = null;
     console.log(`iflag: ${this.iflag.toString(8)}, oflag: ${this.oflag.toString(8)}, cflag: ${this.cflag.toString(8)}, lflag: ${this.lflag.toString(8)}`);
   }
 }

@@ -21,6 +21,7 @@ class FdSet {
           this.fds.push({i, fd: fdtable.get(i).openFileDescription,
             markNotReady: () => this.markNotReady(i),
             markReady: () => this.markReady(i),
+            writeBack: () => this.writeBack(),
           });
         }
       }
@@ -51,7 +52,7 @@ const readTimeVal = (dv, loc) => {
   return {sec, usec};
 };
 
-const select = (dv, thread) => {
+const select = async (dv, thread) => {
   const nfds = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
   if (nfds < 0 || nfds > FD_SETSIZE) throw new InvalidError();
   const readfds = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
@@ -64,28 +65,49 @@ const select = (dv, thread) => {
   const exceptFdSet = new FdSet(dv, exceptfds, nfds, thread.process.fdtable);
 
   let readyFds = 0;
+  const nonReadyPromises = [];
+  const mayWait = timeout.sec !== 0 || timeout.usec !== 0;
   // poll fds
   for (const fd of readFdSet) {
-    if (fd.fd.readyForReading() === true) readyFds++;
-    else fd.markNotReady();
+    const ready = fd.fd.readyForReading();
+    if (ready === true) readyFds++;
+    else {
+      fd.markNotReady();
+      nonReadyPromises.push(ready.then(() => fd));
+    }
   }
   readFdSet.writeBack();
   for (const fd of writeFdSet) {
-    if (fd.fd.readyForWriting() === true) readyFds++;
-    else fd.markNotReady();
+    const ready = fd.fd.readyForWriting();
+    if (ready === true) readyFds++;
+    else {
+      fd.markNotReady();
+      nonReadyPromises.push(ready.then(() => fd));
+    }
   }
   writeFdSet.writeBack();
   for (const fd of exceptFdSet) {
-    if (fd.fd.errorConditionPending() === true) readyFds++;
-    else fd.markNotReady();
+    const ready = fd.fd.errorConditionPending();
+    if (ready === true) readyFds++;
+    else {
+      fd.markNotReady();
+      nonReadyPromises.push(ready.then(() => fd));
+    }
   }
   exceptFdSet.writeBack();
 
-  if (readyFds === 0 && (timeout.sec !== 0 || timeout.usec !== 0)) {
+  if (readyFds === 0 && mayWait) {
     // TODO: block until ready
-    debugger;
-    thread.requestUserDebugger();
-    throw new InvalidError();
+    const msecToWait = timeout.sec * 1000 + timeout.usec / 1000;
+    nonReadyPromises.push(new Promise((resolve) => setTimeout(() => resolve(null), msecToWait)));
+    const result = await Promise.any(nonReadyPromises);
+    if (result !== null) {
+      result.markReady();
+      result.writeBack();
+      return 1;
+    } else {
+      return 0;
+    }
   } else {
     return readyFds;
   }
