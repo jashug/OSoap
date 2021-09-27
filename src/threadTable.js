@@ -408,8 +408,14 @@ class Thread {
 
 //const processTable = new Map();
 
+const utf8Encoder = new TextEncoder();
+const defaultEnvironment = [
+  utf8Encoder.encode('TERM=xterm-256color'),
+  utf8Encoder.encode('LANG=en_US.UTF-8'),
+];
+
 // openFile is an OpenFileDescription that starts as std{in,out,err}
-const spawnProcess = (executableUrl, openFile) => {
+const spawnProcess = (executableUrl, openFile, args, environment = defaultEnvironment) => {
   const tid = getNewTid();
   const session = new Session(tid);
   const processGroup = new ProcessGroup(session, tid);
@@ -418,8 +424,10 @@ const spawnProcess = (executableUrl, openFile) => {
     forking: {inFork: false, sys_buf: 0, stack_buf: 0, pid: 0},
     module: executableUrl,
     requestShareModuleAndMemory: true,
+    environment,
+    arguments: args,
   });
   void thread;
 };
 
-export {getNewTid, Session, ProcessGroup, Process, Thread, spawnProcess};
+export {getNewTid, Session, ProcessGroup, Process, Thread, spawnProcess, utf8Encoder};

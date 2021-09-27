@@ -1,3 +1,7 @@
+#include <stdlib.h>
+#include <stdio.h>
+
 int main(int argc, char** argv) {
-  return argc;
+  printf("%d\n", argc);
+  return 0;
 }

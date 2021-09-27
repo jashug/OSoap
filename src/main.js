@@ -1,5 +1,5 @@
 import {} from './checkEndianness.js';
-import {spawnProcess} from './threadTable.js';
+import {spawnProcess, utf8Encoder} from './threadTable.js';
 //import {devConsole} from './tty/devConsole.js';
 import {XTermJSTerminal} from './tty/XTermJSTerminal.js';
 import {OpenTerminalDescription} from './tty/OpenTerminalDescription.js';
@@ -17,7 +17,12 @@ window.term = term;
 //  'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
 
 // spawnProcess('/tmp/puts.wasm', new OpenTerminalDescription(term));
-spawnProcess('/ncurses-test-programs/hanoi', new OpenTerminalDescription(term));
+spawnProcess('/ncurses-test-programs/hanoi', new OpenTerminalDescription(term),
+  [utf8Encoder.encode('hanoi'), utf8Encoder.encode('-X')],
+);
+/*spawnProcess('/tmp/argc.wasm', new OpenTerminalDescription(term),
+  [utf8Encoder.encode('argc'), utf8Encoder.encode('hi'), utf8Encoder.encode('there')],
+);*/
 
 // TODO: normally in chrome, JS can't intercept ctrl-w, ctrl-n, ctrl-t
 // In app mode, you can catch these keypresses.

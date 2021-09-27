@@ -15,6 +15,29 @@ class ExitException extends Error {
   }
 }
 
+const stringArraySize = (strings) => {
+  let size = 4 * (strings.length + 1);
+  for (const bytes of strings) {
+    size += bytes.length + 1;
+  }
+  return size;
+};
+
+const writeStringArray = (strings, buffer, ptr) => {
+  const uint8array = new Uint8Array(buffer);
+  const dv = new DataView(buffer);
+  let stringPtr = ptr + 4 * (strings.length + 1);
+  for (const bytes of strings) {
+    uint8array.set(bytes, stringPtr);
+    dv.setUint8(stringPtr + bytes.length, 0, true);
+    dv.setUint32(ptr, stringPtr, true);
+    stringPtr += bytes.length + 1;
+    ptr += 4;
+  }
+  dv.setUint32(ptr, 0, true);
+  return strings.length;
+};
+
 const handleProcessMessage = async (message) => {
   // Either posts an exit message with the exit code, or
   // throws an error.
@@ -46,6 +69,9 @@ const handleProcessMessage = async (message) => {
     });
   }
 
+  let initialEnvironment = message.context.environment;
+  let initialArguments = message.context.arguments;
+
   // Instantiate
   const imports = {
     diagnostic,
@@ -62,6 +88,17 @@ const handleProcessMessage = async (message) => {
       throw_exit: () => { throw new ExitException(); },
       fork: (sys_buf, stack_buf) => {
         return handleFork(exports, sys_buf, stack_buf, forking);
+      },
+      environment_size: () => stringArraySize(initialEnvironment),
+      fill_environment: (ptr) => {
+        writeStringArray(initialEnvironment, memory.buffer, ptr);
+        initialEnvironment = null; // Drop reference to the environment
+      },
+      argv_size: () => stringArraySize(initialArguments),
+      fill_argv: (ptr) => {
+        const argc = writeStringArray(initialArguments, memory.buffer, ptr);
+        initialArguments = null;
+        return argc;
       },
     },
   };

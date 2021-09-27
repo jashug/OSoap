@@ -81,7 +81,7 @@ const select = (dv, thread) => {
   }
   exceptFdSet.writeBack();
 
-  if (readyFds === 0 && timeout.sec !== 0 && timeout.usec !== 0) {
+  if (readyFds === 0 && (timeout.sec !== 0 || timeout.usec !== 0)) {
     // TODO: block until ready
     debugger;
     thread.requestUserDebugger();
