@@ -8,7 +8,7 @@ const oneAtATimeError = (f) => {
     if (busy) { throw new Error("Called twice interleaved"); }
     busy = true;
     try {
-      return f(...args);
+      return await f(...args);
     } finally {
       busy = false;
     }

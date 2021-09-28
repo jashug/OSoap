@@ -65,4 +65,4 @@ tmp/opt/fork.wasm: private TARGET_WASM_OPT_FLAGS ::= --asyncify --pass-arg=async
 
 # setjmp is not yet translated to wasm exceptions in llvm
 # aheejin is one likely person to add them
-tmp/setjmp.wasm: private TARGET_CFLAGS ::= -fwasm-exceptions
+tmp/setjmp.wasm: private TARGET_CFLAGS ::= -fwasm-exceptions -mllvm -wasm-enable-sjlj

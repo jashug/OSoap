@@ -3,7 +3,7 @@ ROOT_DIR="$(pwd)"
 mkdir -p tmp/build/compiler-rt
 cd tmp/build/compiler-rt
 # This is copied from wasi-sdk; I don't really understand it.
-BUILD_PREFIX="/usr/lib/llvm-12"
+BUILD_PREFIX="/usr/lib/llvm-14"
 # DEBUG_PREFIX_MAP="-fdebug-prefix-map=${ROOT_DIR}=wasisdk://v0.1"
 cmake -G Ninja \
   -DCMAKE_C_COMPILER_WORKS=ON \

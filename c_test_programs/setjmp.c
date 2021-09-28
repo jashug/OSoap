@@ -10,7 +10,7 @@ int main()
 
   printf ("val is %d\n",val);
 
-  if (!val) longjmp(env, 1);
+  if (!val) longjmp(env, 42);
 
   return 0;
 }
