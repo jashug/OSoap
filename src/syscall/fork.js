@@ -41,7 +41,7 @@ const fork = (dv, thread) => {
   });
   const newThread = new Thread(newProcess, newPid, thread.signalMask, {
     /* forking.pid is irrelevant; overwritten by syscall buffer value */
-    forking: {inFork: true, sys_buf: sysBufAddr, stack_buf: stackBuf, pid: 0},
+    asyncState: {type: 'childFork', sys_buf: sysBufAddr, stack_buf: stackBuf, pid: 0, retval: 0},
     module: newModule,
     memory: newMemory,
   });

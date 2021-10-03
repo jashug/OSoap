@@ -3,7 +3,7 @@ import {oneAtATimeError} from '../oneAtATimeError.js';
 import {adaptMemory} from './emplaceAdaptiveMemory.js';
 import {UserError} from '../UserError.js';
 import {MSG_PURPOSE} from '../constants/messagePurpose.js';
-import {handleFork, runWithFork} from './syscallFork.js';
+import {handleFork, handleSetjmp, handleLongjmp, runWithAsync} from './runWithAsync.js';
 
 class ExitException extends Error {
   constructor(...args) {
@@ -87,7 +87,13 @@ const handleProcessMessage = async (message) => {
       },
       throw_exit: () => { throw new ExitException(); },
       fork: (sys_buf, stack_buf) => {
-        return handleFork(exports, sys_buf, stack_buf, forking);
+        return handleFork(exports, sys_buf, stack_buf, asyncState);
+      },
+      setjmp: (stack_buf) => {
+        return handleSetjmp(exports, stack_buf, asyncState);
+      },
+      longjmp: (stack_buf, restore_buf, retval) => {
+        return handleLongjmp(exports, stack_buf, asyncState, restore_buf, retval);
       },
       environment_size: () => stringArraySize(initialEnvironment),
       fill_environment: (ptr) => {
@@ -106,9 +112,9 @@ const handleProcessMessage = async (message) => {
   const exports = instance.exports;
 
   // Run
-  const forking = message.context.forking;
+  const asyncState = message.context.asyncState;
   try {
-    runWithFork(module, exports, memory, forking, () => {
+    runWithAsync(module, exports, memory, asyncState, () => {
       exports._start();
     });
   } catch (e) {

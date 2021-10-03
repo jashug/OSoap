@@ -5,16 +5,23 @@ if [ -f Makefile ]; then make distclean; fi
 TARGET=wasm32
 SYSROOT="${OSOAP_ROOT}/sysroot"
 export CC="clang"
-export CFLAGS="--target=${TARGET} --sysroot=${SYSROOT} -g"
+export CFLAGS="--target=${TARGET} --sysroot=${SYSROOT} -g -fwasm-exceptions -mllvm -wasm-enable-sjlj"
 export CFLAGS_FOR_BUILD="-g"
 export LD=wasm-ld
-export LDFLAGS="-Wl,--import-memory -Wl,--shared-memory -Wl,--max-memory=4294967296"
+export LDFLAGS="-Wl,--import-memory -Wl,--shared-memory -Wl,--max-memory=4294967296 -Wl,--export=__stack_pointer -Wl,--export=__tls_base"
 export AR=llvm-ar
 export CPP=clang-cpp
 export CPPFLAGS="--sysroot=${SYSROOT} -DNO_MAIN_ENV_ARG"
 export RANLIB=llvm-ranlib
 ./configure --prefix="${SYSROOT}" --host=${TARGET} --with-installed-readline --without-bash-malloc
 make
+
+# Process bash to allow fork
+mv bash bash-pre-asyncify
+WASM_OPT_FLAGS="-all -O -g --asyncify --pass-arg=asyncify-imports@env.fork"
+wasm-opt $WASM_OPT_FLAGS -o bash bash-pre-asyncify
+
+make install
 
 # !!! NEEDS setjmp AND longjmp
 

@@ -19,11 +19,11 @@ window.term = term;
 // spawnProcess('/tmp/puts.wasm', new OpenTerminalDescription(term), []);
 /*spawnProcess('/ncurses-test-programs/hanoi', new OpenTerminalDescription(term),
   [utf8Encoder.encode('hanoi'), utf8Encoder.encode('-X')],
-);*/
+  );*/
 /*spawnProcess('/tmp/argc.wasm', new OpenTerminalDescription(term),
   [utf8Encoder.encode('argc'), utf8Encoder.encode('hi'), utf8Encoder.encode('there')],
 );*/
-spawnProcess('/tmp/setjmp.wasm', new OpenTerminalDescription(term), []);
+spawnProcess('/tmp/opt/fork_setjmp.wasm', new OpenTerminalDescription(term), []);
 
 // TODO: normally in chrome, JS can't intercept ctrl-w, ctrl-n, ctrl-t
 // In app mode, you can catch these keypresses.

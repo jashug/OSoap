@@ -28,6 +28,10 @@ class SignalDispositionSet {
     }
     this.map.set(signalNumber, signalAction);
   }
+
+  [Symbol.iterator]() {
+    return this.map[Symbol.iterator]();
+  }
 }
 
 export {SignalDispositionSet, InvalidSignalNumberError};

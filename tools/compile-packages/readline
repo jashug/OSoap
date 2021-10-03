@@ -5,7 +5,7 @@ cd "${OSOAP_ROOT}/readline"
 TARGET=wasm32
 SYSROOT="${OSOAP_ROOT}/sysroot"
 export CC="clang "
-export CFLAGS="--target=${TARGET} --sysroot=${SYSROOT} -g -pthread"
+export CFLAGS="--target=${TARGET} --sysroot=${SYSROOT} -g -pthread -fwasm-exceptions -mllvm -wasm-enable-sjlj"
 export BUILD_CC="clang"
 export BUILD_CFLAGS="-g"
 export LD="wasm-ld"

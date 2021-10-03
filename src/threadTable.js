@@ -421,7 +421,7 @@ const spawnProcess = (executableUrl, openFile, args, environment = defaultEnviro
   const processGroup = new ProcessGroup(session, tid);
   const process = new Process(processGroup, tid, initialProcessData(openFile));
   const thread = new Thread(process, tid, 0n, {
-    forking: {inFork: false, sys_buf: 0, stack_buf: 0, pid: 0},
+    asyncState: {type: 'regular', sys_buf: 0, stack_buf: 0, pid: 0, retval: 0},
     module: executableUrl,
     requestShareModuleAndMemory: true,
     environment,

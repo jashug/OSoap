@@ -4,7 +4,10 @@ TMP_PROGS ::= \
   tmp/puts.wasm \
   tmp/argc.wasm \
   tmp/fork.wasm \
-  tmp/opt/fork.wasm
+  tmp/opt/fork.wasm \
+  tmp/fork_setjmp.wasm \
+  tmp/opt/fork_setjmp.wasm \
+  tmp/setjmp.wasm
 SYSROOT_DEPS ::= $(shell find ../sysroot -type d,f)
 
 .PHONY: all
@@ -33,6 +36,11 @@ WASM_OPT_FLAGS ::= -all -O -g
 TARGET_CFLAGS ::=
 TARGET_WASM_OPT_FLAGS ::=
 
+FORK_CFLAGS ::= -Wl,--export=__stack_pointer -Wl,--export=__tls_base -lasyncify
+FORK_WASM_OPT_FLAGS ::= --asyncify --pass-arg=asyncify-imports@env.fork,env.setjmp,env.longjmp
+
+NATIVE_SJLJ_CFLAGS ::= -fwasm-exceptions -mllvm -wasm-enable-sjlj
+
 src/syscall/linux/errno.js: ../sysroot/include/bits/errno.h tools/generateErrnoJS
 	tools/generateErrnoJS
 
@@ -60,9 +68,10 @@ tmp/puts.wasm: private TARGET_CFLAGS ::=
 
 tmp/argc.wasm: private TARGET_CFLAGS ::=
 
-tmp/fork.wasm: private TARGET_CFLAGS ::= -Wl,--export=__stack_pointer -Wl,--export=__tls_base
-tmp/opt/fork.wasm: private TARGET_WASM_OPT_FLAGS ::= --asyncify --pass-arg=asyncify-imports@env.fork
+tmp/fork.wasm: private TARGET_CFLAGS ::= $(FORK_CFLAGS)
+tmp/opt/fork.wasm: private TARGET_WASM_OPT_FLAGS ::= $(FORK_WASM_OPT_FLAGS)
 
-# setjmp is not yet translated to wasm exceptions in llvm
-# aheejin is one likely person to add them
-tmp/setjmp.wasm: private TARGET_CFLAGS ::= -fwasm-exceptions -mllvm -wasm-enable-sjlj
+tmp/setjmp.wasm: private TARGET_CFLAGS ::= $(NATIVE_SJLJ_CFLAGS)
+
+tmp/fork_setjmp.wasm: private TARGET_CFLAGS ::= $(FORK_CFLAGS)
+tmp/opt/fork_setjmp.wasm: private TARGET_WASM_OPT_FLAGS ::= $(FORK_WASM_OPT_FLAGS)
