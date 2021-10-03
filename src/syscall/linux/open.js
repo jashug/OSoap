@@ -1,5 +1,6 @@
 import {SyscallError} from './SyscallError.js';
 import {E} from './errno.js';
+import {InvalidError} from './InvalidError.js';
 import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
 import {pathFromCString} from '../../fs/Path.js';
 import {resolveParent, resolveToEntry} from '../../fs/resolve.js';
@@ -19,10 +20,10 @@ const open = async (dv, thread) => {
   const flags = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
   if (flags & ~HANDLED_FLAGS) {
     console.log(`Some unhandled flags: ${(flags & ~HANDLED_FLAGS).toString(8)}`);
-    throw new SyscallError(E.INVAL);
+    throw new InvalidError();
   }
   if (flags & O.RDWR === 0) {
-    throw new SyscallError(E.INVAL);
+    throw new InvalidError();
   }
   // const accessMode = flags & O.ACCMODE; // Read, Write, Path bits
   const path = pathFromCString(dv.buffer, pathname + dv.byteOffset);
@@ -42,7 +43,7 @@ const open = async (dv, thread) => {
     thread.requestUserDebugger();
     void fd;
     void mode;
-    throw new SyscallError(E.INVAL);
+    throw new InvalidError();
   } else {
     const fd = await resolveToEntry(path, curdir, rootdir, {
       allowEmptyPath: false,
@@ -52,7 +53,7 @@ const open = async (dv, thread) => {
         // TODO: opening directories
         debugger;
         thread.requestUserDebugger();
-        throw new SyscallError(E.INVAL);
+        throw new InvalidError();
       } else if (entry.fileType === FMT.REGULAR) {
         const openFile = await entry.openExisting(flags);
         const fd = new FileDescriptor(openFile, Boolean(flags & O.CLOEXEC));
@@ -62,7 +63,7 @@ const open = async (dv, thread) => {
         // TODO: opening other types of files
         debugger;
         thread.requestUserDebugger();
-        throw new SyscallError(E.INVAL);
+        throw new InvalidError();
       }
     });
     return fd;

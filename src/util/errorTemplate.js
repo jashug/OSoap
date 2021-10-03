@@ -6,7 +6,7 @@ const makeErrorWithErrno = (name, errno) => {
         Error.captureStackTrace(this, MyError);
       }
       this.name = name;
-      this.errno = errno;
+      this.linuxSyscallErrno = errno;
     }
   };
   return MyError;
