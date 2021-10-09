@@ -7,6 +7,7 @@ import {SignalDispositionSet} from './SignalDispositionSet.js';
 import {UserMisbehaved} from './UserError.js';
 import {absoluteRootLocation} from './fs/init.js';
 import {OpenTerminalDescription} from './tty/OpenTerminalDescription.js';
+import {utf8Encoder} from './util/utf8Encoder.js';
 
 const FIRST_UNUSABLE_PID = Math.pow(2, 31);
 let tidCounter = 1; // Start PIDs at 1
@@ -409,7 +410,6 @@ class Thread {
 
 //const processTable = new Map();
 
-const utf8Encoder = new TextEncoder();
 const defaultEnvironment = [
   utf8Encoder.encode('TERM=xterm-256color'),
   utf8Encoder.encode('LANG=en_US.UTF-8'),

@@ -1,5 +1,5 @@
 import './checkEndianness.js';
-import {spawnProcess, utf8Encoder} from './threadTable.js';
+import {spawnProcess} from './threadTable.js';
 //import {devConsole} from './tty/devConsole.js';
 import {XTermJSTerminal} from './tty/XTermJSTerminal.js';
 
