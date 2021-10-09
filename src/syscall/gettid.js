@@ -7,4 +7,14 @@ const gettid = (dv, thread) => {
   dv.setUint32(thread.sysBufAddr + SYSBUF_OFFSET.tag, OSOAP_SYS.TAG.R.pid_return, true);
 }
 
-export {gettid};
+const getpid = (dv, thread) => {
+  dv.setInt32(thread.sysBufAddr + SYSBUF_OFFSET.pid_return, thread.process.processId, true);
+  dv.setUint32(thread.sysBufAddr + SYSBUF_OFFSET.tag, OSOAP_SYS.TAG.R.pid_return, true);
+};
+
+const getppid = (dv, thread) => {
+  dv.setInt32(thread.sysBufAddr + SYSBUF_OFFSET.pid_return, thread.process.parentProcessId, true);
+  dv.setUint32(thread.sysBufAddr + SYSBUF_OFFSET.tag, OSOAP_SYS.TAG.R.pid_return, true);
+};
+
+export {gettid, getpid, getppid};

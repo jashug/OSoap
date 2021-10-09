@@ -40,12 +40,12 @@ fi
 make
 make install
 
-pushd test
-if [ "$CONFIGURE" = "yes" ]; then
-  make distclean || true
-  ./configure --prefix="${SYSROOT}" --host="${TARGET}" --disable-stripping
-else
-  make clean
-fi
-make
-popd # test
+# pushd test
+# if [ "$CONFIGURE" = "yes" ]; then
+#   make distclean || true
+#   ./configure --prefix="${SYSROOT}" --host="${TARGET}" --disable-stripping
+# else
+#   make clean
+# fi
+# make
+# popd # test

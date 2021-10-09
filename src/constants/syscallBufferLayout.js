@@ -36,8 +36,10 @@ const OSOAP_SYS = {
       poll_signals: 3,
       exit_process: 5,
       exit_thread: 7,
-      gettid: 9,
-      fork: 11,
+      fork: 9,
+      gettid: 11,
+      getpid: 13,
+      getppid: 15,
     },
     R: {
       linux_syscall_return: 2,

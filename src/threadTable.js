@@ -140,6 +140,10 @@ class Process {
     return processGroups.has(this.processId);
   }
 
+  get parentProcessId() {
+    return this.parentProcess?.processId ?? this.processId;
+  }
+
   notifyDeadChild(process) {
     void process;
     // TODO: wake up relevant wait calls, emit SIGCHLD
