@@ -1,4 +1,7 @@
-import {FMT} from '../constants/fs.js';
+import {FMT, O} from '../constants/fs.js';
+import {SyscallError} from '../syscall/linux/SyscallError.js';
+import {E} from '../syscall/linux/errno.js';
+import {InvalidError} from '../syscall/linux/InvalidError.js';
 
 // Immutable: doesn't get moved around.
 // Holds a virtual link in to the file.
@@ -27,16 +30,18 @@ class FileLocation {
     this.mount = null;
   }
 
-  stat(syncFlag, mask) {
-    return this.mount.fs.stat(this.id, syncFlag, mask);
+  stat(...args) {
+    return this.mount.fs.stat(this.id, ...args);
   }
 
-  access(mode) {
-    return this.mount.fs.access(this.id, mode);
+  access(...args) {
+    return this.mount.fs.access(this.id, ...args);
   }
 
-  openExisting(flags) {
-    return this.mount.fs.openExisting(this.id, flags);
+  openExisting(flags, thread) {
+    debugger;
+    thread.requestUserDebugger();
+    throw new InvalidError();
   }
 }
 
@@ -68,12 +73,21 @@ class DirectoryLocation extends FileLocation {
     super(...args);
     this.fileType = FMT.DIRECTORY;
   }
-  search(component) {
-    return search(this.mount, this.id, component);
+
+  search(...args) {
+    return search(this.mount, this.id, ...args);
   }
 
-  parentDirectory() {
-    return parentDirectory(this.mount, this.id);
+  parentDirectory(...args) {
+    return parentDirectory(this.mount, this.id, ...args);
+  }
+
+  openExisting(flags, thread) {
+    if (flags & O.WRITE) throw new SyscallError(E.ISDIR);
+    // TODO: opening directories
+    debugger;
+    thread.requestUserDebugger();
+    throw new InvalidError();
   }
 }
 
@@ -81,6 +95,10 @@ class RegularFileLocation extends FileLocation {
   constructor(...args) {
     super(...args);
     this.fileType = FMT.REGULAR;
+  }
+
+  openExisting(...args) {
+    return this.mount.fs.openExistingRegular(this.id, ...args);
   }
 }
 
@@ -91,10 +109,38 @@ class SymlinkLocation extends FileLocation {
   }
 }
 
+class DeviceLocation extends FileLocation {
+  constructor(...args) {
+    super(...args);
+    this.fileType = FMT.DEVICE;
+  }
+
+  openExisting(...args) {
+    return this.mount.fs.openExistingDevice(this.id, ...args);
+  }
+}
+
+class FIFOLocation extends FileLocation {
+  constructor(...args) {
+    super(...args);
+    this.fileType = FMT.FIFO;
+  }
+}
+
+class SocketLocation extends FileLocation {
+  constructor(...args) {
+    super(...args);
+    this.fileType = FMT.SOCKET;
+  }
+}
+
 const FileLocationTypes = new Map([
   [FMT.REGULAR, RegularFileLocation],
   [FMT.DIRECTORY, DirectoryLocation],
   [FMT.SYMLINK, SymlinkLocation],
+  [FMT.DEVICE, DeviceLocation],
+  [FMT.FIFO, FIFOLocation],
+  [FMT.SOCKET, SocketLocation],
 ]);
 
 const makeFileLocation = (mount, id, fmt) => {
@@ -106,5 +152,8 @@ export {
   DirectoryLocation,
   RegularFileLocation,
   SymlinkLocation,
+  DeviceLocation,
+  FIFOLocation,
+  SocketLocation,
   makeFileLocation,
 };

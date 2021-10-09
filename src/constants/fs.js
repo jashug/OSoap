@@ -72,7 +72,6 @@ const FILE_STATUS_FLAGS = (
   O.LARGEFILE |
   O.NOATIME |
   O.NONBLOCK |
-  O.PATH | // ???
   O.SYNC |
 0);
 

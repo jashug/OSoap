@@ -2,6 +2,10 @@ import {FileSystem} from './fs.js';
 import {componentToBinaryString} from './Path.js';
 import {FMT} from '../constants/fs.js';
 import {NoEntryError, ExistsError} from './errors.js';
+import {InvalidError} from '../syscall/linux/InvalidError.js';
+import {openDeviceFile} from '../devices/open.js';
+
+// TODO: check permissions
 
 class RegularFile {
   constructor() {
@@ -30,6 +34,12 @@ class Directory {
   }
 }
 
+class DeviceFile {
+  constructor(rdev) {
+    this.rdev = rdev;
+  }
+}
+
 class RamFS extends FileSystem {
   constructor() {
     super();
@@ -40,8 +50,8 @@ class RamFS extends FileSystem {
     this.files.set(this.rootId, rootDirectory);
   }
 
-  mkdir(parent, component) {
-    return this.mkdirString(parent, componentToBinaryString(component));
+  mkdir(parent, component, ...args) {
+    return this.mkdirString(parent, componentToBinaryString(component), ...args);
   }
 
   mkdirString(parent, name) {
@@ -51,6 +61,19 @@ class RamFS extends FileSystem {
     parentDirectory.nlink++;
     const newDirectory = new Directory(parent);
     this.files.set(id, newDirectory);
+    return id;
+  }
+
+  makeDevFile(parent, component, ...args) {
+    return this.makeDevFileString(parent, componentToBinaryString(component), ...args);
+  }
+
+  makeDevFileString(parent, name, rdev) {
+    const id = this.idCounter++;
+    const parentDirectory = this.files.get(parent);
+    parentDirectory.addLink(name, {id, fmt: FMT.DEVICE});
+    const newDevFile = new DeviceFile(rdev);
+    this.files.set(id, newDevFile);
     return id;
   }
 
@@ -68,7 +91,13 @@ class RamFS extends FileSystem {
   stat(id, syncFlag) {
     // TODO
     debugger;
-    throw new Error("Unimplemented");
+    thread.requestUserDebugger();
+    throw new InvalidError();
+  }
+
+  openExistingDevice(id, ...args) {
+    const devFile = this.files.get(id);
+    return openDeviceFile(devFile.rdev, ...args);
   }
 }
 

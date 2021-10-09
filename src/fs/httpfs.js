@@ -3,7 +3,7 @@ import {componentToUTF8String} from './Path.js';
 import {FMT, fmtToMode, ACCESS, O} from '../constants/fs.js';
 import {NoEntryError, ReadOnlyFilesystemError} from './errors.js';
 import {LRUCache} from '../util/LRUCache.js';
-import {OpenFileDescription} from '../OpenFileDescription.js';
+import {OpenRegularFileDescription} from '../OpenFileDescription.js';
 
 const ROOT_ID = 1;
 
@@ -17,11 +17,10 @@ const loadDirectory = (dirData) => {
   return dirData;
 };
 
-class OpenRegularFileDescription extends OpenFileDescription {
-  constructor(contentsPromise) {
-    super();
+class HttpOpenRegularFileDescription extends OpenRegularFileDescription {
+  constructor(contentsPromise, flags) {
+    super(flags);
     this.contentsPromise = contentsPromise;
-    this.offset = 0;
   }
 
   dispose() {
@@ -136,11 +135,11 @@ class ReadOnlyHttpFS extends FileSystem {
     void metadata;
   }
 
-  openExisting(id, flags) {
+  openExistingRegular(id, flags) {
     // We know this is a regular file
     if (flags & O.WRITE) throw new ReadOnlyFilesystemError();
     const blobPromise = this.loadDataContents(id);
-    return new OpenRegularFileDescription(blobPromise);
+    return new HttpOpenRegularFileDescription(blobPromise, flags);
   }
 }
 

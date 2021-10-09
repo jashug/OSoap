@@ -6,6 +6,7 @@ import {FileDescriptor, FileDescriptorTable} from './FileDescriptor.js';
 import {SignalDispositionSet} from './SignalDispositionSet.js';
 import {UserMisbehaved} from './UserError.js';
 import {absoluteRootLocation} from './fs/init.js';
+import {OpenTerminalDescription} from './tty/OpenTerminalDescription.js';
 
 const FIRST_UNUSABLE_PID = Math.pow(2, 31);
 let tidCounter = 1; // Start PIDs at 1
@@ -415,9 +416,11 @@ const defaultEnvironment = [
 ];
 
 // openFile is an OpenFileDescription that starts as std{in,out,err}
-const spawnProcess = (executableUrl, openFile, args, environment = defaultEnvironment) => {
+const spawnProcess = (executableUrl, term, args, environment = defaultEnvironment) => {
+  const openFile = new OpenTerminalDescription(term);
   const tid = getNewTid();
   const session = new Session(tid);
+  term.connectToSession(session);
   const processGroup = new ProcessGroup(session, tid);
   const process = new Process(processGroup, tid, initialProcessData(openFile));
   const thread = new Thread(process, tid, 0n, {

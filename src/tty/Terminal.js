@@ -336,6 +336,11 @@ class Terminal {
     if (this.ccMin !== oldMin) this._readyForReading = null;
     console.log(`iflag: ${this.iflag.toString(8)}, oflag: ${this.oflag.toString(8)}, cflag: ${this.cflag.toString(8)}, lflag: ${this.lflag.toString(8)}`);
   }
+
+  connectToSession(session) {
+    session.controllingTerminal = this;
+    this.session = session;
+  }
 }
 
 export {Terminal};

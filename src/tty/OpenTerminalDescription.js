@@ -1,8 +1,8 @@
 import {OpenFileDescription} from '../OpenFileDescription.js';
 
 class OpenTerminalDescription extends OpenFileDescription {
-  constructor(term) {
-    super();
+  constructor(term, flags) {
+    super(flags);
     this.term = term;
   }
 

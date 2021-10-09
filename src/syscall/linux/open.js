@@ -1,23 +1,24 @@
-import {SyscallError} from './SyscallError.js';
-import {E} from './errno.js';
 import {InvalidError} from './InvalidError.js';
 import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
 import {pathFromCString} from '../../fs/Path.js';
 import {resolveParent, resolveToEntry} from '../../fs/resolve.js';
-import {FMT, O} from '../../constants/fs.js';
+import {O} from '../../constants/fs.js';
 import {FileDescriptor} from '../../FileDescriptor.js';
 
 const HANDLED_FLAGS = (
   O.READ |
+  O.WRITE |
   O.LARGEFILE | // Always large files
   O.NOCTTY | // Open isn't enough to claim a controlling terminal
   O.CREAT |
   O.CLOEXEC |
+  O.NONBLOCK |
 0);
 
 const open = async (dv, thread) => {
   const pathname = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
   const flags = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
+  const path = pathFromCString(dv.buffer, pathname + dv.byteOffset);
   if (flags & ~HANDLED_FLAGS) {
     console.log(`Some unhandled flags: ${(flags & ~HANDLED_FLAGS).toString(8)}`);
     throw new InvalidError();
@@ -26,7 +27,6 @@ const open = async (dv, thread) => {
     throw new InvalidError();
   }
   // const accessMode = flags & O.ACCMODE; // Read, Write, Path bits
-  const path = pathFromCString(dv.buffer, pathname + dv.byteOffset);
   const curdir = thread.process.currentWorkingDirectory;
   const rootdir = thread.process.rootDirectory;
   if (flags & O.CREAT) {
@@ -48,23 +48,10 @@ const open = async (dv, thread) => {
     const fd = await resolveToEntry(path, curdir, rootdir, {
       allowEmptyPath: false,
     }, async (entry) => {
-      if (entry.fileType === FMT.DIRECTORY) {
-        if (flags & O.WRITE) throw new SyscallError(E.ISDIR);
-        // TODO: opening directories
-        debugger;
-        thread.requestUserDebugger();
-        throw new InvalidError();
-      } else if (entry.fileType === FMT.REGULAR) {
-        const openFile = await entry.openExisting(flags);
-        const fd = new FileDescriptor(openFile, Boolean(flags & O.CLOEXEC));
-        const fdnum = thread.process.fdtable.allocate(fd);
-        return fdnum;
-      } else {
-        // TODO: opening other types of files
-        debugger;
-        thread.requestUserDebugger();
-        throw new InvalidError();
-      }
+      const openFile = await entry.openExisting(flags, thread);
+      const fd = new FileDescriptor(openFile, Boolean(flags & O.CLOEXEC));
+      const fdnum = thread.process.fdtable.allocate(fd);
+      return fdnum;
     });
     return fd;
   }
