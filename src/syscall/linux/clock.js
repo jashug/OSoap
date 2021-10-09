@@ -1,5 +1,6 @@
 import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
 import {InvalidError} from './InvalidError.js';
+import {currentTimespec} from '../../util/currentTime.js';
 
 // This and more in time.h
 const CLOCK = {
@@ -13,16 +14,7 @@ const unknownClockId = (clockId) => () => {
 };
 
 const gettime = new Map([
-  [CLOCK.REALTIME, () => {
-    const msSinceEpoch = Date.now();
-    const secondsSinceEpoch = Math.floor(msSinceEpoch / 1000);
-    const msLeftOver = msSinceEpoch - secondsSinceEpoch * 1000;
-    if (msLeftOver < 0 || msLeftOver >= 1000) {
-      throw new Error("Problem with time math");
-    }
-    const nsLeftOver = Math.floor(msLeftOver * 1000000);
-    return {sec: BigInt(secondsSinceEpoch), nsec: nsLeftOver};
-  }],
+  [CLOCK.REALTIME, currentTimespec],
   [CLOCK.MONOTONE, () => {
     // TODO
     debugger;

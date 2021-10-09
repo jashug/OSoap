@@ -68,21 +68,18 @@ const resolveToEntry = async (path, curDir, rootDir, options, f) => {
   if (!allowEmptyPath && path.isEmptyPath()) {
     throw new NoEntryError();
   }
-  const predecessorPromise = resolvePrefix(path, curDir, rootDir, {
+  const predecessor = await resolvePrefix(path, curDir, rootDir, {
     followSymlinks: followPrefixSymlinks,
   });
-  if (path.lastComponent === null) {
-    return predecessorPromise;
-  }
-  const predecessor = await predecessorPromise;
-  const lastComponent = await walkComponent(
-    path.lastComponent, predecessor, rootDir,
-    {followSymlinks: followLastSymlink, mustBeDirectory: path.trailingSlash},
-  );
+  const entry = path.lastComponent ?
+    await walkComponent(
+      path.lastComponent, predecessor, rootDir,
+      {followSymlinks: followLastSymlink, mustBeDirectory: path.trailingSlash},
+    ) : predecessor;
   try {
-    return await f(lastComponent);
+    return await f(entry);
   } finally {
-    lastComponent.decRefCount();
+    entry.decRefCount();
   }
 };
 

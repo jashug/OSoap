@@ -1,26 +1,46 @@
 import {FileSystem} from './fs.js';
 import {componentToBinaryString} from './Path.js';
-import {FMT} from '../constants/fs.js';
+import {FMT, fmtToMode} from '../constants/fs.js';
 import {NoEntryError, ExistsError} from './errors.js';
-import {InvalidError} from '../syscall/linux/InvalidError.js';
 import {openDeviceFile} from '../devices/open.js';
+import {currentTimespec} from '../util/currentTime.js';
 
 // TODO: check permissions
+// TODO: set mode correctly
 
-class RegularFile {
-  constructor() {
-    this.dataBuf = new Uint8Array(64);
-    this.length = 0;
-    this.nlink = 0;
+class RAMFile {
+  constructor(fmt, mode) {
+    this.fmt = fmt;
+    this.nlink = 1;
+    // TODO: support setting uid/gid
+    this.uid = 0;
+    this.gid = 0;
+    this.mode = mode;
+    this.btime = currentTimespec();
+    this.atime = this.btime;
+    this.ctime = this.btime;
+    this.mtime = this.btime;
   }
 }
 
-class Directory {
-  constructor(parentId) {
+class RegularFile extends RAMFile {
+  constructor(...args) {
+    super(FMT.REGULAR, ...args);
+    this.dataBuf = new Uint8Array(64);
+    this.length = 0;
+  }
+
+  get size() { return BigInt(this.length); }
+}
+
+class Directory extends RAMFile {
+  constructor(parentId, ...args) {
+    super(FMT.DIRECTORY, ...args);
     this.parentId = parentId;
     // map from componentToBinaryString(component) to {id, fmt} entries.
     this.children = new Map();
-    this.nlink = 2;
+    this.nlink += 1;
+    this.size = 0n;
   }
 
   addLink(name, entry) {
@@ -34,9 +54,11 @@ class Directory {
   }
 }
 
-class DeviceFile {
-  constructor(rdev) {
+class DeviceFile extends RAMFile {
+  constructor(rdev, ...args) {
+    super(FMT.DEVICE, ...args);
     this.rdev = rdev;
+    this.size = 0n;
   }
 }
 
@@ -46,7 +68,7 @@ class RamFS extends FileSystem {
     this.files = new Map();
     this.idCounter = 1n;
     this.rootId = this.idCounter++;
-    const rootDirectory = new Directory(this.rootId);
+    const rootDirectory = new Directory(this.rootId, 0o777);
     this.files.set(this.rootId, rootDirectory);
   }
 
@@ -59,7 +81,7 @@ class RamFS extends FileSystem {
     const parentDirectory = this.files.get(parent);
     parentDirectory.addLink(name, {id, fmt: FMT.DIRECTORY});
     parentDirectory.nlink++;
-    const newDirectory = new Directory(parent);
+    const newDirectory = new Directory(parent, 0o777);
     this.files.set(id, newDirectory);
     return id;
   }
@@ -72,7 +94,7 @@ class RamFS extends FileSystem {
     const id = this.idCounter++;
     const parentDirectory = this.files.get(parent);
     parentDirectory.addLink(name, {id, fmt: FMT.DEVICE});
-    const newDevFile = new DeviceFile(rdev);
+    const newDevFile = new DeviceFile(rdev, 0o777);
     this.files.set(id, newDevFile);
     return id;
   }
@@ -88,11 +110,20 @@ class RamFS extends FileSystem {
     return entry;
   }
 
-  stat(id, syncFlag) {
-    // TODO
-    debugger;
-    thread.requestUserDebugger();
-    throw new InvalidError();
+  stat(id) {
+    const file = this.files.get(id);
+    return {
+      blksize: 1024,
+      nlink: file.nlink,
+      uid: file.uid,
+      gid: file.gid,
+      mode: file.mode | fmtToMode(file.fmt),
+      size: file.size,
+      blocks: ((file.size - 1n) >> 9n) + 1n,
+      atime: file.atime,
+      ctime: file.ctime,
+      mtime: file.mtime,
+    };
   }
 
   openExistingDevice(id, ...args) {

@@ -90,7 +90,7 @@ const statx = async (dv, thread) => {
   }, async (filePointer) => {
     const syncFlag = parseSyncFlag(flags);
     return {
-      statInfo: await filePointer.stat(syncFlag, mask),
+      statInfo: await filePointer.stat(syncFlag, mask, thread),
       id: filePointer.id,
       dev: filePointer.mount.fs.dev,
     };
