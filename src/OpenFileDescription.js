@@ -54,12 +54,13 @@ class OpenFileDescription {
     this.refCount++;
   }
 
-  ioctl(request) {
+  ioctl(request, thread) {
     if (request === IOCTL.TIOC.GWINSZ) {
       // musl uses this for isatty, so matters early.
       throw new NoTTYError();
     } else {
       debugger;
+      thread.requestUserDebugger();
       throw new NoTTYError();
     }
   }

@@ -9,7 +9,7 @@ import {absoluteRootLocation} from './fs/init.js';
 import {OpenTerminalDescription} from './tty/OpenTerminalDescription.js';
 import {utf8Encoder} from './util/utf8Encoder.js';
 
-const FIRST_UNUSABLE_PID = Math.pow(2, 31);
+const FIRST_UNUSABLE_PID = Math.pow(2, 31) - 10; // Some padding before running out of bits
 let tidCounter = 1; // Start PIDs at 1
 
 const getNewTid = () => {
@@ -61,6 +61,8 @@ class Session {
 }
 
 const processGroups = new Set();
+
+const getNonexistentProcessGroupId = () => tidCounter;
 
 class ProcessGroup {
   constructor(session, processGroupId) {
@@ -437,4 +439,4 @@ const spawnProcess = (executableUrl, term, args, environment = defaultEnvironmen
   void thread;
 };
 
-export {getNewTid, Session, ProcessGroup, Process, Thread, spawnProcess, utf8Encoder};
+export {getNewTid, Session, ProcessGroup, Process, Thread, spawnProcess, utf8Encoder, getNonexistentProcessGroupId};

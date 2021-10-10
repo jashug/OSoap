@@ -2,6 +2,7 @@ import {TERMIOS_OFFSET, IFLG, OFLG, CFLG, LFLG, V, BAUD, _POSIX_VDISABLE} from '
 import {IOCTL} from '../constants/ioctl.js';
 import {getWinSize} from '../ioctl/winsz.js';
 import {Queue} from '../util/Queue.js';
+import {getNonexistentProcessGroupId} from '../threadTable.js';
 
 const default_iflag = (
   IFLG.BRKINT | // breaks cause an interrupt signal
@@ -71,10 +72,14 @@ class Terminal {
   // Consider asking for notification when the fg process group dies,
   // rather than handling it lazily here.
   get foregroundProcessGroup() {
-    if (this._foregroundProcessGroup.session === null) {
+    if (this._foregroundProcessGroup !== null && this._foregroundProcessGroup.session === null) {
       this._foregroundProcessGroup = null;
     }
     return this._foregroundProcessGroup;
+  }
+
+  set foregroundProcessGroup(rhs) {
+    this._foreGroundProcessGroup = rhs;
   }
 
   get rows() { return 25; }
@@ -307,6 +312,14 @@ class Terminal {
       await this.drain();
       this.flush();
       this.setTermios(argp, dv, thread);
+    } else if (request === IOCTL.TIOC.GPGRP) {
+      if (this.foregroundProcessGroup === null) {
+        dv.setUint32(argp, getNonexistentProcessGroupId(), true);
+      } else {
+        dv.setUint32(argp, this.foregroundProcessGroup.processGroupId, true);
+      }
+    } else if (request === IOCTL.TIOC.SPGRP) {
+      debugger;
     } else {
       return false;
     }

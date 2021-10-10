@@ -18,6 +18,7 @@ import {nanosleep} from './sleep.js';
 import {readlink} from './readlink.js';
 import {getuid, geteuid, getgid, getegid} from './getuid.js';
 import {uname} from './uname.js';
+import {getpgid} from './getpgid.js';
 
 const defaultSyscall = (syscallNumber) => (dv, thread) => {
   console.log(`Unimplemented syscall ${syscallNumber}`);
@@ -55,6 +56,7 @@ const linuxSyscallTable = new Map([
   [SYS.getgid, getgid],
   [SYS.geteuid, geteuid],
   [SYS.getegid, getegid],
+  [SYS.getpgid, getpgid],
   deprecatedSyscall(SYS.gettid, "use OSoap syscall gettid"),
   [SYS.clock_gettime, clock_gettime],
   [SYS.statx, statx],

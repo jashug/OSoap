@@ -1,5 +1,7 @@
 const IOCTL = {
   TIOC: {
+    GPGRP: 0x540f,
+    SPGRP: 0x5410,
     GWINSZ: 0x5413,
   },
   TC: {
