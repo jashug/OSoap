@@ -47,12 +47,17 @@ class FileDescriptor {
 class FileDescriptorTable {
   constructor(fdtableToCopy = undefined, copyForExec = false) {
     // Array<FileDescriptor | null>
-    if (fdtableToCopy === undefined) {
-      this.array = [null, null, null];
-    } else {
-      this.array = [];
+    this.array = [];
+    // Map<int, FileDescriptor>
+    this.sparse = new Map();
+    // invariant: keys of this.sparse >= this.array.length
+    if (fdtableToCopy !== undefined) {
       for (const fd of fdtableToCopy.array) {
         this.array.push(fd?.copy({copyForExec}) ?? null);
+      }
+      for (const [key, fd] of fdtableToCopy.sparse) {
+        const fdCopy = fd.copy({copyForExec});
+        if (fdCopy) this.sparse.set(key, fdCopy);
       }
       if (copyForExec) {
         // Reduce the size of the fd array when we exec
@@ -68,8 +73,13 @@ class FileDescriptorTable {
   // Returns the file descriptor number allocated.
   // Throws FileDescriptorSpaceExhaustedError if MAX_NUM_FDS reached.
   allocate(fd) {
-    let ix = this.array.indexOf(null);
+    let ix = this.array.indexOf(null); // Could be sped up if becomes a performance bottleneck
     if (ix === -1) {
+      while (this.sparse.has(this.array.length)) {
+        const key = this.array.length;
+        this.array.push(this.sparse.get(key));
+        this.sparse.delete(key);
+      }
       ix = this.array.push(null) - 1;
     }
     if (ix >= MAX_NUM_FDS) {
@@ -86,13 +96,15 @@ class FileDescriptorTable {
     if (i >= 0 && i < this.array.length) {
       const fd = this.array[i];
       if (fd !== null) return fd;
+    } else if (this.sparse.has(i)) {
+      return this.sparse.get(i);
     }
     throw new BadFileDescriptorError();
   }
 
   dup(fdi, closeOnExec = false) {
     const fd = this.get(fdi);
-    this.allocate(fd.copy({closeOnExec}));
+    return this.allocate(fd.copy({closeOnExec}));
   }
 
   dup2(oldfdi, newfdi, closeOnExec = false) {
@@ -101,30 +113,29 @@ class FileDescriptorTable {
       const newfd = this.get(newfdi);
       this.close(newfd);
     } catch (e) {
-      if (!(e instanceof BadFileDescriptorError && newfdi >= 0 && newfdi < 3)) {
-        throw e;
+      if (!(e instanceof BadFileDescriptorError && newfdi >= 0)) throw e;
+      if (newfdi >= this.array.length) {
+        this.sparse.set(newfdi, oldfd.copy({closeOnExec}));
+        return newfdi;
       }
-      // We don't allow dup2 onto non-open file descriptors
-      // other than std{in,out,err}.
-      // This is not quite POSIX-correct.
-      // TODO: change this to allow dup2 onto arbitrary fds
-      // Keep a map of sparse file descriptors, with keys more than
-      // this.array.length (maybe + 1).
-      // This should be efficiently maintainable.
     }
     this.array[newfdi] = oldfd.copy({closeOnExec});
+    return newfdi;
   }
 
   // Throws BadFileDescriptorError if invalid
   close(i) {
     const fd = this.get(i);
     // this.get ensures that this.array[i] is valid
-    this.array[i] = null;
+    if (i === this.array.length - 1) this.array.pop();
+    else if (i < this.array.length - 1) this.array[i] = null;
+    else this.sparse.delete(i);
     fd.dispose();
   }
 
   tearDown() {
     for (const fd of this.array) fd?.dispose();
+    for (const [, fd] of this.sparse) fd.dispose();
     this.array = [];
   }
 }
@@ -134,4 +145,5 @@ export {
   FileDescriptorTable,
   FileDescriptorSpaceExhaustedError,
   BadFileDescriptorError,
+  MAX_NUM_FDS,
 };
