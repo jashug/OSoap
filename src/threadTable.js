@@ -428,6 +428,7 @@ const spawnProcess = (executableUrl, term, args, environment = defaultEnvironmen
   const session = new Session(tid);
   term.connectToSession(session);
   const processGroup = new ProcessGroup(session, tid);
+  term.foregroundProcessGroup = processGroup;
   const process = new Process(processGroup, tid, initialProcessData(openFile));
   const thread = new Thread(process, tid, 0n, {
     asyncState: {type: 'regular', sys_buf: 0, stack_buf: 0, pid: 0, retval: 0},

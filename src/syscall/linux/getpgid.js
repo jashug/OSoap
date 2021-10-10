@@ -11,7 +11,8 @@ const getpgid = (dv, thread) => {
     thread.requestUserDebugger();
     throw new SyscallError(E.SRCH);
   } else {
-    return thread.process.processGroup.processGroupId;
+    const pgid = thread.process.processGroup.processGroupId;
+    return pgid;
   }
 };
 

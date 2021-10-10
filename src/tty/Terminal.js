@@ -79,7 +79,7 @@ class Terminal {
   }
 
   set foregroundProcessGroup(rhs) {
-    this._foreGroundProcessGroup = rhs;
+    this._foregroundProcessGroup = rhs;
   }
 
   get rows() { return 25; }
@@ -313,11 +313,8 @@ class Terminal {
       this.flush();
       this.setTermios(argp, dv, thread);
     } else if (request === IOCTL.TIOC.GPGRP) {
-      if (this.foregroundProcessGroup === null) {
-        dv.setUint32(argp, getNonexistentProcessGroupId(), true);
-      } else {
-        dv.setUint32(argp, this.foregroundProcessGroup.processGroupId, true);
-      }
+      const pgrp = this.foregroundProcessGroup?.processGroupId ?? getNonexistentProcessGroupId();
+      dv.setUint32(argp, pgrp, true);
     } else if (request === IOCTL.TIOC.SPGRP) {
       debugger;
     } else {
