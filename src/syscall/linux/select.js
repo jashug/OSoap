@@ -90,7 +90,7 @@ const doSelect = async (dv, thread, nfds, readfds, writefds, exceptfds, timeout)
     if (ready === true) readyFds++;
     else {
       fd.markNotReady();
-      nonReadyPromises.push(ready.then(() => fd));
+      if (ready !== false) nonReadyPromises.push(ready.then(() => fd));
     }
   }
   readFdSet.writeBack();
@@ -99,7 +99,7 @@ const doSelect = async (dv, thread, nfds, readfds, writefds, exceptfds, timeout)
     if (ready === true) readyFds++;
     else {
       fd.markNotReady();
-      nonReadyPromises.push(ready.then(() => fd));
+      if (ready !== false) nonReadyPromises.push(ready.then(() => fd));
     }
   }
   writeFdSet.writeBack();
@@ -108,7 +108,7 @@ const doSelect = async (dv, thread, nfds, readfds, writefds, exceptfds, timeout)
     if (ready === true) readyFds++;
     else {
       fd.markNotReady();
-      nonReadyPromises.push(ready.then(() => fd));
+      if (ready !== false) nonReadyPromises.push(ready.then(() => fd));
     }
   }
   exceptFdSet.writeBack();
