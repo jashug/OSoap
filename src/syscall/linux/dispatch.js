@@ -13,7 +13,7 @@ import {clock_gettime} from './clock.js';
 import {access} from './access.js';
 import {open} from './open.js';
 import {close} from './close.js';
-import {select} from './select.js';
+import {select, pselect} from './select.js';
 import {nanosleep} from './sleep.js';
 import {readlink} from './readlink.js';
 import {getuid, geteuid, getgid, getegid} from './getuid.js';
@@ -68,6 +68,7 @@ const linuxSyscallTable = new Map([
   [SYS.getpgid, getpgid],
   deprecatedSyscall(SYS.gettid, "use OSoap syscall gettid"),
   [SYS.clock_gettime, clock_gettime],
+  [SYS.pselect6, pselect],
   [SYS.prlimit64, prlimit],
   [SYS.statx, statx],
 ]);

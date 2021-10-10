@@ -1,5 +1,6 @@
 import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
 import {InvalidError} from './InvalidError.js';
+import {TimeVal, TimeSpec} from '../../util/timeouts.js';
 
 const FD_SETSIZE = 1024;
 // const FD_SETSIZE_WORDS = FD_SETSIZE / 32;
@@ -45,28 +46,44 @@ class FdSet {
   }
 }
 
-const readTimeVal = (dv, loc) => {
-  if (loc === 0) return null;
-  const sec = dv.getInt32(loc + 0, true);
-  const usec = dv.getInt32(loc + 4, true);
-  return {sec, usec};
-};
-
-const select = async (dv, thread) => {
+const select = (dv, thread) => {
   const nfds = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
   if (nfds < 0 || nfds > FD_SETSIZE) throw new InvalidError();
   const readfds = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
   const writefds = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 2, true);
   const exceptfds = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 3, true);
   const timeoutLoc = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 4, true);
-  const timeout = readTimeVal(dv, timeoutLoc); // null means infinite
+  const timeout = TimeVal.read(dv, timeoutLoc);
+  return doSelect(dv, thread, nfds, readfds, writefds, exceptfds, timeout);
+}
+
+const pselect = async (dv, thread) => {
+  const nfds = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
+  if (nfds < 0 || nfds > FD_SETSIZE) throw new InvalidError();
+  const readfds = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
+  const writefds = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 2, true);
+  const exceptfds = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 3, true);
+  const timeoutLoc = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 4, true);
+  const sigmask = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 5, true);
+  const timeout = TimeSpec.read(dv, timeoutLoc);
+  if (sigmask === 0) return doSelect(dv, thread, nfds, readfds, writefds, exceptfds, timeout, sigmask);
+  const savedSignalMask = thread.signalMask;
+  thread.signalMask = dv.getBigUint64(sigmask, true);
+  try {
+    return await doSelect(dv, thread, nfds, readfds, writefds, exceptfds, timeout);
+  } finally {
+    thread.signalMask = savedSignalMask;
+  }
+};
+
+const doSelect = async (dv, thread, nfds, readfds, writefds, exceptfds, timeout) => {
   const readFdSet = new FdSet(dv, readfds, nfds, thread.process.fdtable);
   const writeFdSet = new FdSet(dv, writefds, nfds, thread.process.fdtable);
   const exceptFdSet = new FdSet(dv, exceptfds, nfds, thread.process.fdtable);
 
   let readyFds = 0;
   const nonReadyPromises = [];
-  const mayWait = timeout.sec !== 0 || timeout.usec !== 0;
+  const mayWait = timeout.nonZero;
   // poll fds
   for (const fd of readFdSet) {
     const ready = fd.fd.readyForReading();
@@ -98,8 +115,8 @@ const select = async (dv, thread) => {
 
   if (readyFds === 0 && mayWait) {
     // TODO: block until ready
-    const msecToWait = timeout.sec * 1000 + timeout.usec / 1000;
-    nonReadyPromises.push(new Promise((resolve) => setTimeout(() => resolve(null), msecToWait)));
+    const msecToWait = timeout.toMSec();
+    if (msecToWait < Infinity) nonReadyPromises.push(new Promise((resolve) => setTimeout(() => resolve(null), msecToWait)));
     const result = await Promise.any(nonReadyPromises);
     if (result !== null) {
       result.markReady();
@@ -113,4 +130,4 @@ const select = async (dv, thread) => {
   }
 };
 
-export {select};
+export {select, pselect};
