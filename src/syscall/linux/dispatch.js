@@ -18,7 +18,7 @@ import {nanosleep} from './sleep.js';
 import {readlink} from './readlink.js';
 import {getuid, geteuid, getgid, getegid} from './getuid.js';
 import {uname} from './uname.js';
-import {getpgid} from './getpgid.js';
+import {getpgid, setpgid} from './getpgid.js';
 import {prlimit} from './prlimit.js';
 import {fcntl} from './fcntl.js';
 import {dup, dup2} from './dup.js';
@@ -53,6 +53,7 @@ const linuxSyscallTable = new Map([
   [SYS.dup, dup],
   [SYS.dup2, dup2],
   [SYS.nanosleep, nanosleep],
+  deprecatedSyscall(SYS.getpid, "use OSoap syscall getpid"),
   deprecatedSyscall(SYS.fork, "use OSoap syscall fork"),
   deprecatedSyscall(SYS.exit, "use OSoap syscall exit"),
   [SYS.uname, uname],
@@ -62,6 +63,8 @@ const linuxSyscallTable = new Map([
   [SYS.getgid, getgid],
   [SYS.geteuid, geteuid],
   [SYS.getegid, getegid],
+  [SYS.setpgid, setpgid],
+  deprecatedSyscall(SYS.getppid, "use OSoap syscall getppid"),
   [SYS.getpgid, getpgid],
   deprecatedSyscall(SYS.gettid, "use OSoap syscall gettid"),
   [SYS.clock_gettime, clock_gettime],

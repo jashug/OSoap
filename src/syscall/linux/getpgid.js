@@ -16,4 +16,12 @@ const getpgid = (dv, thread) => {
   }
 };
 
-export {getpgid};
+const setpgid = (dv, thread) => {
+  const pid = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
+  const pgid = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
+  debugger;
+  thread.requestUserDebugger();
+  throw new SyscallError(E.INVAL);
+};
+
+export {getpgid, setpgid};

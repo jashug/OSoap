@@ -14,7 +14,7 @@ const fcntl = (dv, thread) => {
   const cmd = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
   const fd = thread.process.fdtable.get(fdNum);
   if (cmd === F.GETFL) {
-    return fd.openFileDescriptor.statusFlags | fd.openFileDescription.accessMode;
+    return fd.openFileDescription.statusFlags | fd.openFileDescription.accessMode;
   } else {
     debugger;
     thread.requestUserDebugger();
