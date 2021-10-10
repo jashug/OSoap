@@ -201,6 +201,10 @@ class Process {
     console.log(`Process ${this.processId} terminated.`);
     this.fdtable.tearDown();
     this.fdtable = null;
+    this.currentWorkingDirectory.decRefCount();
+    this.currentWorkingDirectory = null;
+    this.rootDirectory.decRefCount();
+    this.rootDirectory = null;
     this.status = {
       state: PROCESS_STATUS_STATE.TERMINATED,
       reason: reason,
@@ -245,8 +249,8 @@ class Process {
       parentProcess: this,
       setUserId: {...this.setUserId},
       setGroupId: {...this.setGroupId},
-      currentWorkingDirectory: null, // TODO: copy
-      rootDirectory: null, // TODO: copy
+      currentWorkingDirectory: this.currentWorkingDirectory.incRefCount(),
+      rootDirectory: this.rootDirectory.incRefCount(),
       fileModeCreationMask: null, // TODO: copy
       fdtable: new FileDescriptorTable(this.fdtable),
       signalDisposition: new SignalDispositionSet(this.signalDisposition),

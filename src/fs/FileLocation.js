@@ -18,6 +18,7 @@ class FileLocation {
 
   incRefCount() {
     this.refCount += 1;
+    return this;
   }
 
   decRefCount() {
