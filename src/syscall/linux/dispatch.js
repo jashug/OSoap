@@ -19,6 +19,7 @@ import {readlink} from './readlink.js';
 import {getuid, geteuid, getgid, getegid} from './getuid.js';
 import {uname} from './uname.js';
 import {getpgid} from './getpgid.js';
+import {prlimit} from './prlimit.js';
 
 const defaultSyscall = (syscallNumber) => (dv, thread) => {
   console.log(`Unimplemented syscall ${syscallNumber}`);
@@ -59,6 +60,7 @@ const linuxSyscallTable = new Map([
   [SYS.getpgid, getpgid],
   deprecatedSyscall(SYS.gettid, "use OSoap syscall gettid"),
   [SYS.clock_gettime, clock_gettime],
+  [SYS.prlimit64, prlimit],
   [SYS.statx, statx],
 ]);
 
