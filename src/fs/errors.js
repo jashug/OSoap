@@ -6,6 +6,7 @@ const NotADirectoryError = makeErrorWithErrno("NotADirectoryError", E.NOTDIR);
 const NoEntryError = makeErrorWithErrno("NoEntryError", E.NOENT);
 const ExistsError = makeErrorWithErrno("ExistsError", E.EXISTS);
 const ReadOnlyFilesystemError = makeErrorWithErrno("ReadOnlyFilesystemError", E.ROFS);
+const PermissionError = makeErrorWithErrno("PermissionError", E.PERM);
 
 export {
   AccessError,
@@ -13,4 +14,5 @@ export {
   NoEntryError,
   ExistsError,
   ReadOnlyFilesystemError,
+  PermissionError,
 };

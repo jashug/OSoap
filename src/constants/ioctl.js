@@ -3,6 +3,7 @@ const IOCTL = {
     GPGRP: 0x540f,
     SPGRP: 0x5410,
     GWINSZ: 0x5413,
+    SWINSZ: 0x5414,
   },
   TC: {
     GETS: 0x5401,

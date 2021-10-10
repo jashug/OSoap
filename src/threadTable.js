@@ -146,6 +146,10 @@ class Process {
     return this.parentProcess?.processId ?? this.processId;
   }
 
+  get controllingTerminal() {
+    return this.processGroup.session.controllingTerminal;
+  }
+
   notifyDeadChild(process) {
     void process;
     // TODO: wake up relevant wait calls, emit SIGCHLD

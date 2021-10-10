@@ -1,8 +1,10 @@
 import {TERMIOS_OFFSET, IFLG, OFLG, CFLG, LFLG, V, BAUD, _POSIX_VDISABLE} from '../constants/termios.js';
+import {NoTTYError} from '../syscall/linux/NoTTYError.js';
 import {IOCTL} from '../constants/ioctl.js';
-import {getWinSize} from '../ioctl/winsz.js';
+import {getWinSize, setWinSize} from '../ioctl/winsz.js';
 import {Queue} from '../util/Queue.js';
 import {getNonexistentProcessGroupId} from '../threadTable.js';
+import {PermissionError} from '../fs/errors.js';
 
 const default_iflag = (
   IFLG.BRKINT | // breaks cause an interrupt signal
@@ -297,6 +299,10 @@ class Terminal {
   async ioctl(request, argp, dv, thread) {
     if (request === IOCTL.TIOC.GWINSZ) {
       getWinSize(argp, dv, this.size);
+    } else if (request === IOCTL.TIOC.SWINSZ) {
+      const requestedSize = setWinSize(argp, dv);
+      // TODO: perform the update, and send SIGWINCH
+      void requestedSize;
     } else if (request === IOCTL.TC.GETS) {
       // get termios
       this.getTermios(argp, dv);
@@ -313,10 +319,15 @@ class Terminal {
       this.flush();
       this.setTermios(argp, dv, thread);
     } else if (request === IOCTL.TIOC.GPGRP) {
+      if (this !== thread.process.controllingTerminal) throw new NoTTYError();
       const pgrp = this.foregroundProcessGroup?.processGroupId ?? getNonexistentProcessGroupId();
       dv.setUint32(argp, pgrp, true);
     } else if (request === IOCTL.TIOC.SPGRP) {
-      debugger;
+      if (this !== thread.process.controllingTerminal) throw new NoTTYError();
+      const pgrp = dv.getUint32(argp, true);
+      const pgrpObj = thread.process.processGroup.session.processGroups.get(pgrp);
+      if (!pgrpObj) throw new PermissionError();
+      this.foregroundProcessGroup = pgrpObj;
     } else {
       return false;
     }
