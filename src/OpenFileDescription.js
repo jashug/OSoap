@@ -1,6 +1,6 @@
 import {NoTTYError} from './syscall/linux/NoTTYError.js';
 import {IOCTL} from './constants/ioctl.js';
-import {FILE_STATUS_FLAGS} from './constants/fs.js';
+import {O, FILE_STATUS_FLAGS} from './constants/fs.js';
 /*
 // Performs the same purpose as Linux struct file.f_mode
 // TODO: Make sure these flags are all useful
@@ -39,8 +39,15 @@ class FileFlags {
 class OpenFileDescription {
   constructor(flags = 0) {
     this.refCount = 0;
-    this.statusFlags = flags & FILE_STATUS_FLAGS;
+    this.statusFlags = flags;
+    this.accessMode = flags & O.ACCMODE;
   }
+
+  set statusFlags(rhs) {
+    this._statusFlags = rhs & FILE_STATUS_FLAGS;
+  }
+
+  get statusFlags() { return this._statusFlags; }
 
   decRefCount() {
     if (this.refCount <= 0) throw new Error("Decrement zero refCount");

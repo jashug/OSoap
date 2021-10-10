@@ -20,6 +20,7 @@ import {getuid, geteuid, getgid, getegid} from './getuid.js';
 import {uname} from './uname.js';
 import {getpgid} from './getpgid.js';
 import {prlimit} from './prlimit.js';
+import {fcntl} from './fcntl.js';
 
 const defaultSyscall = (syscallNumber) => (dv, thread) => {
   console.log(`Unimplemented syscall ${syscallNumber}`);
@@ -52,6 +53,7 @@ const linuxSyscallTable = new Map([
   deprecatedSyscall(SYS.fork, "use OSoap syscall fork"),
   deprecatedSyscall(SYS.exit, "use OSoap syscall exit"),
   [SYS.uname, uname],
+  [SYS.fcntl, fcntl],
   [SYS.readlink, readlink],
   [SYS.getuid, getuid],
   [SYS.getgid, getgid],
