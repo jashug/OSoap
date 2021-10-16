@@ -1,5 +1,4 @@
-import {SyscallError} from './SyscallError.js';
-import {E} from './errno.js';
+import {InvalidError} from './InvalidError.js';
 import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
 import {AT} from '../../constants/at.js';
 import {pathFromCString} from '../../fs/Path.js';
@@ -74,11 +73,12 @@ const statx = async (dv, thread) => {
   const statbuf = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 4, true);
   if (dirfd !== AT.FDCWD) {
     debugger;
-    // TODO
-    throw new Error("stat at not implemented");
+    thread.requestUserDebugger();
+    throw new InvalidError();
+    // TODO: stat at not implemented
   }
   if (flags & ~ALLOWABLE_STATX_FLAGS) {
-    throw new SyscallError(E.INVAL);
+    throw new InvalidError();
   }
   const path = pathFromCString(dv.buffer, pathname + dv.byteOffset);
   const curdir = thread.process.currentWorkingDirectory;

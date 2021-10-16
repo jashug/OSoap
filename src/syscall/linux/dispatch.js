@@ -10,7 +10,7 @@ import {sigprocmask} from './sigprocmask.js';
 import {sigaction} from './sigaction.js';
 import {statx} from './statx.js';
 import {clock_gettime} from './clock.js';
-import {access} from './access.js';
+import {access, faccessat2} from './access.js';
 import {open} from './open.js';
 import {close} from './close.js';
 import {select, pselect} from './select.js';
@@ -73,6 +73,7 @@ const linuxSyscallTable = new Map([
   [SYS.pselect6, pselect],
   [SYS.prlimit64, prlimit],
   [SYS.statx, statx],
+  [SYS.faccessat2, faccessat2],
 ]);
 
 const dispatchLinuxSyscall = (syscallNumber) => {

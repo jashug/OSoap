@@ -128,11 +128,13 @@ class ReadOnlyHttpFS extends FileSystem {
     };
   }
 
-  async access(id, mode) {
+  async access(id, mode, useEffectiveIds, thread) {
     if (mode & ACCESS.W) throw new ReadOnlyFilesystemError();
     const metadata = await this.loadMetadata(id);
     // TODO: permissions checks
     void metadata;
+    void useEffectiveIds;
+    void thread;
   }
 
   openExistingRegular(id, flags) {
