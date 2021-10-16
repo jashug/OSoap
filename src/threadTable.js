@@ -22,7 +22,7 @@ const getNewTid = () => {
 };
 
 const PROCESS_STATUS_STATE = {
-  RUNNING: 'running',
+  STOPPED: 'stopped',
   CONTINUED: 'continued',
   TERMINATED: 'terminated',
 };
@@ -116,7 +116,6 @@ class Process {
   constructor(processGroup, processId, processData) {
     this.compiledModule = null;
     this.memory = null;
-    this.status = null;
     this.isZombie = false;
     this.processGroup = processGroup;
     this.processId = processId;
@@ -132,6 +131,9 @@ class Process {
     this.threads = new Map();
     this.hasExeced = processData.hasExeced;
     this.children = new Map();
+
+    this.status = null; // Controlled by parent
+    this.waiters = new Set();
 
     pidTable.set(this.processId, this);
     this.processGroup.joinProcessGroup(this);
@@ -154,11 +156,13 @@ class Process {
     return this.processGroup.session.controllingTerminal;
   }
 
-  notifyDeadChild(process) {
-    void process;
+  notifyStatusChange(process, status) {
+    process.status = status;
+    for (const waiter of this.waiters) {
+      if (waiter.notify(process)) break;
+    }
     // TODO: wake up relevant wait calls, emit SIGCHLD
-    // TODO: return true when SIGCHLD has SA_NOCLDWAIT or is set to SIG_IGN
-    return false;
+    // TODO: if SIGCHILD has SA_NOCLDWAIT or is set to SIG_IGN, call process.reap()
   }
 
   registerModuleAndMemory({compiledModule, memory}) {
@@ -217,24 +221,19 @@ class Process {
   terminate_(reason) {
     if (this.isZombie) return;
     this.isZombie = true;
-    console.log(`Process ${this.processId} terminated.`);
     this.fdtable.tearDown();
     this.fdtable = null;
     this.currentWorkingDirectory.decRefCount();
     this.currentWorkingDirectory = null;
     this.rootDirectory.decRefCount();
     this.rootDirectory = null;
-    this.status = {
+    this.parentProcess?.notifyStatusChange(this, {
       state: PROCESS_STATUS_STATE.TERMINATED,
       reason: reason,
-    };
-    if (this.parentProcess?.notifyDeadChild(this)) {
-      // reap yourself
-      this.reap();
-    }
+    });
     // TODO: All children of this process (including zombies)
     // should be adopted by init.
-    // As part of this, call init.notifyDeadChild(child) for zombies.
+    // As part of this, call init.notifyStatusChange(child) for zombies.
     if (this.isSessionLeader()) {
       const session = this.processGroup.session;
       session.terminal?.hangup();
@@ -257,7 +256,6 @@ class Process {
 
   // TODO: also call after parent reaps this process with wait
   reap() {
-    this.status = null;
     this.processGroup.leaveProcessGroup(this);
     this.processGroup = null;
     this.parentProcess.unregisterChild(this);
@@ -430,7 +428,7 @@ class Thread {
   onExit() {
     this.terminateWorker = null;
     if (this.state === THREAD_STATE.DETACHED) {
-      console.log(`Thread ${this.threadId} exited.`);
+      // Thread exited normally
     } else {
       this.userMisbehaved("Exit without detaching");
     }
@@ -470,4 +468,4 @@ const spawnProcess = (executableUrl, term, args, environment = defaultEnvironmen
   void thread;
 };
 
-export {getNewTid, Session, ProcessGroup, Process, Thread, spawnProcess, utf8Encoder, getNonexistentProcessGroupId};
+export {getNewTid, Session, ProcessGroup, Process, Thread, spawnProcess, utf8Encoder, getNonexistentProcessGroupId, PROCESS_STATUS_STATE};
