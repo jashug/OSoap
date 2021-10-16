@@ -107,6 +107,7 @@ const initialProcessData = (openFile) => {
     fileModeCreationMask: null,
     fdtable,
     signalDisposition: new SignalDispositionSet(),
+    hasExeced: false,
   };
 };
 
@@ -129,9 +130,12 @@ class Process {
     // Map<signum, immutable {handler: void *, flags: uint32, mask: BigUint64}>
     this.signalDisposition = processData.signalDisposition;
     this.threads = new Map();
+    this.hasExeced = processData.hasExeced;
+    this.children = new Map();
 
     pidTable.set(this.processId, this);
     this.processGroup.joinProcessGroup(this);
+    this.parentProcess?.registerChild(this);
   }
 
   isSessionLeader() {
@@ -181,6 +185,13 @@ class Process {
     }
   }
 
+  setProcessGroup(processGroup) {
+    if (this.processGroup === processGroup) return;
+    this.processGroup.leaveProcessGroup(this);
+    this.processGroup = processGroup;
+    this.processGroup.joinProcessGroup(this);
+  }
+
   joinProcess(thread) {
     if (this.isZombie) return;
     this.threads.set(thread.threadId, thread);
@@ -193,6 +204,14 @@ class Process {
       // since the last thread should have called exit first.
       this.exit(0);
     }
+  }
+
+  registerChild(child) {
+    this.children.set(child.processId, child);
+  }
+
+  unregisterChild(child) {
+    this.children.delete(child.processId);
   }
 
   terminate_(reason) {
@@ -241,6 +260,8 @@ class Process {
     this.status = null;
     this.processGroup.leaveProcessGroup(this);
     this.processGroup = null;
+    this.parentProcess.unregisterChild(this);
+    this.parentProcess = null;
     pidTable.delete(this.processId);
   }
 
@@ -254,6 +275,7 @@ class Process {
       fileModeCreationMask: null, // TODO: copy
       fdtable: new FileDescriptorTable(this.fdtable),
       signalDisposition: new SignalDispositionSet(this.signalDisposition),
+      hasExeced: false,
     };
   }
 }
