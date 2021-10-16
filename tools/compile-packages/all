@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -e
+
+cd "$OPAM_ROOT"
+
+pushd osoap-libc
+
+if [ "$CLEAN" = "1" ]; then
+  make distclean
+  ./configure-wasm
+fi
+make && make install
+
+popd # osoap-libc
+
+if [ "$CLEAN" = "1"]; then
+  $ncurses_configure=
+else
+  $ncurses_configure=--no-configure
+fi
+
+OSoap/tools/compile-packages/ncurses ${ncurses_configure}
+
+OSoap/tools/compile-packages/bash
+
+OSoap/tools/compile-packages/readline
