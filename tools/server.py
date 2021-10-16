@@ -34,11 +34,18 @@ if __name__ == "__main__":
     import argparse
     import contextlib
 
+    OSOAP_ROOT = os.environ.get("OSOAP_ROOT")
+    if OSOAP_ROOT is None:
+        print("Warning: OSOAP_ROOT is not set: default serving directory set to current working directory")
+        default_serve_directory = os.getcwd()
+    else:
+        default_serve_directory = os.path.join(OSOAP_ROOT, 'OSoap')
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--bind', '-b', metavar='ADDRESS',
             help='Specify alternate bind address [default: localhost] (all means all interfaces)',
             default='localhost')
-    parser.add_argument('--directory', '-d', default=os.getcwd(),
+    parser.add_argument('--directory', '-d', default=default_serve_directory,
             help='Specify alternate directory [default: current directory]')
     parser.add_argument('port', action='store', default=8000, type=int, nargs='?',
             help='Specify alternate port [default 8000]')
