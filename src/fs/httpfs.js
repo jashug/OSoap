@@ -4,6 +4,7 @@ import {FMT, fmtToMode, ACCESS, O} from '../constants/fs.js';
 import {NoEntryError, ReadOnlyFilesystemError} from './errors.js';
 import {LRUCache} from '../util/LRUCache.js';
 import {OpenRegularFileDescription} from '../OpenFileDescription.js';
+import {executableFromBlob} from '../util/executableFromBlob.js';
 
 const ROOT_ID = 1;
 
@@ -82,10 +83,18 @@ class ReadOnlyHttpFS extends FileSystem {
     return data;
   }
 
-  async loadDataContents(id) {
+  loadDataResponse(id) {
     const url = `${this.url}/data/${id}`;
-    const response = await fetch(url, {headers: {Accept: CONTENT_BYTES}});
-    const blob = await response.blob();
+    return fetch(url, {headers: {Accept: CONTENT_BYTES}});
+  }
+
+  async loadDataBlob(id) {
+    const response = await this.loadDataResponse(id);
+    return response.blob();
+  }
+
+  async loadDataContents(id) {
+    const blob = await this.loadDataBlob(id);
     const arrayBuffer = await blob.arrayBuffer();
     const contents = new Uint8Array(arrayBuffer);
     return contents;
@@ -140,8 +149,14 @@ class ReadOnlyHttpFS extends FileSystem {
   openExistingRegular(id, flags) {
     // We know this is a regular file
     if (flags & O.WRITE) throw new ReadOnlyFilesystemError();
-    const blobPromise = this.loadDataContents(id);
-    return new HttpOpenRegularFileDescription(blobPromise, flags);
+    return new HttpOpenRegularFileDescription(this.loadDataContents(id), flags);
+  }
+
+  async openExecutable(id, thread) {
+    // TODO: permissions checks
+    void thread;
+    const blob = await this.loadDataBlob(id);
+    return executableFromBlob(blob);
   }
 }
 

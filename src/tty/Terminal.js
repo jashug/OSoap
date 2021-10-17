@@ -55,6 +55,8 @@ const CRNL_SEQ = new Uint8Array([CR_CHAR, NL_CHAR]);
 
 const encoder = new TextEncoder();
 
+// TODO: Investigate using Streams API
+
 class Terminal {
   constructor() {
     this._foregroundProcessGroup = null;

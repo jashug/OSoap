@@ -36,6 +36,19 @@ const THREAD_STATE = {
   DETACHED: 'detached',
 };
 
+class ExecException extends Error {
+  constructor(module, argv, environment, ...args) {
+    super(...args);
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, ExecException);
+    }
+    this.name = "ExecException";
+    this.module = module;
+    this.argv = argv;
+    this.environment = environment;
+  }
+}
+
 const sessions = new Map();
 
 class Session {
@@ -276,6 +289,27 @@ class Process {
       hasExeced: false,
     };
   }
+
+  exec({module, argv, environment}, thread) {
+    const newTid = getNewTid();
+    const oldThreads = new Set(this.threads.values());
+    // POSIX says that most thread attributes should be inherited: other than signalMask are there any relevant?
+    const newThread = new Thread(this, newTid, thread.signalMask, {
+      asyncState: {type: 'regular', sys_buf: 0, stack_buf: 0, pid: 0, retval: 0},
+      module,
+      requestShareModuleAndMemory: true,
+      environment,
+      arguments: argv,
+    });
+    for (const oldChild of oldThreads) oldChild.hangup();
+    this.compiledModule = null;
+    this.memory = null;
+    // TODO: change signals
+    this.fdtable.exec();
+    // See https://pubs.opengroup.org/onlinepubs/9699919799/functions/execve.html
+    // for more effects of exec.
+    void newThread;
+  }
 }
 
 const syscallReturnToUser = (sync) => {
@@ -382,6 +416,8 @@ class Thread {
       } catch (e) {
         if (e instanceof UserMisbehaved) {
           this.userMisbehaved(e.message);
+        } else if (e instanceof ExecException) {
+          this.process.exec(e, this);
         } else throw e;
       }
       if (this.state !== THREAD_STATE.SYSCALL) break;
@@ -468,4 +504,14 @@ const spawnProcess = (executableUrl, term, args, environment = defaultEnvironmen
   void thread;
 };
 
-export {getNewTid, Session, ProcessGroup, Process, Thread, spawnProcess, utf8Encoder, getNonexistentProcessGroupId, PROCESS_STATUS_STATE};
+export {
+  getNewTid,
+  Session,
+  ProcessGroup,
+  Process,
+  Thread,
+  spawnProcess,
+  getNonexistentProcessGroupId,
+  PROCESS_STATUS_STATE,
+  ExecException,
+};

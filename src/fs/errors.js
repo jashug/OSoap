@@ -7,6 +7,7 @@ const NoEntryError = makeErrorWithErrno("NoEntryError", E.NOENT);
 const ExistsError = makeErrorWithErrno("ExistsError", E.EXISTS);
 const ReadOnlyFilesystemError = makeErrorWithErrno("ReadOnlyFilesystemError", E.ROFS);
 const PermissionError = makeErrorWithErrno("PermissionError", E.PERM);
+const LoopError = makeErrorWithErrno("LoopError", E.LOOP);
 
 export {
   AccessError,
@@ -15,4 +16,5 @@ export {
   ExistsError,
   ReadOnlyFilesystemError,
   PermissionError,
+  LoopError,
 };

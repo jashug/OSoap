@@ -10,6 +10,6 @@ const makeErrorWithErrno = (name, errno) => {
     }
   };
   return MyError;
-}
+};
 
 export {makeErrorWithErrno};

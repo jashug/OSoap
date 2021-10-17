@@ -3,6 +3,11 @@ set -e
 
 cd "$OPAM_ROOT"
 
+if [ "$CLEAN" = "1" ]; then
+  rm -rf sysroot
+  mkdir -p sysroot
+fi
+
 pushd osoap-libc
 
 if [ "$CLEAN" = "1" ]; then
@@ -24,3 +29,13 @@ OSoap/tools/compile-packages/ncurses ${ncurses_configure}
 OSoap/tools/compile-packages/bash
 
 OSoap/tools/compile-packages/readline
+
+pushd OSoap
+
+if [ "$CLEAN" = "1" ]; then
+  make clean
+fi
+
+make
+
+popd # OSoap

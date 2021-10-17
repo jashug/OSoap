@@ -59,12 +59,14 @@ class FileDescriptorTable {
         const fdCopy = fd.copy({copyForExec});
         if (fdCopy) this.sparse.set(key, fdCopy);
       }
-      if (copyForExec) {
-        // Reduce the size of the fd array when we exec
-        while (this.array.length > 3 && this.array[this.array.length - 1] === null) {
-          this.array.pop();
-        }
-      }
+      if (copyForExec) this.trimAfterExec();
+    }
+  }
+
+  trimAfterExec() {
+    // Reduce the size of the fd array when we exec
+    while (this.array.length > 0 && this.array[this.array.length - 1] === null) {
+      this.array.pop();
     }
   }
 
@@ -123,12 +125,27 @@ class FileDescriptorTable {
     return newfdi;
   }
 
+  exec() {
+    for (let i = 0; i < this.array.length; i++) {
+      const fd = this.array[i];
+      if (fd === null || !fd.closeOnExec) continue;
+      fd.dispose();
+      this.array[i] = null;
+    }
+    for (const [i, fd] of this.sparse) {
+      if (!fd.closeOnExec) continue;
+      fd.dispose();
+      this.sparse.delete(i);
+    }
+    this.trimAfterExec();
+  }
+
   // Throws BadFileDescriptorError if invalid
   close(i) {
     const fd = this.get(i);
     // this.get ensures that this.array[i] is valid
-    if (i === this.array.length - 1) this.array.pop();
-    else if (i < this.array.length - 1) this.array[i] = null;
+    if (i < this.array.length - 1) this.array[i] = null;
+    else if (i === this.array.length - 1) this.array.pop();
     else this.sparse.delete(i);
     fd.dispose();
   }

@@ -2,6 +2,7 @@ import {FMT, O} from '../constants/fs.js';
 import {SyscallError} from '../syscall/linux/SyscallError.js';
 import {E} from '../syscall/linux/errno.js';
 import {InvalidError} from '../syscall/linux/InvalidError.js';
+import {AccessError} from './errors.js';
 
 // Immutable: doesn't get moved around.
 // Holds a virtual link in to the file.
@@ -43,6 +44,10 @@ class FileLocation {
     debugger;
     thread.requestUserDebugger();
     throw new InvalidError();
+  }
+
+  openExecutable() {
+    throw new AccessError();
   }
 }
 
@@ -100,6 +105,10 @@ class RegularFileLocation extends FileLocation {
 
   openExisting(...args) {
     return this.mount.fs.openExistingRegular(this.id, ...args);
+  }
+
+  openExecutable(...args) {
+    return this.mount.fs.openExecutable(this.id, ...args);
   }
 }
 
