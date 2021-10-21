@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
-cd "$OPAM_ROOT"
+cd "$OSOAP_ROOT"
 
 if [ "$CLEAN" = "1" ]; then
   rm -rf sysroot
+  echo "Purging sysroot"
   mkdir -p sysroot
 fi
 
@@ -18,15 +19,33 @@ make && make install
 
 popd # osoap-libc
 
-if [ "$CLEAN" = "1"]; then
-  $ncurses_configure=
+pushd libasyncify
+
+make clean
+make
+make install
+
+popd # libasyncify
+
+pushd libstubfork
+
+make clean
+make
+make install
+
+popd # libstubfork
+
+if [ "$CLEAN" = "1" ]; then
+  configure_arg=
 else
-  $ncurses_configure=--no-configure
+  configure_arg=--no-configure
 fi
 
-OSoap/tools/compile-packages/ncurses ${ncurses_configure}
+OSoap/tools/compile-packages/ncurses ${configure_arg}
 
-OSoap/tools/compile-packages/bash
+OSoap/tools/compile-packages/bash ${configure_arg}
+
+OSoap/tools/compile-packages/coreutils ${configure_arg}
 
 OSoap/tools/compile-packages/readline
 

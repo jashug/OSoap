@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -e
+
+configure=yes
+while [[ $# -gt 0 ]]; do
+  key = "$1"
+  case "$key" in
+    --no-configure)
+      configure=no
+      shift
+      ;;
+  esac
+done
+
+cd "${OSOAP_ROOT}/coreutils-9.0"
+
+TARGET=wasm32
+SYSROOT="${OSOAP_ROOT}/sysroot"
+export CC="clang"
+export CFLAGS="--target=${TARGET} --sysroot=${SYSROOT} -g -pthread -fwasm-exceptions -mllvm -wasm-enable-sjlj"
+export CFLAGS_FOR_BUILD="-g"
+export LD=wasm-ld
+export LDFLAGS="-Wl,--import-memory -Wl,--shared-memory -Wl,--max-memory=4294967296 -lstubfork"
+export AR=llvm-ar
+export CPP=clang-cpp
+export CPPFLAGS="--sysroot=${SYSROOT} -DNO_MAIN_ENV_ARG"
+export RANLIB=llvm-ranlib
+
+if [ "$configure" = "no" ] && [ -f Makefile ]; then
+  make clean
+else
+  if [ -f Makefile ]; then make distclean; fi
+  ./configure --prefix="${SYSROOT}" --host=${TARGET}
+fi
+
+make
+
+# files that use fork: src/{install,sort,split,timeout}.c
+# install calls execlp immediately, should be easy to modify to use spawn
+# sort wraps fork in pipe_fork, but does use execlp immediately in the child
+# split calls execl, does some fd operations and error checking in between.
+# timeout calls execvp pretty quickly
+
+make install

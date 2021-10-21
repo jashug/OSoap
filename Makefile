@@ -41,10 +41,10 @@ FORK_WASM_OPT_FLAGS ::= --asyncify --pass-arg=asyncify-imports@env.fork,env.setj
 
 NATIVE_SJLJ_CFLAGS ::= -fwasm-exceptions -mllvm -wasm-enable-sjlj
 
-src/syscall/linux/errno.js: ../sysroot/include/bits/errno.h tools/generateErrnoJS
+src/syscall/linux/errno.js: ../sysroot/include/bits/errno.h tools/generateErrnoJS | tmp
 	tools/generateErrnoJS
 
-src/syscall/linux/syscall.js: ../sysroot/include/bits/syscall.h tools/generateSyscallJS
+src/syscall/linux/syscall.js: ../sysroot/include/bits/syscall.h tools/generateSyscallJS | tmp
 	tools/generateSyscallJS
 
 filesystem: $(SYSROOT_DEPS) tools/build_filesystem.py

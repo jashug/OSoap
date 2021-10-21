@@ -1,7 +1,18 @@
 #!/usr/bin/env bash
 set -e
+
+configure=yes
+while [[ $# -gt 0 ]]; do
+  key="$1"
+  case "$key" in
+    --no-configure)
+      configure=no
+      shift # past argument
+      ;;
+  esac
+done
+
 cd "${OSOAP_ROOT}/bash"
-if [ -f Makefile ]; then make distclean; fi
 TARGET=wasm32
 SYSROOT="${OSOAP_ROOT}/sysroot"
 export CC="clang"
@@ -13,14 +24,22 @@ export AR=llvm-ar
 export CPP=clang-cpp
 export CPPFLAGS="--sysroot=${SYSROOT} -DNO_MAIN_ENV_ARG"
 export RANLIB=llvm-ranlib
-# --with-installed-readline uses wasm sjlj, which is incompatible with fork
-./configure --prefix="${SYSROOT}" --host=${TARGET} --without-bash-malloc
+
+if [ "$configure" = "no" ] && [ -f Makefile ]; then
+  make clean
+else
+  if [ -f Makefile ]; then make distclean; fi
+  # --with-installed-readline uses wasm sjlj, which is incompatible with fork
+  ./configure --prefix="${SYSROOT}" --host=${TARGET} --without-bash-malloc
+fi
+
 make
 
 # Process bash to allow fork
 mv bash bash-pre-asyncify
 WASM_OPT_FLAGS="-all -O -g --asyncify --pass-arg=asyncify-imports@env.fork,env.setjmp,env.longjmp"
 wasm-opt $WASM_OPT_FLAGS -o bash bash-pre-asyncify
+rm bash-pre-asyncify
 
 make install
 

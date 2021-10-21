@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -e
 
-CONFIGURE=yes
+configure=yes
 while [[ $# -gt 0 ]]; do
   key="$1"
   case "$key" in
     --no-configure)
-      CONFIGURE=no
+      configure=no
       shift # past argument
       ;;
   esac
@@ -23,8 +23,10 @@ export LD="wasm-ld"
 export LDFLAGS="-Wl,--import-memory -Wl,--shared-memory -Wl,--max-memory=4294967296"
 export AR="llvm-ar"
 export RANLIB="llvm-ranlib"
-if [ "$CONFIGURE" = "yes" ]; then
-  make distclean || true
+if [ "$configure" = "no" ] && [ -f Makefile ]; then
+  make clean
+else
+  if [ -f Makefile ]; then make distclean; fi
   ./configure \
     --prefix="${SYSROOT}" \
     --host="${TARGET}" \
@@ -32,20 +34,17 @@ if [ "$CONFIGURE" = "yes" ]; then
     --without-manpages \
     --disable-stripping \
     --enable-overwrite \
-    --with-default-terminfo-dir="/usr/share/terminfo" \
     --with-terminfo-dirs="/usr/share/terminfo"
-else
-  make clean
 fi
 make
 make install
 
-# pushd test
-# if [ "$CONFIGURE" = "yes" ]; then
-#   make distclean || true
-#   ./configure --prefix="${SYSROOT}" --host="${TARGET}" --disable-stripping
-# else
-#   make clean
-# fi
-# make
-# popd # test
+pushd test
+if [ "$CONFIGURE" = "yes" ]; then
+  make distclean || true
+  ./configure --prefix="${SYSROOT}" --host="${TARGET}" --disable-stripping
+else
+  make clean
+fi
+make
+popd # test
