@@ -6,7 +6,7 @@ import {LRUCache} from '../util/LRUCache.js';
 import {OpenRegularFileDescription} from '../OpenFileDescription.js';
 import {executableFromBlob} from '../util/executableFromBlob.js';
 
-const ROOT_ID = 1;
+const ROOT_ID = 1n;
 
 const CONTENT_JSON = 'application/json';
 const CONTENT_BYTES = 'application/octet-stream';
