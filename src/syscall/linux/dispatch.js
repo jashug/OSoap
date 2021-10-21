@@ -40,6 +40,10 @@ const deprecatedSyscall = (syscallNum, suggestedAlternate) => {
   }];
 };
 
+const nullSyscall = () => {
+  throw new SyscallError(E.NOSYS);
+};
+
 const linuxSyscallTable = new Map([
   [SYS.read, read],
   [SYS.write, write],
@@ -71,6 +75,7 @@ const linuxSyscallTable = new Map([
   deprecatedSyscall(SYS.getppid, "use OSoap syscall getppid"),
   [SYS.getpgid, getpgid],
   deprecatedSyscall(SYS.gettid, "use OSoap syscall gettid"),
+  [SYS.fadvise64, nullSyscall],
   [SYS.clock_gettime, clock_gettime],
   [SYS.pselect6, pselect],
   [SYS.prlimit64, prlimit],
