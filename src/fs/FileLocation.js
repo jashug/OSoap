@@ -2,7 +2,7 @@ import {FMT, O} from '../constants/fs.js';
 import {SyscallError} from '../syscall/linux/SyscallError.js';
 import {E} from '../syscall/linux/errno.js';
 import {InvalidError} from '../syscall/linux/InvalidError.js';
-import {AccessError} from './errors.js';
+import {AccessError, NotADirectoryError} from './errors.js';
 
 // Immutable: doesn't get moved around.
 // Holds a virtual link in to the file.
@@ -11,6 +11,7 @@ import {AccessError} from './errors.js';
 // Starts with a single refCount.
 class FileLocation {
   constructor(mount, id) {
+    if (mount === null) throw new Error("mount should be non-null");
     this.mount = mount;
     this.id = id;
     this.refCount = 1;
@@ -38,6 +39,14 @@ class FileLocation {
 
   access(...args) {
     return this.mount.fs.access(this.id, ...args);
+  }
+
+  search() {
+    throw new NotADirectoryError();
+  }
+
+  parentDirectory() {
+    throw new NotADirectoryError();
   }
 
   openExisting(flags, thread) {
@@ -104,7 +113,9 @@ class RegularFileLocation extends FileLocation {
   }
 
   openExisting(...args) {
-    return this.mount.fs.openExistingRegular(this.id, ...args);
+    const newFile = this.mount.fs.openExistingRegular(this.id, ...args);
+    newFile.fileLoc = this.incRefCount();
+    return newFile;
   }
 
   openExecutable(...args) {
@@ -126,7 +137,9 @@ class DeviceLocation extends FileLocation {
   }
 
   openExisting(...args) {
-    return this.mount.fs.openExistingDevice(this.id, ...args);
+    const newFile = this.mount.fs.openExistingDevice(this.id, ...args);
+    newFile.fileLoc = this.incRefCount();
+    return newFile;
   }
 }
 

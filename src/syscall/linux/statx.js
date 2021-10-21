@@ -71,17 +71,11 @@ const statx = async (dv, thread) => {
   const flags = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 2, true);
   const mask = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 3, true);
   const statbuf = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 4, true);
-  if (dirfd !== AT.FDCWD) {
-    debugger;
-    thread.requestUserDebugger();
-    throw new InvalidError();
-    // TODO: stat at not implemented
-  }
   if (flags & ~ALLOWABLE_STATX_FLAGS) {
     throw new InvalidError();
   }
   const path = pathFromCString(dv.buffer, pathname + dv.byteOffset);
-  const curdir = thread.process.currentWorkingDirectory;
+  const curdir = thread.process.fdtable.getExtended(dirfd);
   const rootdir = thread.process.rootDirectory;
   // We don't have automounts, so can ignore AT.NO_AUTOMOUNT
   const {statInfo, id, dev} = await resolveToEntry(path, curdir, rootdir, {

@@ -5,7 +5,7 @@ import {dispatchSyscall} from './syscall/dispatch.js';
 import {FileDescriptor, FileDescriptorTable} from './FileDescriptor.js';
 import {SignalDispositionSet} from './SignalDispositionSet.js';
 import {UserMisbehaved} from './UserError.js';
-import {absoluteRootLocation} from './fs/init.js';
+import {absoluteRootLocation, ttyLocation} from './fs/init.js';
 import {OpenTerminalDescription} from './tty/OpenTerminalDescription.js';
 import {utf8Encoder} from './util/utf8Encoder.js';
 
@@ -106,7 +106,10 @@ class ProcessGroup {
 const pidTable = new Map();
 
 const initialProcessData = (openFile) => {
+  // TODO: incorporate root/cwd into FDT constructor, demote copy to a method
   const fdtable = new FileDescriptorTable();
+  fdtable.rootDirectory = absoluteRootLocation;
+  fdtable.currentWorkingDirectory = absoluteRootLocation;
   // Add in stdin, stdout, stderr
   for (let i = 0; i < 3; i++) {
     fdtable.allocate(new FileDescriptor(openFile, false));
@@ -115,8 +118,6 @@ const initialProcessData = (openFile) => {
     parentProcess: null,
     setUserId: {real: null, effective: null, saved: null},
     setGroupId: {real: null, effective: null, saved: null},
-    currentWorkingDirectory: absoluteRootLocation,
-    rootDirectory: absoluteRootLocation,
     fileModeCreationMask: null,
     fdtable,
     signalDisposition: new SignalDispositionSet(),
@@ -135,10 +136,8 @@ class Process {
     this.parentProcess = processData.parentProcess;
     this.setUserId = processData.setUserId;
     this.setGroupId = processData.setGroupId;
-    this.currentWorkingDirectory = processData.currentWorkingDirectory;
-    this.rootDirectory = processData.rootDirectory;
-    this.fileModeCreationMask = processData.fileModeCreationMask;
     this.fdtable = processData.fdtable;
+    this.fileModeCreationMask = processData.fileModeCreationMask;
     // Map<signum, immutable {handler: void *, flags: uint32, mask: BigUint64}>
     this.signalDisposition = processData.signalDisposition;
     this.threads = new Map();
@@ -152,6 +151,11 @@ class Process {
     this.processGroup.joinProcessGroup(this);
     this.parentProcess?.registerChild(this);
   }
+
+  get rootDirectory() { return this.fdtable.rootDirectory; }
+  set rootDirectory(rhs) { this.fdtable.rootDirectory = rhs; }
+  get currentWorkingDirectory() { return this.fdtable.currentWorkingDirectory; }
+  set currentWorkingDirectory(rhs) { this.fdtable.currentWorkingDirectory = rhs; }
 
   isSessionLeader() {
     return this.processId === this.processGroup.session.sessionId;
@@ -236,10 +240,6 @@ class Process {
     this.isZombie = true;
     this.fdtable.tearDown();
     this.fdtable = null;
-    this.currentWorkingDirectory.decRefCount();
-    this.currentWorkingDirectory = null;
-    this.rootDirectory.decRefCount();
-    this.rootDirectory = null;
     this.parentProcess?.notifyStatusChange(this, {
       state: PROCESS_STATUS_STATE.TERMINATED,
       reason: reason,
@@ -277,14 +277,15 @@ class Process {
   }
 
   forkProcessData() {
+    const fdtable = new FileDescriptorTable(this.fdtable);
+    fdtable.rootDirectory = this.fdtable.rootDirectory.incRefCount();
+    fdtable.currentWorkingDirectory = this.fdtable.currentWorkingDirectory.incRefCount();
     return {
       parentProcess: this,
       setUserId: {...this.setUserId},
       setGroupId: {...this.setGroupId},
-      currentWorkingDirectory: this.currentWorkingDirectory.incRefCount(),
-      rootDirectory: this.rootDirectory.incRefCount(),
       fileModeCreationMask: null, // TODO: copy
-      fdtable: new FileDescriptorTable(this.fdtable),
+      fdtable: fdtable,
       signalDisposition: new SignalDispositionSet(this.signalDisposition),
       hasExeced: false,
     };
@@ -488,6 +489,7 @@ const defaultEnvironment = [
 // openFile is an OpenFileDescription that starts as std{in,out,err}
 const spawnProcess = (executableUrl, term, args, environment = defaultEnvironment) => {
   const openFile = new OpenTerminalDescription(term);
+  openFile.fileLoc = ttyLocation;
   const tid = getNewTid();
   const session = new Session(tid);
   term.connectToSession(session);

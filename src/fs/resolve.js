@@ -25,7 +25,7 @@ const assertDirectory = (entry) => {
 
 // predecessor is consumed, rootDir is borrowed, returns an owned reference.
 const walkComponent = async (component, predecessor, rootDir, options = {}) => {
-  const {followSymlinks = true, mustBeDirectory = false, symlinkFuel = MAX_SYMLINKS()} = options;
+  const {followSymlinks = true, symlinkFuel = MAX_SYMLINKS()} = options;
   if (isDot(component)) return predecessor;
   try {
     if (isDotDot(component)) {
@@ -41,10 +41,8 @@ const walkComponent = async (component, predecessor, rootDir, options = {}) => {
         result.incRefCount();
         return result;
       });
-      if (mustBeDirectory) assertDirectory(result);
       return result;
     } else {
-      if (mustBeDirectory) assertDirectory(childEntry);
       return childEntry;
     }
   } finally {
@@ -68,7 +66,6 @@ const resolvePrefix = async (path, curDir, rootDir, options = {}) => {
   for (const component of path.prefix) {
     predecessor = await walkComponent(component, predecessor, rootDir, {
       followSymlinks,
-      mustBeDirectory: true,
       symlinkFuel,
     });
   }
@@ -95,6 +92,7 @@ const resolveToEntry = async (path, curDir, rootDir, options, f) => {
       path.lastComponent, predecessor, rootDir,
       {followSymlinks: followLastSymlink, mustBeDirectory: path.trailingSlash, symlinkFuel},
     ) : predecessor;
+  if (path.trailingSlash) assertDirectory(entry);
   try {
     return await f(entry);
   } finally {
@@ -108,6 +106,7 @@ const resolveParent = async (path, curDir, rootDir, options, f) => {
     throw new NoEntryError();
   }
   const parent = await resolvePrefix(path, curDir, rootDir, {followSymlinks, symlinkFuel});
+  assertDirectory(parent);
   try {
     return await f(parent);
   } finally {
@@ -115,4 +114,4 @@ const resolveParent = async (path, curDir, rootDir, options, f) => {
   }
 };
 
-export {resolvePrefix, resolveToEntry, resolveParent};
+export {resolveToEntry, resolveParent};

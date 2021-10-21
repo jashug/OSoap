@@ -38,6 +38,7 @@ class FileFlags {
  */
 class OpenFileDescription {
   constructor(flags = 0) {
+    this.fileLoc = null;
     this.refCount = 0;
     this.statusFlags = flags;
     this.accessMode = flags & O.ACCMODE;
@@ -53,6 +54,7 @@ class OpenFileDescription {
     if (this.refCount <= 0) throw new Error("Decrement zero refCount");
     if (--this.refCount === 0) {
       this.dispose();
+      this.fileLoc.decRefCount();
     }
   }
 
@@ -84,6 +86,18 @@ class OpenFileDescription {
   errorConditionPending() {
     return false;
   }
+
+  get fileType() { return this.fileLoc.fileType; }
+  get mount() { return this.fileLoc.mount; }
+  get id() { return this.fileLoc.id; }
+
+  // Account for the permissions a file was opened with, including search
+  search(...args) { return this.fileLoc.search(...args); }
+  parentDirectory(...args) { return this.fileLoc.parentDirectory(...args); }
+  openExisting(...args) { return this.fileLoc.openExisting(...args); }
+  openExecutable(...args) { return this.fileLoc.openExecutable(...args); }
+  stat(...args) { return this.fileLoc.stat(...args); }
+  access(...args) { return this.fileLoc.access(...args); }
 }
 
 class OpenRegularFileDescription extends OpenFileDescription {

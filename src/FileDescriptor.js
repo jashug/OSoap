@@ -1,4 +1,5 @@
 import {E} from './syscall/linux/errno.js';
+import {AT} from './constants/at.js';
 
 // Eventually want to make this configurable with ulimit or similar.
 const MAX_NUM_FDS = 1 << 16;
@@ -46,6 +47,9 @@ class FileDescriptor {
 
 class FileDescriptorTable {
   constructor(fdtableToCopy = undefined, copyForExec = false) {
+    // TODO: make these populated by the constructor, and make copying a method
+    this.currentWorkingDirectory = null;
+    this.rootDirectory = null;
     // Array<FileDescriptor | null>
     this.array = [];
     // Map<int, FileDescriptor>
@@ -104,6 +108,17 @@ class FileDescriptorTable {
     throw new BadFileDescriptorError();
   }
 
+  getExtended(i) {
+    if (i === AT.FDCWD) {
+      return this.currentWorkingDirectory;
+    } else if (i >= 0) {
+      const ans = this.get(i).openFileDescription;
+      return ans;
+    } else {
+      throw new BadFileDescriptorError();
+    }
+  }
+
   dup(fdi, closeOnExec = false) {
     const fd = this.get(fdi);
     return this.allocate(fd.copy({closeOnExec}));
@@ -151,9 +166,14 @@ class FileDescriptorTable {
   }
 
   tearDown() {
+    this.currentWorkingDirectory.decRefCount();
+    this.currentWorkingDirectory = null;
+    this.rootDirectory.decRefCount();
+    this.rootDirectory = null;
     for (const fd of this.array) fd?.dispose();
-    for (const [, fd] of this.sparse) fd.dispose();
     this.array = [];
+    for (const [, fd] of this.sparse) fd.dispose();
+    this.sparse.clear();
   }
 }
 
