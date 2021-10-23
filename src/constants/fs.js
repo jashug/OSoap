@@ -77,4 +77,10 @@ const FILE_STATUS_FLAGS = (
 
 const NAME_MAX = 255;
 
-export {FMT, fmtToMode, ACCESS, O, FILE_CREATION_FLAGS, FILE_STATUS_FLAGS, NAME_MAX};
+const SEEK = {
+  SET: 0,
+  CUR: 1,
+  END: 2,
+};
+
+export {FMT, fmtToMode, ACCESS, O, FILE_CREATION_FLAGS, FILE_STATUS_FLAGS, NAME_MAX, SEEK};

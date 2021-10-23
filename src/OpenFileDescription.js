@@ -123,9 +123,17 @@ class OpenDirectoryDescription extends OpenFileDescription {
 class OpenDeviceDescription extends OpenFileDescription {
 }
 
+class OpenFIFODescription extends OpenFileDescription {
+}
+
+class OpenSocketDescription extends OpenFileDescription {
+}
+
 export {
   OpenFileDescription,
   OpenRegularFileDescription,
   OpenDirectoryDescription,
   OpenDeviceDescription,
+  OpenFIFODescription,
+  OpenSocketDescription,
 };
