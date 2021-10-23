@@ -78,21 +78,28 @@ class FileDescriptorTable {
   // The file descriptor returned by thunk should be a new reference.
   // Returns the file descriptor number allocated.
   // Throws FileDescriptorSpaceExhaustedError if MAX_NUM_FDS reached.
-  allocate(fd) {
-    let ix = this.array.indexOf(null); // Could be sped up if becomes a performance bottleneck
+  allocate(fd, atLeast = 0) {
+    let ix = this.array.indexOf(null, atLeast);
     if (ix === -1) {
       while (this.sparse.has(this.array.length)) {
         const key = this.array.length;
         this.array.push(this.sparse.get(key));
         this.sparse.delete(key);
       }
-      ix = this.array.push(null) - 1;
+      if (atLeast > this.array.length) {
+        ix = atLeast;
+        while (this.sparse.has(ix)) ix++;
+      } else {
+        ix = this.array.push(null) - 1;
+      }
     }
     if (ix >= MAX_NUM_FDS) {
       fd.dispose();
       throw new FileDescriptorSpaceExhaustedError();
     }
-    this.array[ix] = fd;
+    if (ix < atLeast) throw new Error("Messed up handling of atLeast");
+    if (ix < this.array.length) this.array[ix] = fd;
+    else this.sparse.set(ix, fd);
     return ix;
   }
 

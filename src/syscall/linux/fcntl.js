@@ -15,7 +15,11 @@ const fcntl = (dv, thread) => {
   const fdNum = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
   const cmd = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
   const fd = thread.process.fdtable.get(fdNum);
-  if (cmd === F.GETFD) {
+  if (cmd === F.DUPFD) {
+    const arg = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 2, true);
+    const fdcopy = fd.copy({closeOnExec: false});
+    return thread.process.fdtable.allocate(fdcopy, arg);
+  } else if (cmd === F.GETFD) {
     let ret = 0;
     if (fd.closeOnExec) ret |= FD_CLOEXEC;
     return ret;
