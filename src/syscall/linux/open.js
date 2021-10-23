@@ -13,6 +13,7 @@ const HANDLED_FLAGS = (
   O.CREAT |
   O.CLOEXEC |
   O.NONBLOCK |
+  O.DIRECTORY |
 0);
 
 const open = async (dv, thread) => {
@@ -47,6 +48,7 @@ const open = async (dv, thread) => {
   } else {
     const fd = await resolveToEntry(path, curdir, rootdir, {
       allowEmptyPath: false,
+      mustBeDirectory: Boolean(flags & O.DIRECTORY),
     }, async (entry) => {
       const openFile = await entry.openExisting(flags, thread);
       const fd = new FileDescriptor(openFile, Boolean(flags & O.CLOEXEC));

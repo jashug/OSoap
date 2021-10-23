@@ -222,7 +222,6 @@ class Terminal {
         waiter.check();
       });
     }
-    void data;
   }
 
   readyForReading() {
@@ -263,7 +262,10 @@ class Terminal {
       if (this.oflag & ~(OFLG.OPOST | OFLG.ONLCR)) {
         const oflagString = this.oflag.toString(8);
         void oflagString;
+        // TODO
         debugger;
+        thread.requestUserDebugger();
+        throw new Error(`Unknown oflag ${oflagString}`);
       } else if (this.oflag & OFLG.ONLCR) {
         // process nl into crnl
         const copiedData = [];
@@ -280,6 +282,8 @@ class Terminal {
         }
         await this.writeBytesBlocking(copiedData);
         return totalLen;
+      } else {
+        throw new Error();
       }
     } else {
       const copiedData = [];

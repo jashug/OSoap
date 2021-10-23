@@ -3,7 +3,7 @@ import {componentToUTF8String} from './Path.js';
 import {FMT, fmtToMode, ACCESS, O} from '../constants/fs.js';
 import {NoEntryError, ReadOnlyFilesystemError} from './errors.js';
 import {LRUCache} from '../util/LRUCache.js';
-import {OpenRegularFileDescription} from '../OpenFileDescription.js';
+import {OpenRegularFileDescription, OpenDirectoryDescription} from '../OpenFileDescription.js';
 import {executableFromBlob} from '../util/executableFromBlob.js';
 
 const ROOT_ID = 1n;
@@ -24,9 +24,6 @@ class HttpOpenRegularFileDescription extends OpenRegularFileDescription {
     this.contentsPromise = contentsPromise;
   }
 
-  dispose() {
-  }
-
   async readv(data) {
     const contents = await this.contentsPromise;
     let bytesRead = 0;
@@ -44,6 +41,17 @@ class HttpOpenRegularFileDescription extends OpenRegularFileDescription {
       }
     }
     return bytesRead;
+  }
+
+  writev() {
+    throw new Error("writev should never be called on a read only filesystem");
+  }
+}
+
+class HttpOpenDirectoryDescription extends OpenDirectoryDescription {
+  constructor(listingPromise, flags) {
+    super(flags);
+    this.listingPromise = listingPromise;
   }
 }
 
@@ -157,6 +165,10 @@ class ReadOnlyHttpFS extends FileSystem {
     void thread;
     const blob = await this.loadDataBlob(id);
     return executableFromBlob(blob);
+  }
+
+  openExistingDirectory(id, flags) {
+    return new HttpOpenDirectoryDescription(this.loadDataJson(id, loadDirectory), flags);
   }
 }
 

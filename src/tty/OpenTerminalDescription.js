@@ -1,6 +1,6 @@
-import {OpenFileDescription} from '../OpenFileDescription.js';
+import {OpenDeviceDescription} from '../OpenFileDescription.js';
 
-class OpenTerminalDescription extends OpenFileDescription {
+class OpenTerminalDescription extends OpenDeviceDescription {
   constructor(term, flags) {
     super(flags);
     this.term = term;

@@ -1,6 +1,8 @@
 import {NoTTYError} from './syscall/linux/NoTTYError.js';
 import {IOCTL} from './constants/ioctl.js';
 import {O, FILE_STATUS_FLAGS} from './constants/fs.js';
+import {BadFileDescriptorError} from './FileDescriptor.js';
+import {IsADirectoryError} from './fs/errors.js';
 /*
 // Performs the same purpose as Linux struct file.f_mode
 // TODO: Make sure these flags are all useful
@@ -26,18 +28,8 @@ class FileFlags {
 }
 */
 
-/* Interface for OpenFileDescription:
- * writev
- * fstat
- *   (virtual file descriptors should still try to put something
- *    unique-ish in st_dev and st_ino)
- *   devices should return the st_dev and st_ino of the file they
- *   were opened from in the filesystem.
- * dispose - called automatically when refCount goes to 0
- * search - looks up a directory entry
- */
 class OpenFileDescription {
-  constructor(flags = 0) {
+  constructor(flags) {
     this.fileLoc = null;
     this.refCount = 0;
     this.statusFlags = flags;
@@ -63,6 +55,8 @@ class OpenFileDescription {
     this.refCount++;
   }
 
+  dispose() {}
+
   ioctl(request, argp, dv, thread) {
     if (request === IOCTL.TIOC.GWINSZ) {
       // musl uses this for isatty, so matters early.
@@ -73,6 +67,10 @@ class OpenFileDescription {
       throw new NoTTYError();
     }
   }
+
+  // TODO: maybe perform permission checking at this level, and move the implementation to {readv,writev}Impl methods
+  writev() { throw new BadFileDescriptorError(); }
+  readv() { throw new BadFileDescriptorError(); }
 
   // These support select calls
   readyForReading() {
@@ -107,7 +105,19 @@ class OpenRegularFileDescription extends OpenFileDescription {
   }
 }
 
+class OpenDirectoryDescription extends OpenFileDescription {
+  constructor(flags) {
+    if (flags & O.WRITE) throw new IsADirectoryError();
+    super(flags);
+  }
+}
+
+class OpenDeviceDescription extends OpenFileDescription {
+}
+
 export {
   OpenFileDescription,
   OpenRegularFileDescription,
+  OpenDirectoryDescription,
+  OpenDeviceDescription,
 };

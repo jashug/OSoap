@@ -78,6 +78,7 @@ const resolveToEntry = async (path, curDir, rootDir, options, f) => {
     followPrefixSymlinks = true,
     followLastSymlink = true,
     allowEmptyPath = true,
+    mustBeDirectory = false,
     symlinkFuel = MAX_SYMLINKS(),
   } = options;
   if (!allowEmptyPath && path.isEmptyPath()) {
@@ -92,7 +93,7 @@ const resolveToEntry = async (path, curDir, rootDir, options, f) => {
       path.lastComponent, predecessor, rootDir,
       {followSymlinks: followLastSymlink, mustBeDirectory: path.trailingSlash, symlinkFuel},
     ) : predecessor;
-  if (path.trailingSlash) assertDirectory(entry);
+  if (path.trailingSlash || mustBeDirectory) assertDirectory(entry);
   try {
     return await f(entry);
   } finally {

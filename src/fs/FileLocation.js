@@ -1,8 +1,6 @@
 import {FMT, O} from '../constants/fs.js';
-import {SyscallError} from '../syscall/linux/SyscallError.js';
-import {E} from '../syscall/linux/errno.js';
 import {InvalidError} from '../syscall/linux/InvalidError.js';
-import {AccessError, NotADirectoryError} from './errors.js';
+import {AccessError, NotADirectoryError, IsADirectoryError} from './errors.js';
 
 // Immutable: doesn't get moved around.
 // Holds a virtual link in to the file.
@@ -97,12 +95,11 @@ class DirectoryLocation extends FileLocation {
     return parentDirectory(this.mount, this.id, ...args);
   }
 
-  openExisting(flags, thread) {
-    if (flags & O.WRITE) throw new SyscallError(E.ISDIR);
-    // TODO: opening directories
-    debugger;
-    thread.requestUserDebugger();
-    throw new InvalidError();
+  openExisting(flags, ...args) {
+    if (flags & O.WRITE) throw new IsADirectoryError();
+    const newFile = this.mount.fs.openExistingDirectory(this.id, flags, ...args);
+    newFile.fileLoc = this.incRefCount();
+    return newFile;
   }
 }
 
