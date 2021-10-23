@@ -63,14 +63,8 @@ class FileLocation {
 }
 
 const search = async (mount, id, component) => {
-  let {id: childId, fmt: childFmt} = await mount.fs.search(id, component);
-  let childMount = mount.children.get(childId);
-  while (childMount) {
-    mount = childMount;
-    childId = childMount.bindRoot;
-    childMount = mount.children.get(childId);
-  }
-  return makeFileLocation(mount, childId, childFmt);
+  const {id: childId, fmt: childFmt} = await mount.fs.search(id, component);
+  return makeFileLocationFollowMounts(mount, childId, childFmt);
 };
 
 const parentDirectory = async (mount, id) => {
@@ -105,6 +99,12 @@ class DirectoryLocation extends FileLocation {
     newFile.fileLoc = this.incRefCount();
     return newFile;
   }
+
+  async openCreate(...args) {
+    const {fileDesc, childId} = await this.mount.fs.openCreate(this.id, ...args);
+    fileDesc.fileLoc = new RegularFileLocation(this.mount, childId);
+    return fileDesc;
+  }
 }
 
 class RegularFileLocation extends FileLocation {
@@ -113,9 +113,10 @@ class RegularFileLocation extends FileLocation {
     this.fileType = FMT.REGULAR;
   }
 
-  async openExisting(...args) {
-    const newFile = await this.mount.fs.openExistingRegular(this.id, ...args);
+  async openExisting(flags, ...args) {
+    const newFile = await this.mount.fs.openExistingRegular(this.id, flags, ...args);
     newFile.fileLoc = this.incRefCount();
+    if (flags & O.TRUNC && flags & O.WRITE) newFile.truncate();
     return newFile;
   }
 
@@ -176,6 +177,16 @@ const makeFileLocation = (mount, id, fmt) => {
   return new FileLocationFmt(mount, id);
 };
 
+const makeFileLocationFollowMounts = (mount, id, fmt) => {
+  let childMount = mount.children.get(id);
+  while (childMount) {
+    mount = childMount;
+    id = childMount.bindRoot;
+    childMount = mount.children.get(id);
+  }
+  return makeFileLocation(mount, id, fmt);
+};
+
 export {
   DirectoryLocation,
   RegularFileLocation,
@@ -184,4 +195,5 @@ export {
   FIFOLocation,
   SocketLocation,
   makeFileLocation,
+  makeFileLocationFollowMounts,
 };

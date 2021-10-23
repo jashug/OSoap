@@ -1,10 +1,11 @@
 import {FileSystem} from './fs.js';
 import {componentToBinaryString, binaryStringToComponent} from './Path.js';
-import {FMT, fmtToMode} from '../constants/fs.js';
+import {FMT, fmtToMode, O} from '../constants/fs.js';
 import {NoEntryError, ExistsError} from './errors.js';
 import {openDeviceFile} from '../devices/open.js';
 import {currentTimespec} from '../util/currentTime.js';
-import {OpenDirectoryDescription} from '../OpenFileDescription.js';
+import {OpenRegularFileDescription, OpenDirectoryDescription} from '../OpenFileDescription.js';
+import {makeFileLocationFollowMounts} from './FileLocation.js';
 
 // TODO: check permissions
 // TODO: set mode correctly
@@ -32,6 +33,23 @@ class RegularFile extends RAMFile {
   }
 
   get size() { return BigInt(this.length); }
+}
+
+class RamOpenRegularFileDescription extends OpenRegularFileDescription {
+  constructor(file, flags) {
+    super(flags);
+    this.file = file;
+  }
+
+  readv(data, thread, totalLen) {
+    debugger;
+    void data, thread, totalLen;
+  }
+
+  writev(data, thread, totalLen) {
+    debugger;
+    void data, thread, totalLen;
+  }
 }
 
 class Directory extends RAMFile {
@@ -89,6 +107,14 @@ class RamFS extends FileSystem {
     this.rootId = this.idCounter++;
     const rootDirectory = new Directory(this.rootId, 0o777);
     this.files.set(this.rootId, rootDirectory);
+  }
+
+  makeFileInternal(parentDirectory, name, mode) {
+    const id = this.idCounter++;
+    parentDirectory.addLink(name, {id, fmt: FMT.REGULAR});
+    const newFile = new RegularFile(mode);
+    this.files.set(id, newFile);
+    return {id, file: newFile};
   }
 
   mkdir(parent, component, ...args) {
@@ -150,9 +176,25 @@ class RamFS extends FileSystem {
     debugger;
   }
 
+  openCreate(id, flags, mode, component, thread) {
+    void thread;
+    const name = componentToBinaryString(component);
+    const parentDirectory = this.files.get(id);
+    const entry = parentDirectory.children.get(name);
+    if (entry) {
+      if (flags & O.EXCL) throw new ExistsError();
+      const {id: childId, fmt: childFmt} = entry;
+      return makeFileLocationFollowMounts(this, childId, childFmt).openExisting(flags, thread);
+    } else {
+      const {id: childId, file} = this.makeFileInternal(parentDirectory, name, mode);
+      const fileDesc = new RamOpenRegularFileDescription(file, flags);
+      return {fileDesc, childId};
+    }
+  }
+
   openExistingRegular(id, flags) {
-    void id, flags;
-    debugger;
+    const file = this.files.get(id);
+    return new RamOpenRegularFileDescription(file, flags);
   }
 
   openExecutable(id, thread) {

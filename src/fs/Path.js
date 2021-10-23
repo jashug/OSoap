@@ -47,7 +47,7 @@ class Path {
     this.absolute = absolute;
     this.prefix = prefix;
     this.lastComponent = lastComponent;
-    // if lastComponent is null, trailingSlash should be false and this.prefix.length should be 0
+    // if lastComponent is null, trailingSlash should equal absolute and this.prefix.length should be 0
     this.trailingSlash = trailingSlash;
   }
 
@@ -101,7 +101,8 @@ const copyCString = (buffer, index) => {
 const pathFromString = (array) => {
   const firstComponentIndex = array.findIndex(nonSlashChar);
   if (firstComponentIndex === -1) {
-    return new Path(array.length > 0, [], null, false);
+    const absolute = array.length > 0;
+    return new Path(absolute, [], null, absolute);
   }
   const absolute = firstComponentIndex > 0;
   const prefix = [];

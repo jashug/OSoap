@@ -14,6 +14,7 @@ const HANDLED_FLAGS = (
   O.CLOEXEC |
   O.NONBLOCK |
   O.DIRECTORY |
+  O.TRUNC |
 0);
 
 const open = async (dv, thread) => {
@@ -30,33 +31,28 @@ const open = async (dv, thread) => {
   // const accessMode = flags & O.ACCMODE; // Read, Write, Path bits
   const curdir = thread.process.currentWorkingDirectory;
   const rootdir = thread.process.rootDirectory;
-  if (flags & O.CREAT) {
-    // TODO
-    // Also want mode for O.TMPFILE
-    const mode = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 2, true); // Only set sometimes
-    const fd = await resolveParent(path, curdir, rootdir, {
-      allowEmptyPath: false,
-    }, (predecessor) => {
-      void predecessor;
-      debugger;
-    });
-    debugger;
-    thread.requestUserDebugger();
-    void fd;
-    void mode;
-    throw new InvalidError();
-  } else {
-    const fd = await resolveToEntry(path, curdir, rootdir, {
-      allowEmptyPath: false,
-      mustBeDirectory: Boolean(flags & O.DIRECTORY),
-    }, async (entry) => {
-      const openFile = await entry.openExisting(flags, thread);
-      const fd = new FileDescriptor(openFile, Boolean(flags & O.CLOEXEC));
-      const fdnum = thread.process.fdtable.allocate(fd);
-      return fdnum;
-    });
-    return fd;
-  }
+  const mustBeDirectory = Boolean(flags & O.DIRECTORY) || path.trailingSlash;
+  const openFile = await (() => {
+    if (flags & O.CREAT && !mustBeDirectory && path.lastComponent !== null) {
+      // TODO: Also want mode for O.TMPFILE
+      const mode = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 2, true); // Only set sometimes
+      return resolveParent(path, curdir, rootdir, {
+        allowEmptyPath: false,
+      }, (predecessor) => {
+        return predecessor.openCreate(flags, mode, path.lastComponent, thread);
+      });
+    } else {
+      return resolveToEntry(path, curdir, rootdir, {
+        allowEmptyPath: false,
+        mustBeDirectory,
+      }, (entry) => {
+        return entry.openExisting(flags, thread);
+      });
+    }
+  })();
+  const fd = new FileDescriptor(openFile, Boolean(flags & O.CLOEXEC));
+  const fdnum = thread.process.fdtable.allocate(fd);
+  return fdnum;
 };
 
 export {open};

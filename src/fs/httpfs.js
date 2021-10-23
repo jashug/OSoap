@@ -167,6 +167,12 @@ class ReadOnlyHttpFS extends FileSystem {
     void thread;
   }
 
+  openCreate(id, flags, mode, component, thread) {
+    debugger;
+    thread.requestUserDebugger();
+    throw new ReadOnlyFilesystemError();
+  }
+
   openExistingRegular(id, flags) {
     // We know this is a regular file
     if (flags & O.WRITE) throw new ReadOnlyFilesystemError();

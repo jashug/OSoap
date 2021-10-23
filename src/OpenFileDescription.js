@@ -1,7 +1,6 @@
 import {NoTTYError} from './syscall/linux/NoTTYError.js';
 import {IOCTL} from './constants/ioctl.js';
 import {O, FILE_STATUS_FLAGS} from './constants/fs.js';
-import {BadFileDescriptorError} from './FileDescriptor.js';
 import {NotADirectoryError, IsADirectoryError} from './fs/errors.js';
 /*
 // Performs the same purpose as Linux struct file.f_mode
@@ -69,8 +68,8 @@ class OpenFileDescription {
   }
 
   // TODO: maybe perform permission checking at this level, and move the implementation to {readv,writev}Impl methods
-  writev() { throw new BadFileDescriptorError(); }
-  readv() { throw new BadFileDescriptorError(); }
+  writev() { throw new Error("unimplemented writev"); }
+  readv() { throw new Error("unimplemented readv"); }
 
   readDirEntry() { throw new NotADirectoryError(); }
 
