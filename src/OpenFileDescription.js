@@ -98,6 +98,7 @@ class OpenFileDescription {
   openExecutable(...args) { return this.fileLoc.openExecutable(...args); }
   stat(...args) { return this.fileLoc.stat(...args); }
   access(...args) { return this.fileLoc.access(...args); }
+  readlink(...args) { return this.fileLoc.readlink(...args); }
 }
 
 class OpenRegularFileDescription extends OpenFileDescription {

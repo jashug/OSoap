@@ -19,6 +19,8 @@ const loadDirectory = (dirData) => {
   return dirData;
 };
 
+const loadSymlink = (linkData) => linkData;
+
 class HttpOpenRegularFileDescription extends OpenRegularFileDescription {
   constructor(contentsPromise, flags) {
     super(flags);
@@ -181,6 +183,11 @@ class ReadOnlyHttpFS extends FileSystem {
 
   async openExistingDirectory(id, flags) {
     return new HttpOpenDirectoryDescription(await this.loadDataJson(id, loadDirectory), flags);
+  }
+
+  async readlink(id) {
+    const target = await this.loadDataJson(id, loadSymlink);
+    return utf8Encoder.encode(target);
   }
 }
 

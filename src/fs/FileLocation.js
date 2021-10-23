@@ -56,6 +56,10 @@ class FileLocation {
   openExecutable() {
     throw new AccessError();
   }
+
+  readlink() {
+    throw new InvalidError();
+  }
 }
 
 const search = async (mount, id, component) => {
@@ -124,6 +128,10 @@ class SymlinkLocation extends FileLocation {
   constructor(...args) {
     super(...args);
     this.fileType = FMT.SYMLINK;
+  }
+
+  readlink(...args) {
+    return this.mount.fs.readlink(this.id, ...args);
   }
 }
 
