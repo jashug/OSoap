@@ -21,6 +21,12 @@ const parseShebang = (bytes) => {
 const wasmHeader = new Uint8Array([0x00, 0x61, 0x73, 0x6D]); // \0asm
 const shebangHeader = new Uint8Array([0x23, 0x21]); // #!
 
+const executableFromUint8Array = async (array) => {
+  if (compareMagic(array, wasmHeader)) return {done: true, module: await WebAssembly.compile(array)};
+  if (compareMagic(array, shebangHeader)) return parseShebang(array);
+  throw new SyscallError(E.NOEXEC);
+};
+
 // TODO: since compile needs an arraybuffer not a blob, maybe simplest to just go from ArrayBuffer directly.
 const executableFromBlob = async (blob) => {
   const headerBytes = new Uint8Array(await blob.slice(0, Math.min(blob.size, HEADER_SIZE)).arrayBuffer());
@@ -29,4 +35,4 @@ const executableFromBlob = async (blob) => {
   throw new SyscallError(E.NOEXEC);
 };
 
-export {executableFromBlob};
+export {executableFromUint8Array, executableFromBlob};

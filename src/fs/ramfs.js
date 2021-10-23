@@ -6,6 +6,7 @@ import {openDeviceFile} from '../devices/open.js';
 import {currentTimespec} from '../util/currentTime.js';
 import {OpenRegularFileDescription, OpenDirectoryDescription} from '../OpenFileDescription.js';
 import {makeFileLocationFollowMounts} from './FileLocation.js';
+import {executableFromUint8Array} from '../util/executableFromBlob.js';
 
 // TODO: check permissions
 // TODO: set mode correctly
@@ -222,8 +223,9 @@ class RamFS extends FileSystem {
   }
 
   openExecutable(id, thread) {
-    void id, thread;
-    debugger;
+    void thread;
+    const file = this.files.get(id);
+    return executableFromUint8Array(file.dataBuf.subarray(0, file.length));
   }
 
   openExistingDevice(id, ...args) {
