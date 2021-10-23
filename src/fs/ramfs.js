@@ -126,9 +126,34 @@ class RamFS extends FileSystem {
     };
   }
 
+  access(id, mode, useEffectiveIds, thread) {
+    void id, mode, useEffectiveIds, thread;
+    debugger;
+  }
+
+  openExistingRegular(id, flags) {
+    void id, flags;
+    debugger;
+  }
+
+  openExecutable(id, thread) {
+    void id, thread;
+    debugger;
+  }
+
   openExistingDevice(id, ...args) {
     const devFile = this.files.get(id);
     return openDeviceFile(devFile.rdev, ...args);
+  }
+
+  openExistingDirectory(id, flags) {
+    void id, flags;
+    debugger;
+  }
+
+  readlink(id) {
+    void id;
+    debugger;
   }
 }
 

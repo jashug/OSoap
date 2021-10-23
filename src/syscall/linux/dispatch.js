@@ -25,6 +25,7 @@ import {dup, dup2} from './dup.js';
 import {wait4} from './wait.js';
 import {execve} from './exec.js';
 import {getdents} from './getdents.js';
+import {chdir} from './chdir.js';
 
 const defaultSyscall = (syscallNumber) => (dv, thread) => {
   console.log(`Unimplemented syscall ${syscallNumber}`);
@@ -67,6 +68,7 @@ const linuxSyscallTable = new Map([
   [SYS.wait4, wait4],
   [SYS.uname, uname],
   [SYS.fcntl, fcntl],
+  [SYS.chdir, chdir],
   [SYS.readlink, readlink],
   [SYS.getuid, getuid],
   [SYS.getgid, getgid],
