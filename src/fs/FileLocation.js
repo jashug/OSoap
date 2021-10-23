@@ -95,9 +95,9 @@ class DirectoryLocation extends FileLocation {
     return parentDirectory(this.mount, this.id, ...args);
   }
 
-  openExisting(flags, ...args) {
+  async openExisting(flags, ...args) {
     if (flags & O.WRITE) throw new IsADirectoryError();
-    const newFile = this.mount.fs.openExistingDirectory(this.id, flags, ...args);
+    const newFile = await this.mount.fs.openExistingDirectory(this.id, flags, ...args);
     newFile.fileLoc = this.incRefCount();
     return newFile;
   }
@@ -109,8 +109,8 @@ class RegularFileLocation extends FileLocation {
     this.fileType = FMT.REGULAR;
   }
 
-  openExisting(...args) {
-    const newFile = this.mount.fs.openExistingRegular(this.id, ...args);
+  async openExisting(...args) {
+    const newFile = await this.mount.fs.openExistingRegular(this.id, ...args);
     newFile.fileLoc = this.incRefCount();
     return newFile;
   }
@@ -133,8 +133,8 @@ class DeviceLocation extends FileLocation {
     this.fileType = FMT.DEVICE;
   }
 
-  openExisting(...args) {
-    const newFile = this.mount.fs.openExistingDevice(this.id, ...args);
+  async openExisting(...args) {
+    const newFile = await this.mount.fs.openExistingDevice(this.id, ...args);
     newFile.fileLoc = this.incRefCount();
     return newFile;
   }

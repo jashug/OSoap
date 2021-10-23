@@ -5,6 +5,7 @@ import {NoEntryError, ReadOnlyFilesystemError} from './errors.js';
 import {LRUCache} from '../util/LRUCache.js';
 import {OpenRegularFileDescription, OpenDirectoryDescription} from '../OpenFileDescription.js';
 import {executableFromBlob} from '../util/executableFromBlob.js';
+import {utf8Encoder} from '../util/utf8Encoder.js';
 
 const ROOT_ID = 1n;
 
@@ -49,9 +50,20 @@ class HttpOpenRegularFileDescription extends OpenRegularFileDescription {
 }
 
 class HttpOpenDirectoryDescription extends OpenDirectoryDescription {
-  constructor(listingPromise, flags) {
+  constructor(listing, flags) {
     super(flags);
-    this.listingPromise = listingPromise;
+    this.listing = Array.from(listing.children);
+    this.offset = 0;
+  }
+
+  readDirEntry(thread) {
+    void thread;
+    if (this.offset >= this.listing.length) return null;
+    const [name, {id, fmt}] = this.listing[this.offset];
+    const nameBuf = utf8Encoder.encode(name);
+    const tellPos = BigInt(this.offset);
+    this.offset++;
+    return {id, fmt, tellPos, nameBuf};
   }
 }
 
@@ -167,8 +179,8 @@ class ReadOnlyHttpFS extends FileSystem {
     return executableFromBlob(blob);
   }
 
-  openExistingDirectory(id, flags) {
-    return new HttpOpenDirectoryDescription(this.loadDataJson(id, loadDirectory), flags);
+  async openExistingDirectory(id, flags) {
+    return new HttpOpenDirectoryDescription(await this.loadDataJson(id, loadDirectory), flags);
   }
 }
 

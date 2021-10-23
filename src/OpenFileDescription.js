@@ -2,7 +2,7 @@ import {NoTTYError} from './syscall/linux/NoTTYError.js';
 import {IOCTL} from './constants/ioctl.js';
 import {O, FILE_STATUS_FLAGS} from './constants/fs.js';
 import {BadFileDescriptorError} from './FileDescriptor.js';
-import {IsADirectoryError} from './fs/errors.js';
+import {NotADirectoryError, IsADirectoryError} from './fs/errors.js';
 /*
 // Performs the same purpose as Linux struct file.f_mode
 // TODO: Make sure these flags are all useful
@@ -72,6 +72,8 @@ class OpenFileDescription {
   writev() { throw new BadFileDescriptorError(); }
   readv() { throw new BadFileDescriptorError(); }
 
+  readDirEntry() { throw new NotADirectoryError(); }
+
   // These support select calls
   readyForReading() {
     return true;
@@ -109,6 +111,12 @@ class OpenDirectoryDescription extends OpenFileDescription {
   constructor(flags) {
     if (flags & O.WRITE) throw new IsADirectoryError();
     super(flags);
+  }
+
+  readv() { throw new IsADirectoryError(); }
+
+  readDirEntry() {
+    throw new Error("subclass must implement");
   }
 }
 
