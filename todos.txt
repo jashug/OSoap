@@ -1,4 +1,5 @@
 OSoap:
+check file permissions
 move pid_t to 64 bits - requires changes in osoap-libc, and porting syscalls taking or returning pids to new ones
 refactor linux syscall boilerplate
 convert to typescript

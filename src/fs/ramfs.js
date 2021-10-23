@@ -1,9 +1,10 @@
 import {FileSystem} from './fs.js';
-import {componentToBinaryString} from './Path.js';
+import {componentToBinaryString, binaryStringToComponent} from './Path.js';
 import {FMT, fmtToMode} from '../constants/fs.js';
 import {NoEntryError, ExistsError} from './errors.js';
 import {openDeviceFile} from '../devices/open.js';
 import {currentTimespec} from '../util/currentTime.js';
+import {OpenDirectoryDescription} from '../OpenFileDescription.js';
 
 // TODO: check permissions
 // TODO: set mode correctly
@@ -51,6 +52,24 @@ class Directory extends RAMFile {
       throw new ExistsError();
     }
     this.children.set(name, entry);
+  }
+}
+
+class RamOpenDirectoryDescription extends OpenDirectoryDescription {
+  constructor(dir, flags) {
+    super(flags);
+    this.dir = dir;
+    this.listing = Array.from(this.dir.children);
+    this.offset = 0;
+  }
+
+  readDirEntry() {
+    if (this.offset >= this.listing.length) return null;
+    const [name, {id, fmt}] = this.listing[this.offset];
+    const nameBuf = binaryStringToComponent(name);
+    const tellPos = BigInt(this.offset);
+    this.offset++;
+    return {id, fmt, tellPos, nameBuf};
   }
 }
 
@@ -147,8 +166,7 @@ class RamFS extends FileSystem {
   }
 
   openExistingDirectory(id, flags) {
-    void id, flags;
-    debugger;
+    return new RamOpenDirectoryDescription(this.files.get(id), flags);
   }
 
   readlink(id) {

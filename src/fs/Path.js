@@ -1,5 +1,6 @@
 import {UserMisbehaved} from '../UserError.js';
 import {E} from '../syscall/linux/errno.js';
+import {utf8Encoder} from '../util/utf8Encoder.js';
 
 const PATH_MAX = 4096; // from limits.h
 
@@ -21,6 +22,9 @@ const equalComponents = (lhs, rhs) => {
 const componentToBinaryString = (component) => {
   return String.fromCharCode.apply(null, component);
 };
+const binaryStringToComponent = (string) => {
+  return Uint8Array.from(string, (char) => char.charCodeAt(0));
+};
 const laxUTF8Decoder = new TextDecoder();
 const componentDecoder = new TextDecoder('utf-8', {fatal: true});
 const componentToUTF8String = (component) => {
@@ -36,6 +40,7 @@ const componentToUTF8String = (component) => {
 const attemptComponentToUTF8String = (component) => {
   return laxUTF8Decoder.decode(component);
 };
+const UTF8StringToComponent = (string) => utf8Encoder.encode(string);
 
 class Path {
   constructor(absolute, prefix, lastComponent, trailingSlash) {
@@ -130,5 +135,7 @@ export {
   isDotDot,
   equalComponents,
   componentToBinaryString,
+  binaryStringToComponent,
   componentToUTF8String,
+  UTF8StringToComponent,
 };

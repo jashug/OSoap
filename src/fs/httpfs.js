@@ -1,11 +1,10 @@
 import {FileSystem} from './fs.js';
-import {componentToUTF8String} from './Path.js';
+import {componentToUTF8String, UTF8StringToComponent} from './Path.js';
 import {FMT, fmtToMode, ACCESS, O} from '../constants/fs.js';
 import {NoEntryError, ReadOnlyFilesystemError} from './errors.js';
 import {LRUCache} from '../util/LRUCache.js';
 import {OpenRegularFileDescription, OpenDirectoryDescription} from '../OpenFileDescription.js';
 import {executableFromBlob} from '../util/executableFromBlob.js';
-import {utf8Encoder} from '../util/utf8Encoder.js';
 
 const ROOT_ID = 1n;
 
@@ -62,7 +61,7 @@ class HttpOpenDirectoryDescription extends OpenDirectoryDescription {
     void thread;
     if (this.offset >= this.listing.length) return null;
     const [name, {id, fmt}] = this.listing[this.offset];
-    const nameBuf = utf8Encoder.encode(name);
+    const nameBuf = UTF8StringToComponent(name);
     const tellPos = BigInt(this.offset);
     this.offset++;
     return {id, fmt, tellPos, nameBuf};
@@ -187,7 +186,7 @@ class ReadOnlyHttpFS extends FileSystem {
 
   async readlink(id) {
     const target = await this.loadDataJson(id, loadSymlink);
-    return utf8Encoder.encode(target);
+    return UTF8StringToComponent(target);
   }
 }
 
