@@ -42,13 +42,37 @@ class RamOpenRegularFileDescription extends OpenRegularFileDescription {
   }
 
   readv(data, thread, totalLen) {
-    debugger;
-    void data, thread, totalLen;
+    void thread, totalLen;
+    let bytesRead = 0;
+    for (const arr of data) {
+      if (this.offset + arr.length <= this.file.length) {
+        arr.set(this.file.dataBuf.subarray(this.offset, arr.length));
+        this.offset += arr.length;
+        bytesRead += arr.length;
+      } else {
+        const lastChunk = this.file.length - this.offset;
+        arr.set(this.file.dataBuf.subarray(this.offset, lastChunk));
+        this.offset += lastChunk;
+        bytesRead += lastChunk;
+        break;
+      }
+    }
+    return bytesRead;
   }
 
   writev(data, thread, totalLen) {
-    debugger;
-    void data, thread, totalLen;
+    const newOffset = this.offset + totalLen;
+    if (newOffset > this.file.dataBuf.length) {
+      const newDataBuf = new Uint8Array(newOffset * 2);
+      newDataBuf.set(this.dataBuf);
+      this.file.dataBuf = newDataBuf;
+    }
+    for (const arr of data) {
+      this.file.dataBuf.set(arr, this.offset);
+      this.offset += arr.length;
+    }
+    this.file.length = Math.max(this.offset, this.file.length);
+    return totalLen;
   }
 }
 
