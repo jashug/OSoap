@@ -11,6 +11,7 @@ const HANDLED_FLAGS = (
   O.LARGEFILE | // Always large files
   O.NOCTTY | // Open isn't enough to claim a controlling terminal
   O.CREAT |
+  O.EXCL |
   O.CLOEXEC |
   O.NONBLOCK |
   O.DIRECTORY |
