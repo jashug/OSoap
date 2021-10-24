@@ -29,17 +29,26 @@ class RAMFile {
 class RegularFile extends RAMFile {
   constructor(...args) {
     super(FMT.REGULAR, ...args);
-    this.dataBuf = new Uint8Array(64);
-    this.length = 0;
+    this.truncate();
   }
 
   get size() { return BigInt(this.length); }
+
+  truncate() {
+    this.dataBuf = new Uint8Array(64);
+    this.length = 0;
+  }
 }
 
 class RamOpenRegularFileDescription extends OpenRegularFileDescription {
   constructor(file, flags) {
     super(flags);
     this.file = file;
+  }
+
+  truncate(...args) {
+    this.offset = 0;
+    return this.file.truncate(...args);
   }
 
   readv(data, thread, totalLen) {
@@ -73,6 +82,7 @@ class RamOpenRegularFileDescription extends OpenRegularFileDescription {
       this.file.dataBuf.set(arr, this.offset);
       this.offset += arr.length;
     }
+    if (this.offset !== newOffset) throw new Error("bad totalLen");
     this.file.length = Math.max(this.offset, this.file.length);
     return totalLen;
   }
