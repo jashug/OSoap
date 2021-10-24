@@ -56,12 +56,12 @@ class RamOpenRegularFileDescription extends OpenRegularFileDescription {
     let bytesRead = 0;
     for (const arr of data) {
       if (this.offset + arr.length <= this.file.length) {
-        arr.set(this.file.dataBuf.subarray(this.offset, arr.length));
+        arr.set(this.file.dataBuf.subarray(this.offset, this.offset + arr.length));
         this.offset += arr.length;
         bytesRead += arr.length;
       } else {
         const lastChunk = Math.max(this.file.length - this.offset, 0);
-        arr.set(this.file.dataBuf.subarray(this.offset, lastChunk));
+        arr.set(this.file.dataBuf.subarray(this.offset, this.file.length));
         this.offset += lastChunk;
         bytesRead += lastChunk;
         break;

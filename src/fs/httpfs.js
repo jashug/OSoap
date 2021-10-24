@@ -31,7 +31,7 @@ class HttpOpenRegularFileDescription extends OpenRegularFileDescription {
     let bytesRead = 0;
     for (const arr of data) {
       if (this.offset + arr.length <= contents.length) {
-        arr.set(contents.subarray(this.offset, arr.length));
+        arr.set(contents.subarray(this.offset, this.offset + arr.length));
         this.offset += arr.length;
         bytesRead += arr.length;
       } else {
