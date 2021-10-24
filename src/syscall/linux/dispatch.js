@@ -86,6 +86,7 @@ const linuxSyscallTable = new Map([
   [SYS.clock_gettime, clock_gettime],
   [SYS.pselect6, pselect],
   [SYS.prlimit64, prlimit],
+  [SYS.copy_file_range, nullSyscall],
   [SYS.statx, statx],
   [SYS.faccessat2, faccessat2],
 ]);
