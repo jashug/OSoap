@@ -65,7 +65,7 @@ class RamOpenRegularFileDescription extends OpenRegularFileDescription {
     const newOffset = this.offset + totalLen;
     if (newOffset > this.file.dataBuf.length) {
       if (newOffset > Number.MAX_SAFE_INTEGER) throw new FileTooBigError();
-      const newDataBuf = new Uint8Array(Math.min(Number(newOffset * 2), Number.MAX_SAFE_INTEGER));
+      const newDataBuf = new Uint8Array(Math.min(newOffset * 2, Number.MAX_SAFE_INTEGER));
       newDataBuf.set(this.dataBuf);
       this.file.dataBuf = newDataBuf;
     }

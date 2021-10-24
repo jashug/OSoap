@@ -1,5 +1,5 @@
 import {IOCTL} from './constants/ioctl.js';
-import {O, FILE_STATUS_FLAGS, SEEK} from './constants/fs.js';
+import {O, FILE_STATUS_FLAGS} from './constants/fs.js';
 import {NotADirectoryError, IsADirectoryError, SocketOrPipeError} from './fs/errors.js';
 import {NoTTYError} from './syscall/linux/NoTTYError.js';
 import {InvalidError} from './syscall/linux/InvalidError.js';
@@ -88,7 +88,7 @@ class OpenRegularFileDescription extends OpenFileDescription {
 
   setOffsetChecked_(offset) {
     if (offset < 0) throw new InvalidError();
-    if (offset >= Number.MAX_SAFE_INTEGER) throw new OverflowError();
+    if (offset > Number.MAX_SAFE_INTEGER) throw new OverflowError();
     this.offset = offset;
     return this.offset;
   }
@@ -109,7 +109,7 @@ class OpenDirectoryDescription extends OpenFileDescription {
 
   setOffsetChecked_(offset) {
     if (offset < 0) throw new InvalidError();
-    if (offset >= Number.MAX_SAFE_INTEGER) throw new OverflowError();
+    if (offset > Number.MAX_SAFE_INTEGER) throw new OverflowError();
     this.offset = offset;
     return this.offset;
   }
