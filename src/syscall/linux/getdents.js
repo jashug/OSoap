@@ -1,4 +1,4 @@
-import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
+import {getFd, getPtr, getUint32} from '../SyscallBuffer.js';
 import {NAME_MAX, FMT} from '../../constants/fs.js';
 import {InvalidError} from './InvalidError.js';
 
@@ -14,10 +14,11 @@ const DT = new Map([
   [FMT.SOCKET, 12],
 ]);
 
-const getdents = async (dv, thread) => {
-  const fd = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
-  const buf = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
-  const bufLen = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 2, true);
+const getdents = async (sysbuf, thread) => {
+  const fd = getFd(sysbuf.linuxSyscallArg(0));
+  const buf = getPtr(sysbuf.linuxSyscallArg(1));
+  const bufLen = getUint32(sysbuf.linuxSyscallArg(2));
+  const dv = sysbuf.dv;
   if (bufLen < DENT_LEN_MAX) throw new InvalidError();
   const file = thread.process.fdtable.get(fd).openFileDescription;
   let bufCur = 0;
@@ -32,7 +33,7 @@ const getdents = async (dv, thread) => {
     dv.setBigUint64(buf + bufCur + 8, tellPos, true);
     dv.setUint16(buf + bufCur + 16, reclen, true);
     dv.setUint8(buf + bufCur + 18, typeCode, true);
-    const nameBuffer = new Uint8Array(dv.buffer, dv.byteOffset + buf + bufCur + DENT_NAME_OFFSET, nameBuf.length + 1);
+    const nameBuffer = sysbuf.subUint8Array(buf + bufCur + DENT_NAME_OFFSET, nameBuf.length + 1);
     nameBuffer.set(nameBuf);
     nameBuffer[nameBuf.length] = 0;
     bufCur += reclen;

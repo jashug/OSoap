@@ -1,7 +1,7 @@
-import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
+import {getFd} from '../SyscallBuffer.js';
 
-const close = (dv, thread) => {
-  const fd = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
+const close = (sysbuf, thread) => {
+  const fd = getFd(sysbuf.linuxSyscallArg(0));
   thread.process.fdtable.close(fd);
   return 0;
 };

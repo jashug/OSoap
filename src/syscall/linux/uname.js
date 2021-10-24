@@ -1,4 +1,4 @@
-import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
+import {getPtr} from '../SyscallBuffer.js';
 import {version} from '../../version.js';
 import {utf8Encoder} from '../../util/utf8Encoder.js';
 
@@ -16,10 +16,11 @@ const nodename = utf8Encoder.encode('guest');
 const machine = utf8Encoder.encode('Browser (TODO: which?)');
 const domainname = utf8Encoder.encode('none');
 
-const uname = (dv, thread) => {
-  const buf = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
+const uname = (sysbuf, thread) => {
+  void thread;
+  const buf = getPtr(sysbuf.linuxSyscallArg(0));
   const writeCString = (offset, value) => {
-    const arr = new Uint8Array(dv.buffer, dv.byteOffset + buf + offset, UNAME_BUF_SIZE);
+    const arr = sysbuf.subUint8Array(buf + offset, UNAME_BUF_SIZE);
     if (value.length >= UNAME_BUF_SIZE) value = value.subarray(0, UNAME_BUF_SIZE - 1);
     arr.set(value);
     arr[value.length] = 0;

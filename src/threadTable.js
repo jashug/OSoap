@@ -2,6 +2,7 @@ import {startWorker} from './manageWorkers.js';
 import {SYSBUF_OFFSET, OSOAP_SYS} from './constants/syscallBufferLayout.js';
 import {SIG} from './constants/signal.js';
 import {dispatchSyscall} from './syscall/dispatch.js';
+import {SyscallBuffer} from './syscall/SyscallBuffer.js';
 import {FileDescriptor, FileDescriptorTable} from './FileDescriptor.js';
 import {SignalDispositionSet} from './SignalDispositionSet.js';
 import {UserMisbehaved} from './UserError.js';
@@ -9,17 +10,9 @@ import {absoluteRootLocation, ttyLocation} from './fs/init.js';
 import {OpenTerminalDescription} from './tty/OpenTerminalDescription.js';
 import {utf8Encoder} from './util/utf8Encoder.js';
 
-const FIRST_UNUSABLE_PID = Math.pow(2, 31) - 10; // Some padding before running out of bits
-let tidCounter = 1; // Start PIDs at 1
+let tidCounter = 1n; // Start PIDs at 1
 
-const getNewTid = () => {
-  const oldTid = tidCounter;
-  if (oldTid >= FIRST_UNUSABLE_PID)  {
-    throw new Error("32-bit tids exhausted - move to 64 bits");
-  }
-  tidCounter += 1;
-  return oldTid;
-};
+const getNewTid = () => tidCounter++;
 
 const PROCESS_STATUS_STATE = {
   STOPPED: 'stopped',
@@ -116,8 +109,8 @@ const initialProcessData = (openFile) => {
   }
   return {
     parentProcess: null,
-    setUserId: {real: null, effective: null, saved: null},
-    setGroupId: {real: null, effective: null, saved: null},
+    setUserId: {real: 0, effective: 0, saved: 0},
+    setGroupId: {real: 0, effective: 0, saved: 0},
     fileModeCreationMask: null,
     fdtable,
     signalDisposition: new SignalDispositionSet(),
@@ -429,9 +422,8 @@ class Thread {
   }
 
   respondToSyscall() {
-    const dv = new DataView(this.process.memory.buffer);
-    const syscall_tag = dv.getUint32(this.sysBufAddr + SYSBUF_OFFSET.tag, true);
-    return dispatchSyscall(syscall_tag)(dv, this);
+    const sysbuf = new SyscallBuffer(this.process.memory.buffer, this.sysBufAddr);
+    return dispatchSyscall(sysbuf.tag)(sysbuf, this);
   }
 
   // Should only be called in the RUNNING or SYSCALL states
@@ -497,7 +489,7 @@ const spawnProcess = (executableUrl, term, args, environment = defaultEnvironmen
   term.foregroundProcessGroup = processGroup;
   const process = new Process(processGroup, tid, initialProcessData(openFile));
   const thread = new Thread(process, tid, 0n, {
-    asyncState: {type: 'regular', sys_buf: 0, stack_buf: 0, pid: 0, retval: 0},
+    asyncState: {type: 'regular', sys_buf: 0, stack_buf: 0, pid: 0n, retval: 0},
     module: executableUrl,
     requestShareModuleAndMemory: true,
     environment,

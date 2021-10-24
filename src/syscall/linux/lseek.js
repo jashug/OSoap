@@ -1,10 +1,10 @@
-import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
+import {getFd, getInt32, getInt64} from '../SyscallBuffer.js';
 import {InvalidError} from './InvalidError.js';
 
-const lseek = (dv, thread) => {
-  const fd = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
-  const offset = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true); // off_t is 64 bits
-  const whence = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 2, true);
+const lseek = (sysbuf, thread) => {
+  const fd = getFd(sysbuf.linuxSyscallArg(0));
+  const offset = getInt64(sysbuf.linuxSyscallArg(1));
+  const whence = getInt32(sysbuf.linuxSyscallArg(2));
   void fd, offset, whence;
   debugger;
   thread.requestUserDebugger();

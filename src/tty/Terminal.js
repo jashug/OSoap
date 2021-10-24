@@ -327,10 +327,10 @@ class Terminal {
     } else if (request === IOCTL.TIOC.GPGRP) {
       if (this !== thread.process.controllingTerminal) throw new NoTTYError();
       const pgrp = this.foregroundProcessGroup?.processGroupId ?? getNonexistentProcessGroupId();
-      dv.setUint32(argp, pgrp, true);
+      dv.setBigInt64(argp, pgrp, true);
     } else if (request === IOCTL.TIOC.SPGRP) {
       if (this !== thread.process.controllingTerminal) throw new NoTTYError();
-      const pgrp = dv.getUint32(argp, true);
+      const pgrp = dv.getBigInt64(argp, true);
       const pgrpObj = thread.process.processGroup.session.processGroups.get(pgrp);
       if (!pgrpObj) throw new PermissionError();
       this.foregroundProcessGroup = pgrpObj;

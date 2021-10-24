@@ -1,21 +1,18 @@
-import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
+import {getPid} from '../SyscallBuffer.js';
 import {SyscallError} from './SyscallError.js';
 import {E} from './errno.js';
 import {InvalidError} from './InvalidError.js';
 import {AccessError, PermissionError} from '../../fs/errors.js';
 import {ProcessGroup} from '../../threadTable.js';
 
-// TODO: make pids 64 bits, probably requires moving this to an osoap syscall
-
-const getpgid = (dv, thread) => {
-  const pid = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
-  if (pid !== 0) {
+const getpgid = (sysbuf, thread) => {
+  const pid = getPid(sysbuf.linuxSyscallArg(0));
+  if (pid) {
     debugger;
     thread.requestUserDebugger();
     throw new SyscallError(E.SRCH);
   } else {
-    const pgid = thread.process.processGroup.processGroupId;
-    return pgid;
+    return thread.process.processGroup.processGroupId;
   }
 };
 
@@ -30,11 +27,11 @@ const getChildOrSelfProcess = (process, pid) => {
   return childProcess;
 };
 
-const setpgid = (dv, thread) => {
+const setpgid = (sysbuf, thread) => {
   const callingPid = thread.process.processId;
   const session = thread.process.processGroup.session;
-  const pid = zeroDefault(dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true), callingPid);
-  const pgid = zeroDefault(dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true), pid);
+  const pid = zeroDefault(getPid(sysbuf.linuxSyscallArg(0)), callingPid);
+  const pgid = zeroDefault(getPid(sysbuf.linuxSyscallArg(1)), pid);
   const childProcess = getChildOrSelfProcess(thread.process, pid);
   if (childProcess.hasExeced) throw new AccessError();
   if (pgid < 0) throw new InvalidError();

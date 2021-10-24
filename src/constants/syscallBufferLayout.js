@@ -4,18 +4,17 @@ const SYSBUF_OFFSET = {
   tag: 8,
   linux_syscall: {
     n: 16,
-    args: 20,
-    cnt: 48,
+    cnt: 20,
+    args: 24,
   },
   linux_syscall_return: 16,
   exit_process_code: 16,
-  pid_return: 16,
   fork: {
     stack_buf: 16,
     saved_globals: 20,
-    saved_globals_length: 32,
+    saved_globals_length: 60,
   },
-  length: 52,
+  length: 80,
 };
 
 // TODO: extend syscall interface to allow more flexible
@@ -37,14 +36,11 @@ const OSOAP_SYS = {
       exit_process: 5,
       exit_thread: 7,
       fork: 9,
-      gettid: 11,
-      getpid: 13,
-      getppid: 15,
     },
     R: {
+      unknown_syscall: 0,
       linux_syscall_return: 2,
-      pid_return: 4,
-      signal_then_retry: 6,
+      signal_then_retry: 4,
     },
   },
 };

@@ -1,4 +1,4 @@
-const exit_thread = (dv, thread) => {
+const exit_thread = (sysbuf, thread) => {
   thread.hangup();
 };
 

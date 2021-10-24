@@ -115,7 +115,7 @@ const syscallFork = (module, exports, memory, asyncState) => {
   exports.asyncify_start_rewind(stack_buf);
   // fork is *not* a syscall which can be interrupted by a signal and
   // then restarted.
-  asyncState.pid = dv.getInt32(sys_buf + SYSBUF_OFFSET.pid_return, true);
+  asyncState.pid = dv.getBigInt64(sys_buf + SYSBUF_OFFSET.linux_syscall_return, true);
 };
 
 const resumeSyscallFork = (module, exports, memory, asyncState) => {
@@ -127,7 +127,7 @@ const resumeSyscallFork = (module, exports, memory, asyncState) => {
   Atomics.wait(syncWord, 0, OSOAP_SYS.TURN.KERNEL);
   restoreGlobals(module, exports, getSavedGlobalsDataView(dv, sys_buf));
   exports.asyncify_start_rewind(stack_buf);
-  asyncState.pid = dv.getInt32(sys_buf + SYSBUF_OFFSET.pid_return, true);
+  asyncState.pid = dv.getBigInt64(sys_buf + SYSBUF_OFFSET.linux_syscall_return, true);
 };
 
 const runWithAsync = (module, exports, memory, asyncState, call) => {

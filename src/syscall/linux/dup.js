@@ -1,13 +1,13 @@
-import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
+import {getFd} from '../SyscallBuffer.js';
 
-const dup = (dv, thread) => {
-  const oldfd = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
+const dup = (sysbuf, thread) => {
+  const oldfd = getFd(sysbuf.linuxSyscallArg(0));
   return thread.process.fdtable.dup(oldfd);
 };
 
-const dup2 = (dv, thread) => {
-  const oldfd = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
-  const newfd = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
+const dup2 = (sysbuf, thread) => {
+  const oldfd = getFd(sysbuf.linuxSyscallArg(0));
+  const newfd = getFd(sysbuf.linuxSyscallArg(1));
   return thread.process.fdtable.dup2(oldfd, newfd);
 };
 

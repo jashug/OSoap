@@ -1,15 +1,14 @@
-import {SYSBUF_OFFSET, OSOAP_SYS} from '../constants/syscallBufferLayout.js';
+import {OSOAP_SYS} from '../constants/syscallBufferLayout.js';
 
 import {linuxSyscall} from './linux/dispatch.js';
 import {exit_process} from './exit_process.js';
 import {exit_thread} from './exit_thread.js';
-import {gettid, getpid, getppid} from './gettid.js';
 import {fork} from './fork.js';
 
-const defaultSyscall = (dv, thread) => {
+const defaultSyscall = (sysbuf, thread) => {
   debugger;
   thread.requestUserDebugger();
-  dv.setUint32(thread.sysBufAddr + SYSBUF_OFFSET.tag, OSOAP_SYS.TAG.R.unknown_syscall, true);
+  sysbuf.tag = OSOAP_SYS.TAG.R.unknown_syscall;
 };
 
 const SYS_NUM = OSOAP_SYS.TAG.W;
@@ -19,9 +18,6 @@ const syscallTable = new Map([
   [SYS_NUM.exit_process, exit_process],
   [SYS_NUM.exit_thread, exit_thread],
   [SYS_NUM.fork, fork],
-  [SYS_NUM.gettid, gettid],
-  [SYS_NUM.getpid, getpid],
-  [SYS_NUM.getppid, getppid],
 ]);
 
 const dispatchSyscall = (syscall_tag) => {

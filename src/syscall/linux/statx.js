@@ -1,5 +1,5 @@
 import {InvalidError} from './InvalidError.js';
-import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
+import {getFd, getPtr, getUint32} from '../SyscallBuffer.js';
 import {AT} from '../../constants/at.js';
 import {pathFromCString} from '../../fs/Path.js';
 import {resolveToEntry} from '../../fs/resolve.js';
@@ -65,15 +65,16 @@ const setTimespec = (dv, offset, time) => {
   dv.setUint32(offset + TIMESPEC_OFFSET.nsec, time.nsec, true);
 };
 
-const statx = async (dv, thread) => {
-  const dirfd = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
-  const pathname = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
-  const flags = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 2, true);
-  const mask = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 3, true);
-  const statbuf = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 4, true);
+const statx = async (sysbuf, thread) => {
+  const dirfd = getFd(sysbuf.linuxSyscallArg(0));
+  const pathname = getPtr(sysbuf.linuxSyscallArg(1));
+  const flags = getUint32(sysbuf.linuxSyscallArg(2));
+  const mask = getUint32(sysbuf.linuxSyscallArg(3));
+  const statbuf = getPtr(sysbuf.linuxSyscallArg(4));
   if (flags & ~ALLOWABLE_STATX_FLAGS) {
     throw new InvalidError();
   }
+  const dv = sysbuf.dv;
   const path = pathFromCString(dv.buffer, pathname + dv.byteOffset);
   const curdir = thread.process.fdtable.getExtended(dirfd);
   const rootdir = thread.process.rootDirectory;

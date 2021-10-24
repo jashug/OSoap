@@ -1,5 +1,6 @@
-import {SYSBUF_OFFSET, OSOAP_SYS} from '../constants/syscallBufferLayout.js';
+import {OSOAP_SYS} from '../constants/syscallBufferLayout.js';
 import {getNewTid, Process, Thread} from '../threadTable.js';
+import {SyscallBuffer} from './SyscallBuffer.js';
 
 // TODO: make pid_t 64 bits
 
@@ -16,8 +17,8 @@ const copyWasmMemory = (memory) => {
   return newMemory;
 };
 
-const fork = (dv, thread) => {
-  const stackBuf = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.fork.stack_buf, true);
+const fork = (sysbuf, thread) => {
+  const stackBuf = sysbuf.fork_stack_buf;
   const process = thread.process;
 
   const sysBufAddr = thread.sysBufAddr;
@@ -25,10 +26,10 @@ const fork = (dv, thread) => {
   const newModule = process.compiledModule;
   const newMemory = copyWasmMemory(process.memory);
   // Set up the child return
-  const newDv = new DataView(newMemory.buffer);
-  newDv.setUint32(sysBufAddr + SYSBUF_OFFSET.tag, OSOAP_SYS.TAG.R.pid_return, true);
-  newDv.setUint32(sysBufAddr + SYSBUF_OFFSET.pid_return, 0, true);
-  newDv.setInt32(sysBufAddr + SYSBUF_OFFSET.sync_word, OSOAP_SYS.TURN.USER, true);
+  const newSysbuf = new SyscallBuffer(newMemory.buffer, sysBufAddr);
+  newSysbuf.tag = OSOAP_SYS.TAG.R.linux_syscall_return;
+  newSysbuf.linux_syscall_return = 0;
+  newSysbuf.setSyncWord(OSOAP_SYS.TURN.USER, {yesIKnowThisDoesntNotifyUser: true});
 
   const newProcess = new Process(
     process.processGroup,
@@ -41,15 +42,15 @@ const fork = (dv, thread) => {
   });
   const newThread = new Thread(newProcess, newPid, thread.signalMask, {
     /* forking.pid is irrelevant; overwritten by syscall buffer value */
-    asyncState: {type: 'childFork', sys_buf: sysBufAddr, stack_buf: stackBuf, pid: 0, retval: 0},
+    asyncState: {type: 'childFork', sys_buf: sysBufAddr, stack_buf: stackBuf, pid: 0n, retval: 0},
     module: newModule,
     memory: newMemory,
   });
   newThread.registerSysBuf({sysBuf: sysBufAddr});
 
   // Set up the parent return
-  dv.setUint32(sysBufAddr + SYSBUF_OFFSET.tag, OSOAP_SYS.TAG.R.pid_return, true);
-  dv.setUint32(sysBufAddr + SYSBUF_OFFSET.pid_return, newPid, true);
+  sysbuf.tag = OSOAP_SYS.TAG.R.linux_syscall_return;
+  sysbuf.linux_syscall_return = newPid;
 };
 
 export {fork};

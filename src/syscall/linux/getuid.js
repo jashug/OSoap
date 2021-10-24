@@ -1,16 +1,16 @@
-const getuid = (dv, thread) => {
+const getuid = (sysbuf, thread) => {
   return thread.process.setUserId.real;
 };
 
-const geteuid = (dv, thread) => {
+const geteuid = (sysbuf, thread) => {
   return thread.process.setUserId.effective;
 };
 
-const getgid = (dv, thread) => {
+const getgid = (sysbuf, thread) => {
   return thread.process.setGroupId.real;
 };
 
-const getegid = (dv, thread) => {
+const getegid = (sysbuf, thread) => {
   return thread.process.setGroupId.effective;
 };
 

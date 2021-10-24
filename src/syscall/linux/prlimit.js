@@ -1,4 +1,4 @@
-import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
+import {getPid, getInt32, getPtr} from '../SyscallBuffer.js';
 import {InvalidError} from './InvalidError.js';
 import {MAX_NUM_FDS} from '../../FileDescriptor.js';
 
@@ -13,12 +13,12 @@ const writeRLimit = (dv, buf, {cur, max}) => {
   dv.setBigUint64(buf + 8, max, true);
 };
 
-const prlimit = (dv, thread) => {
-  const pid = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
-  const resource = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
-  const newbuf = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 2, true);
-  const oldbuf = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 3, true);
-  if (pid !== 0) {
+const prlimit = (sysbuf, thread) => {
+  const pid = getPid(sysbuf.linuxSyscallArg(0));
+  const resource = getInt32(sysbuf.linuxSyscallArg(1));
+  const newbuf = getPtr(sysbuf.linuxSyscallArg(2));
+  const oldbuf = getPtr(sysbuf.linuxSyscallArg(3));
+  if (pid) {
     debugger;
     thread.requestUserDebugger();
     throw new InvalidError();
@@ -30,10 +30,10 @@ const prlimit = (dv, thread) => {
   }
   if (resource === RLIM.NPROC) {
     const lim = 1n << 31n;
-    writeRLimit(dv, oldbuf, {cur: lim, max: lim});
+    writeRLimit(sysbuf.dv, oldbuf, {cur: lim, max: lim});
   } else if (resource === RLIM.NOFILE) {
     const lim = BigInt(MAX_NUM_FDS);
-    writeRLimit(dv, oldbuf, {cur: lim, max: lim});
+    writeRLimit(sysbuf.dv, oldbuf, {cur: lim, max: lim});
   } else {
     debugger;
     thread.requestUserDebugger();

@@ -1,4 +1,4 @@
-import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
+import {getInt32, getPtr} from '../SyscallBuffer.js';
 import {InvalidError} from './InvalidError.js';
 import {TimeVal, TimeSpec} from '../../util/timeouts.js';
 
@@ -46,31 +46,31 @@ class FdSet {
   }
 }
 
-const select = (dv, thread) => {
-  const nfds = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
+const select = (sysbuf, thread) => {
+  const nfds = getInt32(sysbuf.linuxSyscallArg(0));
   if (nfds < 0 || nfds > FD_SETSIZE) throw new InvalidError();
-  const readfds = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
-  const writefds = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 2, true);
-  const exceptfds = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 3, true);
-  const timeoutLoc = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 4, true);
-  const timeout = TimeVal.read(dv, timeoutLoc);
-  return doSelect(dv, thread, nfds, readfds, writefds, exceptfds, timeout);
-}
+  const readfds = getPtr(sysbuf.linuxSyscallArg(1));
+  const writefds = getPtr(sysbuf.linuxSyscallArg(2));
+  const exceptfds = getPtr(sysbuf.linuxSyscallArg(3));
+  const timeoutLoc = getPtr(sysbuf.linuxSyscallArg(4));
+  const timeout = TimeVal.read(sysbuf.dv, timeoutLoc);
+  return doSelect(sysbuf.dv, thread, nfds, readfds, writefds, exceptfds, timeout);
+};
 
-const pselect = async (dv, thread) => {
-  const nfds = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
+const pselect = async (sysbuf, thread) => {
+  const nfds = getInt32(sysbuf.linuxSyscallArg(0));
   if (nfds < 0 || nfds > FD_SETSIZE) throw new InvalidError();
-  const readfds = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
-  const writefds = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 2, true);
-  const exceptfds = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 3, true);
-  const timeoutLoc = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 4, true);
-  const sigmask = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 5, true);
-  const timeout = TimeSpec.read(dv, timeoutLoc);
-  if (sigmask === 0) return doSelect(dv, thread, nfds, readfds, writefds, exceptfds, timeout, sigmask);
+  const readfds = getPtr(sysbuf.linuxSyscallArg(1));
+  const writefds = getPtr(sysbuf.linuxSyscallArg(2));
+  const exceptfds = getPtr(sysbuf.linuxSyscallArg(3));
+  const timeoutLoc = getPtr(sysbuf.linuxSyscallArg(4));
+  const sigmask = getPtr(sysbuf.linuxSyscallArg(5));
+  const timeout = TimeSpec.read(sysbuf.dv, timeoutLoc);
+  if (sigmask === 0) return doSelect(sysbuf.dv, thread, nfds, readfds, writefds, exceptfds, timeout, sigmask);
   const savedSignalMask = thread.signalMask;
-  thread.signalMask = dv.getBigUint64(sigmask, true);
+  thread.signalMask = sysbuf.dv.getBigUint64(sigmask, true);
   try {
-    return await doSelect(dv, thread, nfds, readfds, writefds, exceptfds, timeout);
+    return await doSelect(sysbuf.dv, thread, nfds, readfds, writefds, exceptfds, timeout);
   } finally {
     thread.signalMask = savedSignalMask;
   }

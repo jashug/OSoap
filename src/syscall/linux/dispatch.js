@@ -1,4 +1,4 @@
-import {SYSBUF_OFFSET, OSOAP_SYS} from '../../constants/syscallBufferLayout.js';
+import {OSOAP_SYS} from '../../constants/syscallBufferLayout.js';
 import {SYS} from './syscall.js';
 import {E} from './errno.js';
 import {SyscallError} from './SyscallError.js';
@@ -27,8 +27,9 @@ import {execve} from './exec.js';
 import {getdents} from './getdents.js';
 import {chdir} from './chdir.js';
 import {lseek} from './lseek.js';
+import {gettid, getpid, getppid} from './gettid.js';
 
-const defaultSyscall = (syscallNumber) => (dv, thread) => {
+const defaultSyscall = (syscallNumber) => (sysbuf, thread) => {
   console.log(`Unimplemented syscall ${syscallNumber}`);
   debugger;
   thread.requestUserDebugger();
@@ -36,7 +37,7 @@ const defaultSyscall = (syscallNumber) => (dv, thread) => {
 };
 
 const deprecatedSyscall = (syscallNum, suggestedAlternate) => {
-  return [syscallNum, (dv, thread) => {
+  return [syscallNum, (sysbuf, thread) => {
     console.log(`Use of deprecated syscall number ${syscallNum}: instead ${suggestedAlternate}`);
     thread.requestUserDebugger();
     throw new SyscallError(E.NOSYS);
@@ -63,7 +64,7 @@ const linuxSyscallTable = new Map([
   [SYS.dup, dup],
   [SYS.dup2, dup2],
   [SYS.nanosleep, nanosleep],
-  deprecatedSyscall(SYS.getpid, "use OSoap syscall getpid"),
+  [SYS.getpid, getpid],
   deprecatedSyscall(SYS.fork, "use OSoap syscall fork"),
   [SYS.execve, execve],
   deprecatedSyscall(SYS.exit, "use OSoap syscall exit"),
@@ -77,9 +78,9 @@ const linuxSyscallTable = new Map([
   [SYS.geteuid, geteuid],
   [SYS.getegid, getegid],
   [SYS.setpgid, setpgid],
-  deprecatedSyscall(SYS.getppid, "use OSoap syscall getppid"),
+  [SYS.getppid, getppid],
   [SYS.getpgid, getpgid],
-  deprecatedSyscall(SYS.gettid, "use OSoap syscall gettid"),
+  [SYS.gettid, gettid],
   [SYS.getdents64, getdents],
   [SYS.fadvise64, nullSyscall],
   [SYS.clock_gettime, clock_gettime],
@@ -93,9 +94,9 @@ const dispatchLinuxSyscall = (syscallNumber) => {
   return linuxSyscallTable.get(syscallNumber) ?? defaultSyscall(syscallNumber);
 };
 
-const tryLinuxSyscall = async (syscall, dv, thread) => {
+const tryLinuxSyscall = async (syscall, sysbuf, thread) => {
   try {
-    return await syscall(dv, thread);
+    return await syscall(sysbuf, thread);
   } catch (e) {
     if (e.linuxSyscallErrno !== undefined) {
       return -e.linuxSyscallErrno;
@@ -107,13 +108,13 @@ const tryLinuxSyscall = async (syscall, dv, thread) => {
   }
 };
 
-const linuxSyscall = async (dv, thread) => {
-  const syscall_number = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.n, true);
+const linuxSyscall = async (sysbuf, thread) => {
+  const syscall_number = sysbuf.linux_syscall_n;
   const syscall = dispatchLinuxSyscall(syscall_number);
-  const syscall_return = await tryLinuxSyscall(syscall, dv, thread);
+  const syscall_return = await tryLinuxSyscall(syscall, sysbuf, thread);
   if (syscall_return === undefined) throw new Error("Linux syscalls should return");
-  dv.setInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall_return, syscall_return, true);
-  dv.setUint32(thread.sysBufAddr + SYSBUF_OFFSET.tag, OSOAP_SYS.TAG.R.linux_syscall_return, true);
+  sysbuf.linux_syscall_return = syscall_return;
+  sysbuf.tag = OSOAP_SYS.TAG.R.linux_syscall_return;
 };
 
 export {linuxSyscall};

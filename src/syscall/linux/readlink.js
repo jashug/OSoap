@@ -1,15 +1,15 @@
 import {InvalidError} from './InvalidError.js';
-import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
+import {getPtr, getUint32} from '../SyscallBuffer.js';
 import {pathFromCString} from '../../fs/Path.js';
 import {resolveToEntry} from '../../fs/resolve.js';
 
-const readlink = async (dv, thread) => {
-  const pathname = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
-  const bufptr = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
-  const bufsize = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 2, true);
+const readlink = async (sysbuf, thread) => {
+  const pathname = getPtr(sysbuf.linuxSyscallArg(0));
+  const bufptr = getPtr(sysbuf.linuxSyscallArg(1));
+  const bufsize = getUint32(sysbuf.linuxSyscallArg(2));
   if (bufsize <= 0) throw new InvalidError();
-  const path = pathFromCString(dv.buffer, pathname + dv.byteOffset);
-  const buf = new Uint8Array(dv.buffer, bufptr + dv.byteOffset, bufsize);
+  const path = pathFromCString(sysbuf.buffer, pathname + sysbuf.byteOffset);
+  const buf = sysbuf.subUint8Array(bufptr, bufsize);
   const curdir = thread.process.currentWorkingDirectory;
   const rootdir = thread.process.rootDirectory;
   const linkBuf = await resolveToEntry(path, curdir, rootdir, {

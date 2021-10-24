@@ -1,5 +1,5 @@
 import {InvalidError} from './InvalidError.js';
-import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
+import {getPtr, getInt32, getFd} from '../SyscallBuffer.js';
 import {pathFromCString} from '../../fs/Path.js';
 import {resolveToEntry} from '../../fs/resolve.js';
 import {AT} from '../../constants/at.js';
@@ -24,18 +24,18 @@ const doAccess = async (dv, thread, dirfd, pathname, mode, flags) => {
   return 0;
 };
 
-const access = (dv, thread) => {
-  const pathname = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
-  const mode = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
-  return doAccess(dv, thread, AT.FDCWD, pathname, mode, 0);
+const access = (sysbuf, thread) => {
+  const pathname = getPtr(sysbuf.linuxSyscallArg(0));
+  const mode = getInt32(sysbuf.linuxSyscallArg(1));
+  return doAccess(sysbuf.dv, thread, AT.FDCWD, pathname, mode, 0);
 };
 
-const faccessat2 = (dv, thread) => {
-  const dirfd = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
-  const pathname = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
-  const mode = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 2, true);
-  const flags = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 3, true);
-  return doAccess(dv, thread, dirfd, pathname, mode, flags);
+const faccessat2 = (sysbuf, thread) => {
+  const dirfd = getFd(sysbuf.linuxSyscallArg(0));
+  const pathname = getPtr(sysbuf.linuxSyscallArg(1));
+  const mode = getInt32(sysbuf.linuxSyscallArg(2));
+  const flags = getInt32(sysbuf.linuxSyscallArg(3));
+  return doAccess(sysbuf.dv, thread, dirfd, pathname, mode, flags);
 };
 
 export {access, faccessat2};

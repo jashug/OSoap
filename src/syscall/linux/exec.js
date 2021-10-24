@@ -1,4 +1,4 @@
-import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
+import {getPtr} from '../SyscallBuffer.js';
 import {copyCString, pathFromString} from '../../fs/Path.js';
 import {resolveToEntry} from '../../fs/resolve.js';
 import {LoopError} from '../../fs/errors.js';
@@ -40,14 +40,14 @@ const getExecutable = async (dv, thread, filename) => {
   throw new LoopError();
 };
 
-const execve = async (dv, thread) => {
-  const filename = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
-  const argv = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
-  const envp = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 2, true);
-  const {args, module} = await getExecutable(dv, thread, filename);
-  readListOfStrings(args, dv, argv);
+const execve = async (sysbuf, thread) => {
+  const filename = getPtr(sysbuf.linuxSyscallArg(0));
+  const argv = getPtr(sysbuf.linuxSyscallArg(1));
+  const envp = getPtr(sysbuf.linuxSyscallArg(2));
+  const {args, module} = await getExecutable(sysbuf.dv, thread, filename);
+  readListOfStrings(args, sysbuf.dv, argv);
   const environment = [];
-  readListOfStrings(environment, dv, envp);
+  readListOfStrings(environment, sysbuf.dv, envp);
   throw new ExecException(module, args, environment);
 };
 

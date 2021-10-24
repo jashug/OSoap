@@ -1,19 +1,20 @@
-import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
+import {getInt32, getUint32, getPtr} from '../SyscallBuffer.js';
 import {SIGACTION_OFFSET, NSIG, SIG_MASK_BYTES, SIG_CANT_BE_CAUGHT} from '../../constants/signal.js';
 import {E} from './errno.js';
 import {SyscallError} from './SyscallError.js';
 
-const sigaction = (dv, thread) => {
-  const signalNumber = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
+const sigaction = (sysbuf, thread) => {
+  const signalNumber = getInt32(sysbuf.linuxSyscallArg(0));
   if (signalNumber < 1 || signalNumber >= NSIG || SIG_CANT_BE_CAUGHT.has(signalNumber)) {
     throw new SyscallError(E.INVAL);
   }
-  const newLoc = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
-  const oldLoc = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 2, true);
-  const sigsetsize = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 3, true);
+  const newLoc = getPtr(sysbuf.linuxSyscallArg(1));
+  const oldLoc = getPtr(sysbuf.linuxSyscallArg(2));
+  const sigsetsize = getUint32(sysbuf.linuxSyscallArg(3));
   if (sigsetsize !== SIG_MASK_BYTES) {
     throw new SyscallError(E.INVAL);
   }
+  const dv = sysbuf.dv;
   if (oldLoc !== 0) {
     const oldAction = thread.process.signalDisposition.get(signalNumber);
     // copy into oldLoc

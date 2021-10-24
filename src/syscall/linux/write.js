@@ -1,4 +1,4 @@
-import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
+import {getFd, getPtr, getInt32, getUint32} from '../SyscallBuffer.js';
 import {parseIOVec} from './parseIOVec.js';
 
 const doWrite = (thread, fd, data, totalLen) => {
@@ -6,19 +6,19 @@ const doWrite = (thread, fd, data, totalLen) => {
   return thread.process.fdtable.get(fd).openFileDescription.writev(data, thread, totalLen);
 };
 
-const writev = (dv, thread) => {
-  const fd = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
-  const iov = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
-  const iovcnt = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 2, true);
-  const {data, totalLen} = parseIOVec(dv, iov, iovcnt);
+const writev = (sysbuf, thread) => {
+  const fd = getFd(sysbuf.linuxSyscallArg(0));
+  const iov = getPtr(sysbuf.linuxSyscallArg(1));
+  const iovcnt = getInt32(sysbuf.linuxSyscallArg(2));
+  const {data, totalLen} = parseIOVec(sysbuf.dv, iov, iovcnt);
   return doWrite(thread, fd, data, totalLen);
 };
 
-const write = (dv, thread) => {
-  const fd = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
-  const buf = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
-  const count = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 2, true);
-  const data = [new Uint8Array(dv.buffer, buf + dv.byteOffset, count)];
+const write = (sysbuf, thread) => {
+  const fd = getFd(sysbuf.linuxSyscallArg(0));
+  const buf = getPtr(sysbuf.linuxSyscallArg(1));
+  const count = getUint32(sysbuf.linuxSyscallArg(2));
+  const data = [sysbuf.subUint8Array(buf, count)];
   return doWrite(thread, fd, data, count);
 };
 

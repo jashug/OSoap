@@ -1,4 +1,4 @@
-import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
+import {getPid, getPtr, getInt32} from '../SyscallBuffer.js';
 import {InvalidError} from './InvalidError.js';
 import {PROCESS_STATUS_STATE} from '../../threadTable.js';
 
@@ -11,17 +11,17 @@ const W = {
   STOPPED: 2,
   EXITED: 4,
   NOWAIT: 0x1000000,
-}
+};
 
 const filterAll = () => true;
 const filterPid = (pid) => (process) => process.processId === pid;
 const filterPgid = (pgid) => (process) => process.processGroup.processGroupId === pgid;
 const selectFilterPid = (parentProcess, pid) => {
-  if (pid < -1) return filterPgid(-pid);
-  else if (pid === -1) return filterAll;
-  else if (pid === 0) return filterPgid(parentProcess.processGroup.processGroupId);
+  if (pid < -1n) return filterPgid(-pid);
+  else if (pid === -1n) return filterAll;
+  else if (pid === 0n) return filterPgid(parentProcess.processGroup.processGroupId);
   else return filterPid(pid);
-}
+};
 
 const selectFilterOptions = (options) => (process) => {
   return process.status !== null && (
@@ -31,11 +31,11 @@ const selectFilterOptions = (options) => (process) => {
   );
 };
 
-const wait4 = (dv, thread) => {
-  const pid = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
-  const wstatusPtr = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
-  const options = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 2, true);
-  const rusagePtr = dv.getUint32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 3, true);
+const wait4 = (sysbuf, thread) => {
+  const pid = getPid(sysbuf.linuxSyscallArg(0));
+  const wstatusPtr = getPtr(sysbuf.linuxSyscallArg(1));
+  const options = getInt32(sysbuf.linuxSyscallArg(2));
+  const rusagePtr = getPtr(sysbuf.linuxSyscallArg(3));
   if (rusagePtr !== 0) {
     debugger;
     thread.requestUserDebugger();
@@ -53,7 +53,7 @@ const wait4 = (dv, thread) => {
     if (filterPid(child) && filterOptions(child)) {
       const status = child.status;
       child.status = null; // TODO: Except for waitid with NOWAIT flag
-      if (wstatusPtr !== 0) dv.setInt32(wstatusPtr, status.reason, true);
+      if (wstatusPtr !== 0) sysbuf.dv.setInt32(wstatusPtr, status.reason, true);
       return child.processId;
     }
   };

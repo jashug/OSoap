@@ -1,4 +1,4 @@
-import {SYSBUF_OFFSET} from '../../constants/syscallBufferLayout.js';
+import {getFd, getInt32} from '../SyscallBuffer.js';
 import {InvalidError} from './InvalidError.js';
 
 const F = {
@@ -11,12 +11,12 @@ const F = {
 
 const FD_CLOEXEC = 1;
 
-const fcntl = (dv, thread) => {
-  const fdNum = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 0, true);
-  const cmd = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 1, true);
+const fcntl = (sysbuf, thread) => {
+  const fdNum = getFd(sysbuf.linuxSyscallArg(0));
+  const cmd = getInt32(sysbuf.linuxSyscallArg(1));
   const fd = thread.process.fdtable.get(fdNum);
   if (cmd === F.DUPFD) {
-    const arg = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 2, true);
+    const arg = getInt32(sysbuf.linuxSyscallArg(2));
     const fdcopy = fd.copy({closeOnExec: false});
     return thread.process.fdtable.allocate(fdcopy, arg);
   } else if (cmd === F.GETFD) {
@@ -24,7 +24,7 @@ const fcntl = (dv, thread) => {
     if (fd.closeOnExec) ret |= FD_CLOEXEC;
     return ret;
   } else if (cmd === F.SETFD) {
-    const arg = dv.getInt32(thread.sysBufAddr + SYSBUF_OFFSET.linux_syscall.args + 4 * 2, true);
+    const arg = getInt32(sysbuf.linuxSyscallArg(2));
     fd.closeOnExec = Boolean(arg & FD_CLOEXEC);
     return 0;
   } else if (cmd === F.GETFL) {
