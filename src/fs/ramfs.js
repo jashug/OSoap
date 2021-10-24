@@ -223,6 +223,7 @@ class RamFS extends FileSystem {
       atime: file.atime,
       ctime: file.ctime,
       mtime: file.mtime,
+      rdev: file.rdev ?? {major: 0, minor: 0},
     };
   }
 

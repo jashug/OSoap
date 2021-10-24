@@ -108,10 +108,10 @@ const statx = async (sysbuf, thread) => {
   setTimespec(dv, statbuf + STATX_OFFSET.ctime, statInfo.ctime);
   setTimespec(dv, statbuf + STATX_OFFSET.mtime, statInfo.mtime);
   const rdev = statInfo.rdev ?? {major: 0, minor: 0};
-  dv.setUint32(dv, statbuf + STATX_OFFSET.rdev_major, rdev.major ?? 0, true);
-  dv.setUint32(dv, statbuf + STATX_OFFSET.rdev_minor, rdev.minor ?? 0, true);
-  dv.setUint32(dv, statbuf + STATX_OFFSET.dev_major, dev.major, true);
-  dv.setUint32(dv, statbuf + STATX_OFFSET.dev_minor, dev.minor, true);
+  dv.setUint32(statbuf + STATX_OFFSET.rdev_major, rdev.major ?? 0, true);
+  dv.setUint32(statbuf + STATX_OFFSET.rdev_minor, rdev.minor ?? 0, true);
+  dv.setUint32(statbuf + STATX_OFFSET.dev_major, dev.major, true);
+  dv.setUint32(statbuf + STATX_OFFSET.dev_minor, dev.minor, true);
   dv.setUint32(statbuf + STATX_OFFSET.mask, returnedMask, true);
   return 0;
 };
