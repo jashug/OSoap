@@ -5,6 +5,7 @@ convert to typescript
 link mount file type
 getrusage
 getdents - handle mount points
+getdents - add entries for . and ..
 
 osoap-libc:
 src/time/timer_create.c uses setjmp/longjmp

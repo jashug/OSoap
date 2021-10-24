@@ -9,6 +9,8 @@ const ExistsError = makeErrorWithErrno("ExistsError", E.EXISTS);
 const ReadOnlyFilesystemError = makeErrorWithErrno("ReadOnlyFilesystemError", E.ROFS);
 const PermissionError = makeErrorWithErrno("PermissionError", E.PERM);
 const LoopError = makeErrorWithErrno("LoopError", E.LOOP);
+const SocketOrPipeError = makeErrorWithErrno("SocketOrPipeError", E.SPIPE);
+const FileTooBigError = makeErrorWithErrno("FileTooBigError", E.FBIG);
 
 export {
   AccessError,
@@ -19,4 +21,6 @@ export {
   ReadOnlyFilesystemError,
   PermissionError,
   LoopError,
+  SocketOrPipeError,
+  FileTooBigError,
 };

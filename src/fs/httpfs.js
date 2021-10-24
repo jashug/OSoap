@@ -36,7 +36,7 @@ class HttpOpenRegularFileDescription extends OpenRegularFileDescription {
         bytesRead += arr.length;
       } else {
         arr.set(contents.subarray(this.offset));
-        const lastChunk = contents.length - this.offset;
+        const lastChunk = Math.max(contents.length - this.offset, 0);
         this.offset += lastChunk;
         bytesRead += lastChunk;
         break;
@@ -54,7 +54,6 @@ class HttpOpenDirectoryDescription extends OpenDirectoryDescription {
   constructor(listing, flags) {
     super(flags);
     this.listing = Array.from(listing.children);
-    this.offset = 0;
   }
 
   readDirEntry(thread) {

@@ -1,7 +1,7 @@
 import {FileSystem} from './fs.js';
 import {componentToBinaryString, binaryStringToComponent} from './Path.js';
-import {FMT, fmtToMode, O} from '../constants/fs.js';
-import {NoEntryError, ExistsError} from './errors.js';
+import {FMT, fmtToMode, O, SEEK} from '../constants/fs.js';
+import {NoEntryError, ExistsError, FileTooBigError} from './errors.js';
 import {openDeviceFile} from '../devices/open.js';
 import {currentTimespec} from '../util/currentTime.js';
 import {OpenRegularFileDescription, OpenDirectoryDescription} from '../OpenFileDescription.js';
@@ -51,7 +51,7 @@ class RamOpenRegularFileDescription extends OpenRegularFileDescription {
         this.offset += arr.length;
         bytesRead += arr.length;
       } else {
-        const lastChunk = this.file.length - this.offset;
+        const lastChunk = Math.max(this.file.length - this.offset, 0);
         arr.set(this.file.dataBuf.subarray(this.offset, lastChunk));
         this.offset += lastChunk;
         bytesRead += lastChunk;
@@ -64,7 +64,8 @@ class RamOpenRegularFileDescription extends OpenRegularFileDescription {
   writev(data, thread, totalLen) {
     const newOffset = this.offset + totalLen;
     if (newOffset > this.file.dataBuf.length) {
-      const newDataBuf = new Uint8Array(newOffset * 2);
+      if (newOffset > Number.MAX_SAFE_INTEGER) throw new FileTooBigError();
+      const newDataBuf = new Uint8Array(Math.min(Number(newOffset * 2), Number.MAX_SAFE_INTEGER));
       newDataBuf.set(this.dataBuf);
       this.file.dataBuf = newDataBuf;
     }
@@ -74,6 +75,16 @@ class RamOpenRegularFileDescription extends OpenRegularFileDescription {
     }
     this.file.length = Math.max(this.offset, this.file.length);
     return totalLen;
+  }
+
+  lseek(offset, whence) {
+    if (whence === SEEK.SET) {
+      return this.setOffset_(offset);
+    } else if (whence === SEEK.CUR) {
+      return this.setOffset_(offset + this.offset);
+    } else if (whence === SEEK.END) {
+      return this.setOffset_(offset + this.file.length);
+    }
   }
 }
 
@@ -103,7 +114,6 @@ class RamOpenDirectoryDescription extends OpenDirectoryDescription {
     super(flags);
     this.dir = dir;
     this.listing = Array.from(this.dir.children);
-    this.offset = 0;
   }
 
   readDirEntry() {
@@ -113,6 +123,16 @@ class RamOpenDirectoryDescription extends OpenDirectoryDescription {
     const tellPos = BigInt(this.offset);
     this.offset++;
     return {id, fmt, tellPos, nameBuf};
+  }
+
+  lseek(offset, whence) {
+    if (whence === SEEK.SET) {
+      return this.setOffset_(offset);
+    } else if (whence === SEEK.CUR) {
+      return this.setOffset_(offset + this.offset);
+    } else if (whence === SEEK.END) {
+      return this.setOffset_(offset + this.listing.length);
+    }
   }
 }
 

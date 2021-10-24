@@ -1,31 +1,9 @@
-import {NoTTYError} from './syscall/linux/NoTTYError.js';
 import {IOCTL} from './constants/ioctl.js';
-import {O, FILE_STATUS_FLAGS} from './constants/fs.js';
-import {NotADirectoryError, IsADirectoryError} from './fs/errors.js';
-/*
-// Performs the same purpose as Linux struct file.f_mode
-// TODO: Make sure these flags are all useful
-class FileMode {
-  constructor() {
-    this.readable = false;
-    this.writable = false;
-    this.seekable = false;
-    this.executable = false;
-    this.mayeagain = false;
-  }
-}
-
-class FileFlags {
-  constructor() {
-    this.append = false;
-    this.nonblock = false;
-    this.dsync = false;
-    this.rsync = false;
-    this.sync = false;
-    this.noatime = false;
-  }
-}
-*/
+import {O, FILE_STATUS_FLAGS, SEEK} from './constants/fs.js';
+import {NotADirectoryError, IsADirectoryError, SocketOrPipeError} from './fs/errors.js';
+import {NoTTYError} from './syscall/linux/NoTTYError.js';
+import {InvalidError} from './syscall/linux/InvalidError.js';
+import {OverflowError} from './syscall/linux/OverflowError.js';
 
 class OpenFileDescription {
   constructor(flags) {
@@ -71,6 +49,8 @@ class OpenFileDescription {
   writev() { throw new Error("unimplemented writev"); }
   readv() { throw new Error("unimplemented readv"); }
 
+  lseek() { throw new SocketOrPipeError(); }
+
   readDirEntry() { throw new NotADirectoryError(); }
 
   // These support select calls
@@ -105,18 +85,33 @@ class OpenRegularFileDescription extends OpenFileDescription {
     super(flags);
     this.offset = 0;
   }
+
+  setOffsetChecked_(offset) {
+    if (offset < 0) throw new InvalidError();
+    if (offset >= Number.MAX_SAFE_INTEGER) throw new OverflowError();
+    this.offset = offset;
+    return this.offset;
+  }
 }
 
 class OpenDirectoryDescription extends OpenFileDescription {
   constructor(flags) {
     if (flags & O.WRITE) throw new IsADirectoryError();
     super(flags);
+    this.offset = 0;
   }
 
   readv() { throw new IsADirectoryError(); }
 
   readDirEntry() {
     throw new Error("subclass must implement");
+  }
+
+  setOffsetChecked_(offset) {
+    if (offset < 0) throw new InvalidError();
+    if (offset >= Number.MAX_SAFE_INTEGER) throw new OverflowError();
+    this.offset = offset;
+    return this.offset;
   }
 }
 
