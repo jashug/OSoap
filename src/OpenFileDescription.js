@@ -78,6 +78,8 @@ class OpenFileDescription {
   stat(...args) { return this.fileLoc.stat(...args); }
   access(...args) { return this.fileLoc.access(...args); }
   readlink(...args) { return this.fileLoc.readlink(...args); }
+  unlink(...args) { return this.fileLoc.unlink(...args); }
+  rmdir(...args) { return this.fileLoc.rmdir(...args); }
 }
 
 class OpenRegularFileDescription extends OpenFileDescription {

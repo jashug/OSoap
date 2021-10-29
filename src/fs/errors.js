@@ -11,6 +11,8 @@ const PermissionError = makeErrorWithErrno("PermissionError", E.PERM);
 const LoopError = makeErrorWithErrno("LoopError", E.LOOP);
 const SocketOrPipeError = makeErrorWithErrno("SocketOrPipeError", E.SPIPE);
 const FileTooBigError = makeErrorWithErrno("FileTooBigError", E.FBIG);
+const NotEmptyError = makeErrorWithErrno("NotEmptyError", E.NOTEMPTY);
+const BusyError = makeErrorWithErrno("BusyError", E.BUSY);
 
 export {
   AccessError,
@@ -23,4 +25,6 @@ export {
   LoopError,
   SocketOrPipeError,
   FileTooBigError,
+  NotEmptyError,
+  BusyError,
 };

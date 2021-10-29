@@ -1,6 +1,7 @@
 import {FMT} from '../constants/fs.js';
 import {NoEntryError, NotADirectoryError, LoopError} from './errors.js';
 import {isDot, isDotDot} from './Path.js';
+import {equalFileLocations} from './FileLocation.js';
 
 const MAX_SYMLINK_COUNT = 100;
 const MAX_SYMLINKS = () => {
@@ -29,6 +30,7 @@ const walkComponent = async (component, predecessor, rootDir, options = {}) => {
   if (isDot(component)) return predecessor;
   try {
     if (isDotDot(component)) {
+      if (equalFileLocations(predecessor, rootDir)) return predecessor.incRefCount();
       return await predecessor.parentDirectory();
     }
     const childEntry = await predecessor.search(component);

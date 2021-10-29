@@ -55,6 +55,10 @@ class Path {
     return !this.absolute && this.lastComponent === null;
   }
 
+  hasLastComponent() {
+    return this.lastComponent !== null;
+  }
+
   toString() {
     const parts = [];
     if (this.absolute) parts.push('/');

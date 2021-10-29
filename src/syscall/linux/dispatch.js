@@ -28,6 +28,7 @@ import {getdents} from './getdents.js';
 import {chdir} from './chdir.js';
 import {lseek} from './lseek.js';
 import {gettid, getpid, getppid} from './gettid.js';
+import {unlinkat, rmdir, unlink} from './unlink.js';
 
 const defaultSyscall = (syscallNumber) => (sysbuf, thread) => {
   console.log(`Unimplemented syscall ${syscallNumber}`);
@@ -72,6 +73,8 @@ const linuxSyscallTable = new Map([
   [SYS.uname, uname],
   [SYS.fcntl, fcntl],
   [SYS.chdir, chdir],
+  [SYS.rmdir, rmdir],
+  [SYS.unlink, unlink],
   [SYS.readlink, readlink],
   [SYS.getuid, getuid],
   [SYS.getgid, getgid],
@@ -84,6 +87,7 @@ const linuxSyscallTable = new Map([
   [SYS.getdents64, getdents],
   [SYS.fadvise64, nullSyscall],
   [SYS.clock_gettime, clock_gettime],
+  [SYS.unlinkat, unlinkat],
   [SYS.pselect6, pselect],
   [SYS.prlimit64, prlimit],
   [SYS.copy_file_range, nullSyscall],

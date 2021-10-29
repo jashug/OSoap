@@ -210,6 +210,18 @@ class RamFS extends FileSystem {
     return entry;
   }
 
+  unlink(id, component, thread) {
+    void thread;
+    debugger;
+    return 0;
+  }
+
+  rmdir(id, component, thread) {
+    void thread;
+    debugger;
+    return 0;
+  }
+
   stat(id) {
     const file = this.files.get(id);
     return {

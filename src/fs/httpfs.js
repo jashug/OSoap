@@ -132,6 +132,9 @@ class ReadOnlyHttpFS extends FileSystem {
     return childEntry;
   }
 
+  unlink() { throw new ReadOnlyFilesystemError(); }
+  rmdir() { throw new ReadOnlyFilesystemError(); }
+
   async parentDirectory(id) {
     // TODO: permissions checks
     const metadata = await this.loadMetadata(id);

@@ -2,6 +2,10 @@ import {FMT, O} from '../constants/fs.js';
 import {InvalidError} from '../syscall/linux/InvalidError.js';
 import {AccessError, NotADirectoryError, IsADirectoryError} from './errors.js';
 
+const equalFileLocations = (lhs, rhs) => {
+  return lhs.mount === rhs.mount && lhs.id === rhs.id;
+};
+
 // Immutable: doesn't get moved around.
 // Holds a virtual link in to the file.
 // File type {regular, directory, symlink, ...} should be known
@@ -44,6 +48,14 @@ class FileLocation {
   }
 
   parentDirectory() {
+    throw new NotADirectoryError();
+  }
+
+  unlink() {
+    throw new NotADirectoryError();
+  }
+
+  rmdir() {
     throw new NotADirectoryError();
   }
 
@@ -91,6 +103,14 @@ class DirectoryLocation extends FileLocation {
 
   parentDirectory(...args) {
     return parentDirectory(this.mount, this.id, ...args);
+  }
+
+  unlink(...args) {
+    return this.mount.unlink(this.id, ...args);
+  }
+
+  rmdir(...args) {
+    return this.mount.rmdir(this.id, ...args);
   }
 
   async openExisting(flags, ...args) {
@@ -196,4 +216,5 @@ export {
   SocketLocation,
   makeFileLocation,
   makeFileLocationFollowMounts,
+  equalFileLocations,
 };
