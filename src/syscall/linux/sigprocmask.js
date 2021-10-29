@@ -1,4 +1,3 @@
-import {getInt32, getPtr, getUint32} from '../SyscallBuffer.js';
 import {SIG_MASK_BYTES} from '../../constants/signal.js';
 import {E} from './errno.js';
 import {SyscallError} from './SyscallError.js';
@@ -10,10 +9,10 @@ const SIG_UNBLOCK = 1;
 const SIG_SETMASK = 2;
 
 const sigprocmask = (sysbuf, thread) => {
-  const how = getInt32(sysbuf.linuxSyscallArg(0));
-  const set = getPtr(sysbuf.linuxSyscallArg(1));
-  const oldset = getPtr(sysbuf.linuxSyscallArg(2));
-  const sigsetsize = getUint32(sysbuf.linuxSyscallArg(3));
+  const how = sysbuf.linuxSyscallArg(0).getInt32();
+  const set = sysbuf.linuxSyscallArg(1).getPtr();
+  const oldset = sysbuf.linuxSyscallArg(2).getPtr();
+  const sigsetsize = sysbuf.linuxSyscallArg(3).getUint32();
   if (sigsetsize !== SIGSET_SIZE) {
     throw new SyscallError(E.INVAL);
     // Wrong sized signal mask

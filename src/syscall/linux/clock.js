@@ -1,4 +1,3 @@
-import {getUint32, getPtr} from '../SyscallBuffer.js';
 import {InvalidError} from './InvalidError.js';
 import {currentTimespec} from '../../util/currentTime.js';
 
@@ -25,8 +24,8 @@ const gettime = new Map([
 
 const clock_gettime = (sysbuf, thread) => {
   void thread;
-  const clockId = getUint32(sysbuf.linuxSyscallArg(0));
-  const timePointer = getPtr(sysbuf.linuxSyscallArg(1));
+  const clockId = sysbuf.linuxSyscallArg(0).getUint32();
+  const timePointer = sysbuf.linuxSyscallArg(1).getPtr();
   const time = (gettime.get(clockId) ?? unknownClockId(clockId))();
   sysbuf.dv.setBigInt64(timePointer + 0, time.sec, true);
   sysbuf.dv.setUint32(timePointer + 8, time.nsec, true);

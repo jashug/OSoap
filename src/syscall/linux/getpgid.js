@@ -1,4 +1,3 @@
-import {getPid} from '../SyscallBuffer.js';
 import {SyscallError} from './SyscallError.js';
 import {E} from './errno.js';
 import {InvalidError} from './InvalidError.js';
@@ -6,7 +5,7 @@ import {AccessError, PermissionError} from '../../fs/errors.js';
 import {ProcessGroup} from '../../threadTable.js';
 
 const getpgid = (sysbuf, thread) => {
-  const pid = getPid(sysbuf.linuxSyscallArg(0));
+  const pid = sysbuf.linuxSyscallArg(0).getPid();
   if (pid) {
     debugger;
     thread.requestUserDebugger();
@@ -30,8 +29,8 @@ const getChildOrSelfProcess = (process, pid) => {
 const setpgid = (sysbuf, thread) => {
   const callingPid = thread.process.processId;
   const session = thread.process.processGroup.session;
-  const pid = zeroDefault(getPid(sysbuf.linuxSyscallArg(0)), callingPid);
-  const pgid = zeroDefault(getPid(sysbuf.linuxSyscallArg(1)), pid);
+  const pid = zeroDefault(sysbuf.linuxSyscallArg(0).getPid(), callingPid);
+  const pgid = zeroDefault(sysbuf.linuxSyscallArg(1).getPid(), pid);
   const childProcess = getChildOrSelfProcess(thread.process, pid);
   if (childProcess.hasExeced) throw new AccessError();
   if (pgid < 0) throw new InvalidError();

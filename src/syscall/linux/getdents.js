@@ -1,4 +1,3 @@
-import {getFd, getPtr, getUint32} from '../SyscallBuffer.js';
 import {NAME_MAX, FMT} from '../../constants/fs.js';
 import {InvalidError} from './InvalidError.js';
 
@@ -15,9 +14,9 @@ const DT = new Map([
 ]);
 
 const getdents = async (sysbuf, thread) => {
-  const fd = getFd(sysbuf.linuxSyscallArg(0));
-  const buf = getPtr(sysbuf.linuxSyscallArg(1));
-  const bufLen = getUint32(sysbuf.linuxSyscallArg(2));
+  const fd = sysbuf.linuxSyscallArg(0).getFd();
+  const buf = sysbuf.linuxSyscallArg(1).getPtr();
+  const bufLen = sysbuf.linuxSyscallArg(2).getUint32();
   const dv = sysbuf.dv;
   if (bufLen < DENT_LEN_MAX) throw new InvalidError();
   const file = thread.process.fdtable.get(fd).openFileDescription;

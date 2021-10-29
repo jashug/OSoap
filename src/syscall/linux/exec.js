@@ -1,4 +1,3 @@
-import {getPtr} from '../SyscallBuffer.js';
 import {copyCString, pathFromString} from '../../fs/Path.js';
 import {resolveToEntry} from '../../fs/resolve.js';
 import {LoopError} from '../../fs/errors.js';
@@ -41,9 +40,9 @@ const getExecutable = async (dv, thread, filename) => {
 };
 
 const execve = async (sysbuf, thread) => {
-  const filename = getPtr(sysbuf.linuxSyscallArg(0));
-  const argv = getPtr(sysbuf.linuxSyscallArg(1));
-  const envp = getPtr(sysbuf.linuxSyscallArg(2));
+  const filename = sysbuf.linuxSyscallArg(0).getPtr();
+  const argv = sysbuf.linuxSyscallArg(1).getPtr();
+  const envp = sysbuf.linuxSyscallArg(2).getPtr();
   const {args, module} = await getExecutable(sysbuf.dv, thread, filename);
   readListOfStrings(args, sysbuf.dv, argv);
   const environment = [];

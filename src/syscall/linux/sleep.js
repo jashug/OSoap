@@ -1,10 +1,9 @@
-import {getPtr} from '../SyscallBuffer.js';
 import {InvalidError} from './InvalidError.js';
 
 const nanosleep = async (sysbuf, thread) => {
   void thread;
-  const askPointer = getPtr(sysbuf.linuxSyscallArg(0));
-  const remPointer = getPtr(sysbuf.linuxSyscallArg(1));
+  const askPointer = sysbuf.linuxSyscallArg(0).getPtr();
+  const remPointer = sysbuf.linuxSyscallArg(1).getPtr();
   const askSec = sysbuf.dv.getBigInt64(askPointer + 0, true);
   const askNsec = sysbuf.dv.getUint32(askPointer + 8, true);
   if (askNsec < 0 || askNsec >= 1000000000) throw new InvalidError();

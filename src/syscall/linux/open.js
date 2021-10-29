@@ -1,5 +1,4 @@
 import {InvalidError} from './InvalidError.js';
-import {getPtr, getInt32, getUint32} from '../SyscallBuffer.js';
 import {pathFromCString} from '../../fs/Path.js';
 import {resolveParent, resolveToEntry} from '../../fs/resolve.js';
 import {O} from '../../constants/fs.js';
@@ -19,8 +18,8 @@ const HANDLED_FLAGS = (
 0);
 
 const open = async (sysbuf, thread) => {
-  const pathname = getPtr(sysbuf.linuxSyscallArg(0));
-  const flags = getInt32(sysbuf.linuxSyscallArg(1));
+  const pathname = sysbuf.linuxSyscallArg(0).getPtr();
+  const flags = sysbuf.linuxSyscallArg(1).getInt32();
   const path = pathFromCString(sysbuf.buffer, pathname + sysbuf.byteOffset);
   if (flags & ~HANDLED_FLAGS) {
     console.log(`Some unhandled flags: ${(flags & ~HANDLED_FLAGS).toString(8)}`);
@@ -36,7 +35,7 @@ const open = async (sysbuf, thread) => {
   const openFile = await (() => {
     if (flags & O.CREAT && !mustBeDirectory && path.lastComponent !== null) {
       // TODO: Also want mode for O.TMPFILE
-      const mode = getUint32(sysbuf.linuxSyscallArg(2)); // Only set sometimes
+      const mode = sysbuf.linuxSyscallArg(2).getUint32(); // Only set sometimes
       return resolveParent(path, curdir, rootdir, {
         allowEmptyPath: false,
       }, (predecessor) => {

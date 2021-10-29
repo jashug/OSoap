@@ -1,7 +1,5 @@
-import {getFd} from '../SyscallBuffer.js';
-
 const close = (sysbuf, thread) => {
-  const fd = getFd(sysbuf.linuxSyscallArg(0));
+  const fd = sysbuf.linuxSyscallArg(0).getFd();
   thread.process.fdtable.close(fd);
   return 0;
 };

@@ -1,4 +1,3 @@
-import {getFd, getInt32} from '../SyscallBuffer.js';
 import {InvalidError} from './InvalidError.js';
 
 const F = {
@@ -12,11 +11,11 @@ const F = {
 const FD_CLOEXEC = 1;
 
 const fcntl = (sysbuf, thread) => {
-  const fdNum = getFd(sysbuf.linuxSyscallArg(0));
-  const cmd = getInt32(sysbuf.linuxSyscallArg(1));
+  const fdNum = sysbuf.linuxSyscallArg(0).getFd();
+  const cmd = sysbuf.linuxSyscallArg(1).getInt32();
   const fd = thread.process.fdtable.get(fdNum);
   if (cmd === F.DUPFD) {
-    const arg = getInt32(sysbuf.linuxSyscallArg(2));
+    const arg = sysbuf.linuxSyscallArg(2).getInt32();
     const fdcopy = fd.copy({closeOnExec: false});
     return thread.process.fdtable.allocate(fdcopy, arg);
   } else if (cmd === F.GETFD) {
@@ -24,7 +23,7 @@ const fcntl = (sysbuf, thread) => {
     if (fd.closeOnExec) ret |= FD_CLOEXEC;
     return ret;
   } else if (cmd === F.SETFD) {
-    const arg = getInt32(sysbuf.linuxSyscallArg(2));
+    const arg = sysbuf.linuxSyscallArg(2).getInt32();
     fd.closeOnExec = Boolean(arg & FD_CLOEXEC);
     return 0;
   } else if (cmd === F.GETFL) {

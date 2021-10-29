@@ -1,9 +1,8 @@
-import {getPtr} from '../SyscallBuffer.js';
 import {pathFromCString} from '../../fs/Path.js';
 import {resolveToEntry} from '../../fs/resolve.js';
 
 const chdir = async (sysbuf, thread) => {
-  const pathPtr = getPtr(sysbuf.linuxSyscallArg(0));
+  const pathPtr = sysbuf.linuxSyscallArg(0).getPtr();
   const path = pathFromCString(sysbuf.buffer, pathPtr + sysbuf.byteOffset);
   const curdir = thread.process.currentWorkingDirectory;
   const rootdir = thread.process.rootDirectory;

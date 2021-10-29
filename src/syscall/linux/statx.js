@@ -1,5 +1,4 @@
 import {InvalidError} from './InvalidError.js';
-import {getFd, getPtr, getUint32} from '../SyscallBuffer.js';
 import {AT} from '../../constants/at.js';
 import {pathFromCString} from '../../fs/Path.js';
 import {resolveToEntry} from '../../fs/resolve.js';
@@ -66,11 +65,11 @@ const setTimespec = (dv, offset, time) => {
 };
 
 const statx = async (sysbuf, thread) => {
-  const dirfd = getFd(sysbuf.linuxSyscallArg(0));
-  const pathname = getPtr(sysbuf.linuxSyscallArg(1));
-  const flags = getUint32(sysbuf.linuxSyscallArg(2));
-  const mask = getUint32(sysbuf.linuxSyscallArg(3));
-  const statbuf = getPtr(sysbuf.linuxSyscallArg(4));
+  const dirfd = sysbuf.linuxSyscallArg(0).getFd();
+  const pathname = sysbuf.linuxSyscallArg(1).getPtr();
+  const flags = sysbuf.linuxSyscallArg(2).getUint32();
+  const mask = sysbuf.linuxSyscallArg(3).getUint32();
+  const statbuf = sysbuf.linuxSyscallArg(4).getPtr();
   if (flags & ~ALLOWABLE_STATX_FLAGS) {
     throw new InvalidError();
   }

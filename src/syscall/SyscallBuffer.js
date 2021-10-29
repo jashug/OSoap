@@ -1,5 +1,31 @@
 import {SYSBUF_OFFSET} from '../constants/syscallBufferLayout.js';
 
+class LinuxSyscallArg {
+  constructor(dv, addr) {
+    this.dv = dv;
+    this.addr = addr;
+  }
+
+  getUint32() {
+    return this.dv.getUint32(this.addr, true);
+  }
+
+  getInt32() {
+    return this.dv.getInt32(this.addr, true);
+  }
+
+  getUint64() {
+    return this.dv.getBigUint64(this.addr, true);
+  }
+
+  getInt64() {
+    return this.dv.getBigInt64(this.addr, true);
+  }
+}
+LinuxSyscallArg.prototype.getFd = LinuxSyscallArg.prototype.getInt32;
+LinuxSyscallArg.prototype.getPtr = LinuxSyscallArg.prototype.getUint32;
+LinuxSyscallArg.prototype.getPid = LinuxSyscallArg.prototype.getInt64;
+
 class SyscallBuffer {
   constructor(buffer, sysBufAddr) {
     this.dv = new DataView(buffer);
@@ -18,7 +44,7 @@ class SyscallBuffer {
   set tag(rhs) { this.dv.setUint32(this.addr + SYSBUF_OFFSET.tag, rhs, true); }
 
   get linux_syscall_n() { return this.dv.getInt32(this.addr + SYSBUF_OFFSET.linux_syscall.n, true); }
-  linuxSyscallArg(i) { return {dv: this.dv, addr: this.addr + SYSBUF_OFFSET.linux_syscall.args + 8 * i}; }
+  linuxSyscallArg(i) { return new LinuxSyscallArg(this.dv, this.addr + SYSBUF_OFFSET.linux_syscall.args + 8 * i); }
   set linux_syscall_return(rhs) { this.dv.setBigUint64(this.addr + SYSBUF_OFFSET.linux_syscall_return, BigInt(rhs), true); }
   get exit_process_code() { return this.dv.getInt32(this.addr + SYSBUF_OFFSET.exit_process_code, true); }
   get fork_stack_buf() { return this.dv.getUint32(this.addr + SYSBUF_OFFSET.fork.stack_buf, true); }
@@ -28,35 +54,8 @@ class SyscallBuffer {
   }
 }
 
-const getUint32 = ({dv, addr}) => {
-  return dv.getUint32(addr, true);
-};
-
-const getInt32 = ({dv, addr}) => {
-  return dv.getInt32(addr, true);
-};
-
-const getInt64 = ({dv, addr}) => {
-  return dv.getBigInt64(addr, true);
-};
-
-const getUint64 = ({dv, addr}) => {
-  return dv.getBigUint64(addr, true);
-};
-
-const getFd = getInt32;
-const getPtr = getUint32;
-const getPid = getInt64;
-
 // TODO: consider a getPath accessor that replaces most uses of pathFromCString
 
 export {
   SyscallBuffer,
-  getUint32,
-  getInt32,
-  getInt64,
-  getUint64,
-  getFd,
-  getPtr,
-  getPid,
 };

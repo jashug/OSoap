@@ -1,4 +1,3 @@
-import {getInt32, getPtr} from '../SyscallBuffer.js';
 import {InvalidError} from './InvalidError.js';
 import {TimeVal, TimeSpec} from '../../util/timeouts.js';
 
@@ -47,24 +46,24 @@ class FdSet {
 }
 
 const select = (sysbuf, thread) => {
-  const nfds = getInt32(sysbuf.linuxSyscallArg(0));
+  const nfds = sysbuf.linuxSyscallArg(0).getInt32();
   if (nfds < 0 || nfds > FD_SETSIZE) throw new InvalidError();
-  const readfds = getPtr(sysbuf.linuxSyscallArg(1));
-  const writefds = getPtr(sysbuf.linuxSyscallArg(2));
-  const exceptfds = getPtr(sysbuf.linuxSyscallArg(3));
-  const timeoutLoc = getPtr(sysbuf.linuxSyscallArg(4));
+  const readfds = sysbuf.linuxSyscallArg(1).getPtr();
+  const writefds = sysbuf.linuxSyscallArg(2).getPtr();
+  const exceptfds = sysbuf.linuxSyscallArg(3).getPtr();
+  const timeoutLoc = sysbuf.linuxSyscallArg(4).getPtr();
   const timeout = TimeVal.read(sysbuf.dv, timeoutLoc);
   return doSelect(sysbuf.dv, thread, nfds, readfds, writefds, exceptfds, timeout);
 };
 
 const pselect = async (sysbuf, thread) => {
-  const nfds = getInt32(sysbuf.linuxSyscallArg(0));
+  const nfds = sysbuf.linuxSyscallArg(0).getInt32();
   if (nfds < 0 || nfds > FD_SETSIZE) throw new InvalidError();
-  const readfds = getPtr(sysbuf.linuxSyscallArg(1));
-  const writefds = getPtr(sysbuf.linuxSyscallArg(2));
-  const exceptfds = getPtr(sysbuf.linuxSyscallArg(3));
-  const timeoutLoc = getPtr(sysbuf.linuxSyscallArg(4));
-  const sigmask = getPtr(sysbuf.linuxSyscallArg(5));
+  const readfds = sysbuf.linuxSyscallArg(1).getPtr();
+  const writefds = sysbuf.linuxSyscallArg(2).getPtr();
+  const exceptfds = sysbuf.linuxSyscallArg(3).getPtr();
+  const timeoutLoc = sysbuf.linuxSyscallArg(4).getPtr();
+  const sigmask = sysbuf.linuxSyscallArg(5).getPtr();
   const timeout = TimeSpec.read(sysbuf.dv, timeoutLoc);
   if (sigmask === 0) return doSelect(sysbuf.dv, thread, nfds, readfds, writefds, exceptfds, timeout, sigmask);
   const savedSignalMask = thread.signalMask;

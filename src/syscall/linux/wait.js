@@ -1,4 +1,3 @@
-import {getPid, getPtr, getInt32} from '../SyscallBuffer.js';
 import {InvalidError} from './InvalidError.js';
 import {PROCESS_STATUS_STATE} from '../../threadTable.js';
 
@@ -32,10 +31,10 @@ const selectFilterOptions = (options) => (process) => {
 };
 
 const wait4 = (sysbuf, thread) => {
-  const pid = getPid(sysbuf.linuxSyscallArg(0));
-  const wstatusPtr = getPtr(sysbuf.linuxSyscallArg(1));
-  const options = getInt32(sysbuf.linuxSyscallArg(2));
-  const rusagePtr = getPtr(sysbuf.linuxSyscallArg(3));
+  const pid = sysbuf.linuxSyscallArg(0).getPid();
+  const wstatusPtr = sysbuf.linuxSyscallArg(1).getPtr();
+  const options = sysbuf.linuxSyscallArg(2).getInt32();
+  const rusagePtr = sysbuf.linuxSyscallArg(3).getPtr();
   if (rusagePtr !== 0) {
     debugger;
     thread.requestUserDebugger();

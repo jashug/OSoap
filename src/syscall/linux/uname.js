@@ -1,4 +1,3 @@
-import {getPtr} from '../SyscallBuffer.js';
 import {version} from '../../version.js';
 import {utf8Encoder} from '../../util/utf8Encoder.js';
 
@@ -18,7 +17,7 @@ const domainname = utf8Encoder.encode('none');
 
 const uname = (sysbuf, thread) => {
   void thread;
-  const buf = getPtr(sysbuf.linuxSyscallArg(0));
+  const buf = sysbuf.linuxSyscallArg(0).getPtr();
   const writeCString = (offset, value) => {
     const arr = sysbuf.subUint8Array(buf + offset, UNAME_BUF_SIZE);
     if (value.length >= UNAME_BUF_SIZE) value = value.subarray(0, UNAME_BUF_SIZE - 1);

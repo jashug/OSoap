@@ -1,4 +1,3 @@
-import {getPid, getInt32, getPtr} from '../SyscallBuffer.js';
 import {InvalidError} from './InvalidError.js';
 import {MAX_NUM_FDS} from '../../FileDescriptor.js';
 
@@ -14,10 +13,10 @@ const writeRLimit = (dv, buf, {cur, max}) => {
 };
 
 const prlimit = (sysbuf, thread) => {
-  const pid = getPid(sysbuf.linuxSyscallArg(0));
-  const resource = getInt32(sysbuf.linuxSyscallArg(1));
-  const newbuf = getPtr(sysbuf.linuxSyscallArg(2));
-  const oldbuf = getPtr(sysbuf.linuxSyscallArg(3));
+  const pid = sysbuf.linuxSyscallArg(0).getPid();
+  const resource = sysbuf.linuxSyscallArg(1).getInt32();
+  const newbuf = sysbuf.linuxSyscallArg(2).getPtr();
+  const oldbuf = sysbuf.linuxSyscallArg(3).getPtr();
   if (pid) {
     debugger;
     thread.requestUserDebugger();

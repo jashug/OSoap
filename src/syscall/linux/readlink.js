@@ -1,12 +1,11 @@
 import {InvalidError} from './InvalidError.js';
-import {getPtr, getUint32} from '../SyscallBuffer.js';
 import {pathFromCString} from '../../fs/Path.js';
 import {resolveToEntry} from '../../fs/resolve.js';
 
 const readlink = async (sysbuf, thread) => {
-  const pathname = getPtr(sysbuf.linuxSyscallArg(0));
-  const bufptr = getPtr(sysbuf.linuxSyscallArg(1));
-  const bufsize = getUint32(sysbuf.linuxSyscallArg(2));
+  const pathname = sysbuf.linuxSyscallArg(0).getPtr();
+  const bufptr = sysbuf.linuxSyscallArg(1).getPtr();
+  const bufsize = sysbuf.linuxSyscallArg(2).getUint32();
   if (bufsize <= 0) throw new InvalidError();
   const path = pathFromCString(sysbuf.buffer, pathname + sysbuf.byteOffset);
   const buf = sysbuf.subUint8Array(bufptr, bufsize);

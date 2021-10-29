@@ -1,16 +1,15 @@
-import {getInt32, getUint32, getPtr} from '../SyscallBuffer.js';
 import {SIGACTION_OFFSET, NSIG, SIG_MASK_BYTES, SIG_CANT_BE_CAUGHT} from '../../constants/signal.js';
 import {E} from './errno.js';
 import {SyscallError} from './SyscallError.js';
 
 const sigaction = (sysbuf, thread) => {
-  const signalNumber = getInt32(sysbuf.linuxSyscallArg(0));
+  const signalNumber = sysbuf.linuxSyscallArg(0).getInt32();
   if (signalNumber < 1 || signalNumber >= NSIG || SIG_CANT_BE_CAUGHT.has(signalNumber)) {
     throw new SyscallError(E.INVAL);
   }
-  const newLoc = getPtr(sysbuf.linuxSyscallArg(1));
-  const oldLoc = getPtr(sysbuf.linuxSyscallArg(2));
-  const sigsetsize = getUint32(sysbuf.linuxSyscallArg(3));
+  const newLoc = sysbuf.linuxSyscallArg(1).getPtr();
+  const oldLoc = sysbuf.linuxSyscallArg(2).getPtr();
+  const sigsetsize = sysbuf.linuxSyscallArg(3).getUint32();
   if (sigsetsize !== SIG_MASK_BYTES) {
     throw new SyscallError(E.INVAL);
   }

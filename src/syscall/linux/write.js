@@ -1,4 +1,3 @@
-import {getFd, getPtr, getInt32, getUint32} from '../SyscallBuffer.js';
 import {parseIOVec} from './parseIOVec.js';
 
 const doWrite = (thread, fd, data, totalLen) => {
@@ -7,17 +6,17 @@ const doWrite = (thread, fd, data, totalLen) => {
 };
 
 const writev = (sysbuf, thread) => {
-  const fd = getFd(sysbuf.linuxSyscallArg(0));
-  const iov = getPtr(sysbuf.linuxSyscallArg(1));
-  const iovcnt = getInt32(sysbuf.linuxSyscallArg(2));
+  const fd = sysbuf.linuxSyscallArg(0).getFd();
+  const iov = sysbuf.linuxSyscallArg(1).getPtr();
+  const iovcnt = sysbuf.linuxSyscallArg(2).getInt32();
   const {data, totalLen} = parseIOVec(sysbuf.dv, iov, iovcnt);
   return doWrite(thread, fd, data, totalLen);
 };
 
 const write = (sysbuf, thread) => {
-  const fd = getFd(sysbuf.linuxSyscallArg(0));
-  const buf = getPtr(sysbuf.linuxSyscallArg(1));
-  const count = getUint32(sysbuf.linuxSyscallArg(2));
+  const fd = sysbuf.linuxSyscallArg(0).getFd();
+  const buf = sysbuf.linuxSyscallArg(1).getPtr();
+  const count = sysbuf.linuxSyscallArg(2).getUint32();
   const data = [sysbuf.subUint8Array(buf, count)];
   return doWrite(thread, fd, data, count);
 };

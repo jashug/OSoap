@@ -1,13 +1,11 @@
-import {getFd} from '../SyscallBuffer.js';
-
 const dup = (sysbuf, thread) => {
-  const oldfd = getFd(sysbuf.linuxSyscallArg(0));
+  const oldfd = sysbuf.linuxSyscallArg(0).getFd();
   return thread.process.fdtable.dup(oldfd);
 };
 
 const dup2 = (sysbuf, thread) => {
-  const oldfd = getFd(sysbuf.linuxSyscallArg(0));
-  const newfd = getFd(sysbuf.linuxSyscallArg(1));
+  const oldfd = sysbuf.linuxSyscallArg(0).getFd();
+  const newfd = sysbuf.linuxSyscallArg(1).getFd();
   return thread.process.fdtable.dup2(oldfd, newfd);
 };
 

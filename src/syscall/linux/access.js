@@ -1,5 +1,4 @@
 import {InvalidError} from './InvalidError.js';
-import {getPtr, getInt32, getFd} from '../SyscallBuffer.js';
 import {pathFromCString} from '../../fs/Path.js';
 import {resolveToEntry} from '../../fs/resolve.js';
 import {AT} from '../../constants/at.js';
@@ -25,16 +24,16 @@ const doAccess = async (dv, thread, dirfd, pathname, mode, flags) => {
 };
 
 const access = (sysbuf, thread) => {
-  const pathname = getPtr(sysbuf.linuxSyscallArg(0));
-  const mode = getInt32(sysbuf.linuxSyscallArg(1));
+  const pathname = sysbuf.linuxSyscallArg(0).getPtr();
+  const mode = sysbuf.linuxSyscallArg(1).getInt32();
   return doAccess(sysbuf.dv, thread, AT.FDCWD, pathname, mode, 0);
 };
 
 const faccessat2 = (sysbuf, thread) => {
-  const dirfd = getFd(sysbuf.linuxSyscallArg(0));
-  const pathname = getPtr(sysbuf.linuxSyscallArg(1));
-  const mode = getInt32(sysbuf.linuxSyscallArg(2));
-  const flags = getInt32(sysbuf.linuxSyscallArg(3));
+  const dirfd = sysbuf.linuxSyscallArg(0).getFd();
+  const pathname = sysbuf.linuxSyscallArg(1).getPtr();
+  const mode = sysbuf.linuxSyscallArg(2).getInt32();
+  const flags = sysbuf.linuxSyscallArg(3).getInt32();
   return doAccess(sysbuf.dv, thread, dirfd, pathname, mode, flags);
 };
 
