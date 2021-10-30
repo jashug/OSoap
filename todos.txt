@@ -9,6 +9,7 @@ signals
 check file permissions
 convert to typescript
 persistant IndexedDB filesystem
+write a proper tty driver
 
 osoap-libc:
 src/time/timer_create.c uses setjmp/longjmp

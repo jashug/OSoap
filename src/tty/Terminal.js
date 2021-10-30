@@ -130,51 +130,89 @@ class Terminal {
     }
     // enqueue processed data
     const toEcho = [];
-    for (const c of data) {
-      let dontEcho = false;
+    for (let c of data) {
+      if (c === '\r' && this.iflag & IFLG.IGNCR && this.lflag & LFLG.ICANON) continue;
+      if (c === '\r' && this.iflag & IFLG.ICRNL && this.lflag & LFLG.ICANON) c = '\n';
+      if (c === '\n' && this.iflag & IFLG.INLCR && this.lflag & LFLG.ICANON) c = '\r';
       const codePoint = c.codePointAt(0);
-      if (this.lflag & LFLG.ISIG) {
-        if (codePoint === this.intrKey && codePoint !== _POSIX_VDISABLE) {
-          console.log("INTR!");
-          if (!(this.lflag & LFLG.NOFLSH)) this.flush();
-          // TODO: also stop the output in the middle, maybe
-          dontEcho = true;
-        } else if (codePoint === this.quitKey && codePoint !== _POSIX_VDISABLE) {
-          console.log("QUIT!");
-          if (!(this.lflag & LFLG.NOFLSH)) this.flush();
-          dontEcho = true;
-        } else if (codePoint === this.suspKey && codePoint !== _POSIX_VDISABLE) {
-          console.log("SUSP!");
-          if (!(this.lflag & LFLG.NOFLSH)) this.flush();
-          dontEcho = true;
+      if (this.lflag & LFLG.ECHO) toEcho.push(c);
+      if (codePoint !== _POSIX_VDISABLE) {
+        if (this.lflag & LFLG.ISIG) {
+          if (codePoint === this.intrKey) {
+            console.log("INTR!");
+            if (!(this.lflag & LFLG.NOFLSH)) this.flush();
+            // TODO: also stop the output in the middle, maybe
+            continue;
+          } else if (codePoint === this.quitKey) {
+            console.log("QUIT!");
+            if (!(this.lflag & LFLG.NOFLSH)) this.flush();
+            continue;
+          } else if (codePoint === this.suspKey) {
+            console.log("SUSP!");
+            if (!(this.lflag & LFLG.NOFLSH)) this.flush();
+            continue;
+          }
+        }
+        if (this.iflag & IFLG.IXON) {
+          if (codePoint === this.startKey) {
+            console.log("Start!");
+            continue;
+          } else if (codePoint === this.stopKey) {
+            console.log("Stop!");
+            continue;
+          }
+        }
+        if (this.lflag & LFLG.ICANON) {
+          if (codePoint === this.eraseKey) {
+            if (this.lflag & LFLG.ECHOE) {
+              // TODO: do erase if line wrapping happens
+              if (this.lflag & LFLG.ECHO) toEcho.pop();
+              if (this.currentLine.pop()) toEcho.push('\b \b');
+            }
+            continue;
+          } else if (codePoint === this.killKey) {
+            console.log("kill");
+            continue;
+          } else if (codePoint === this.eofKey) {
+            this.terminateLine();
+            continue;
+          } else if (codePoint === this.eolKey) {
+            this.terminateLine(c);
+            continue;
+          } else if (c === '\n') {
+            if (this.lflag & LFLG.ECHO) toEcho.pop();
+            if (this.lflag & LFLG.ECHONL || this.lflag & LFLG.ECHO) {
+              if (this.oflag & OFLG.ONLCR) toEcho.push('\r');
+              toEcho.push('\n');
+            }
+            this.terminateLine(c);
+            continue;
+          } else {
+            this.currentLine.push(c);
+            continue;
+          }
         }
       }
-      if (this.iflag & IFLG.IXON) {
-        if (codePoint === this.startKey && codePoint !== _POSIX_VDISABLE) {
-          console.log("Start!");
-          dontEcho = true;
-        } else if (codePoint === this.stopKey && codePoint !== _POSIX_VDISABLE) {
-          console.log("Stop!");
-          dontEcho = true;
-        }
-      }
-      if (this.lflag & LFLG.ICANON) {
-        debugger;
-      } else {
-        this.enqueueInputCharacter(c);
-      }
-      if (!dontEcho && this.lflag & LFLG.IECHO) {
-        toEcho.push(c);
-      }
+      this.enqueueInputCharacter(c);
     }
     this.writeStringsBlocking(toEcho);
+  }
+
+  terminateLine(eolChar) {
+    if (eolChar) this.currentLine.push(eolChar);
+    const str = this.currentLine.join('');
+    this.currentLine = [];
+    const arr = encoder.encode(str);
+    this.inputQueue.enqueue(arr);
+    this.bytesInInputQueue += arr.length;
+    for (const waiter of this.readWaiters) waiter.check(true);
   }
 
   enqueueInputCharacter(c) {
     const arr = encoder.encode(c);
     this.inputQueue.enqueue(arr);
     this.bytesInInputQueue += arr.length;
-    for (const waiter of this.readWaiters) waiter.check();
+    for (const waiter of this.readWaiters) waiter.check(false);
   }
 
   async readv(data, thread) {
@@ -190,7 +228,8 @@ class Terminal {
         const outerThis = this;
         const inputQueue = this.inputQueue;
         const waiter = {
-          check() {
+          check(lineComplete) {
+            void lineComplete;
             if (outerThis.bytesInInputQueue < ccMin) return;
             // Success!
             let bytesRead = 0;
@@ -233,7 +272,8 @@ class Terminal {
       this._readyForReading = new Promise((resolve) => {
         const outerThis = this;
         const waiter = {
-          check() {
+          check(lineComplete) {
+            void lineComplete;
             if (outerThis.bytesInInputQueue < effectiveMin) return;
             outerThis.readWaiters.delete(this);
             if (outerThis._readyForReading === currentReadyForReading) {
