@@ -1,11 +1,14 @@
 OSoap:
+link mount file type
+getrusage
+getdents - handle mount points for inode
+getdents - add entries for . and ..
+
+OSoap larger projects:
 signals
 check file permissions
 convert to typescript
-link mount file type
-getrusage
-getdents - handle mount points
-getdents - add entries for . and ..
+persistant IndexedDB filesystem
 
 osoap-libc:
 src/time/timer_create.c uses setjmp/longjmp
