@@ -120,11 +120,13 @@ const syscallFork = (module, exports, memory, asyncState) => {
 
 const resumeSyscallFork = (module, exports, memory, asyncState) => {
   const {sys_buf, stack_buf} = asyncState;
-  const syncWord = getSyncWord(memory, sys_buf);
   const dv = new DataView(memory.buffer);
-  // This Atomics.wait is non-essential; the kernel should set
-  // the turn to USER before starting the child process
-  Atomics.wait(syncWord, 0, OSOAP_SYS.TURN.KERNEL);
+  /*
+   * const syncWord = getSyncWord(memory, sys_buf);
+   * // This Atomics.wait is non-essential; the kernel should set
+   * // the turn to USER before starting the child process
+   * Atomics.wait(syncWord, 0, OSOAP_SYS.TURN.KERNEL);
+   */
   restoreGlobals(module, exports, getSavedGlobalsDataView(dv, sys_buf));
   exports.asyncify_start_rewind(stack_buf);
   asyncState.pid = dv.getBigInt64(sys_buf + SYSBUF_OFFSET.linux_syscall_return, true);
