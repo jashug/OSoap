@@ -106,11 +106,11 @@ class DirectoryLocation extends FileLocation {
   }
 
   unlink(...args) {
-    return this.mount.unlink(this.id, ...args);
+    return this.mount.fs.unlink(this.id, ...args);
   }
 
   rmdir(...args) {
-    return this.mount.rmdir(this.id, ...args);
+    return this.mount.fs.rmdir(this.id, ...args);
   }
 
   async openExisting(flags, ...args) {

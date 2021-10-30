@@ -23,10 +23,15 @@ const doRmdir = (path, curdir, rootdir, thread) => {
   });
 };
 
+const UNLINKAT_ALLOWED_FLAGS = (
+  AT.REMOVE_DIR |
+0);
+
 const unlinkat = (sysbuf, thread) => {
   const dirfd = sysbuf.linuxSyscallArg(0).getFd();
   const pathname = sysbuf.linuxSyscallArg(1).getPtr();
   const flags = sysbuf.linuxSyscallArg(2).getInt32();
+  if (flags & ~UNLINKAT_ALLOWED_FLAGS) throw new InvalidError();
   const path = pathFromCString(sysbuf.buffer, pathname + sysbuf.byteOffset);
   const curdir = thread.process.fdtable.getExtended(dirfd);
   const rootdir = thread.process.fdtable.rootDirectory;

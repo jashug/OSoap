@@ -1,7 +1,7 @@
 import {FileSystem} from './fs.js';
 import {componentToBinaryString, binaryStringToComponent} from './Path.js';
 import {FMT, fmtToMode, O, SEEK} from '../constants/fs.js';
-import {NoEntryError, ExistsError, FileTooBigError} from './errors.js';
+import {NoEntryError, ExistsError, FileTooBigError, IsADirectoryError} from './errors.js';
 import {openDeviceFile} from '../devices/open.js';
 import {currentTimespec} from '../util/currentTime.js';
 import {OpenRegularFileDescription, OpenDirectoryDescription} from '../OpenFileDescription.js';
@@ -212,7 +212,17 @@ class RamFS extends FileSystem {
 
   unlink(id, component, thread) {
     void thread;
-    debugger;
+    const directory = this.files.get(id);
+    const name = componentToBinaryString(component);
+    const entry = directory.children.get(name);
+    if (!entry) throw new NoEntryError();
+    const {id: childId, fmt} = entry;
+    if (fmt === FMT.DIRECTORY) throw new IsADirectoryError();
+    const file = this.files.get(childId);
+    directory.children.delete(name);
+    file.nlink -= 1;
+    if (file.nlink < 0) throw new Error("negative nlink");
+    if (file.nlink <= 0) this.files.delete(childId);
     return 0;
   }
 
