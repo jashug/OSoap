@@ -289,7 +289,7 @@ class Process {
     const oldThreads = new Set(this.threads.values());
     // POSIX says that most thread attributes should be inherited: other than signalMask are there any relevant?
     const newThread = new Thread(this, newTid, thread.signalMask, {
-      asyncState: {type: 'regular', sys_buf: 0, stack_buf: 0, pid: 0, retval: 0},
+      asyncState: {type: 'regular', sys_buf: 0, stack_buf: 0, pid: 0n, retval: 0},
       module,
       requestShareModuleAndMemory: true,
       environment,

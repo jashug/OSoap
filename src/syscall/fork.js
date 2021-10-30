@@ -28,7 +28,7 @@ const fork = (sysbuf, thread) => {
   // Set up the child return
   const newSysbuf = new SyscallBuffer(newMemory.buffer, sysBufAddr);
   newSysbuf.tag = OSOAP_SYS.TAG.R.linux_syscall_return;
-  newSysbuf.linux_syscall_return = 0;
+  newSysbuf.linux_syscall_return = 0n;
   newSysbuf.setSyncWord(OSOAP_SYS.TURN.USER, {yesIKnowThisDoesntNotifyUser: true});
 
   const newProcess = new Process(
