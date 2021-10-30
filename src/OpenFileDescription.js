@@ -19,6 +19,8 @@ class OpenFileDescription {
 
   get statusFlags() { return this._statusFlags; }
 
+  get flagAppend() { return this._statusFlags & O.APPEND; }
+
   decRefCount() {
     if (this.refCount <= 0) throw new Error("Decrement zero refCount");
     if (--this.refCount === 0) {

@@ -169,10 +169,13 @@ class ReadOnlyHttpFS extends FileSystem {
     void thread;
   }
 
-  openCreate(id, flags, mode, component, thread) {
-    debugger;
-    thread.requestUserDebugger();
-    throw new ReadOnlyFilesystemError();
+  async openCreate(id, flags, mode, component, thread) {
+    try {
+      return await this.search(id, component, thread);
+    } catch (e) {
+      if (e instanceof NoEntryError) throw new ReadOnlyFilesystemError();
+      throw e;
+    }
   }
 
   openExistingRegular(id, flags) {

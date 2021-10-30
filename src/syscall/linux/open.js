@@ -15,6 +15,7 @@ const HANDLED_FLAGS = (
   O.NONBLOCK |
   O.DIRECTORY |
   O.TRUNC |
+  O.APPEND |
 0);
 
 const open = async (sysbuf, thread) => {

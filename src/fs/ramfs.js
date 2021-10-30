@@ -5,7 +5,6 @@ import {NoEntryError, ExistsError, FileTooBigError, IsADirectoryError} from './e
 import {openDeviceFile} from '../devices/open.js';
 import {currentTimespec} from '../util/currentTime.js';
 import {OpenRegularFileDescription, OpenDirectoryDescription} from '../OpenFileDescription.js';
-import {makeFileLocationFollowMounts} from './FileLocation.js';
 import {executableFromUint8Array} from '../util/executableFromBlob.js';
 
 // TODO: check permissions
@@ -71,6 +70,7 @@ class RamOpenRegularFileDescription extends OpenRegularFileDescription {
   }
 
   writev(data, thread, totalLen) {
+    if (this.flagAppend) this.offset = this.file.length;
     const newOffset = this.offset + totalLen;
     if (newOffset > this.file.dataBuf.length) {
       if (newOffset > Number.MAX_SAFE_INTEGER) throw new FileTooBigError();
@@ -261,8 +261,7 @@ class RamFS extends FileSystem {
     const entry = parentDirectory.children.get(name);
     if (entry) {
       if (flags & O.EXCL) throw new ExistsError();
-      const {id: childId, fmt: childFmt} = entry;
-      return makeFileLocationFollowMounts(this, childId, childFmt).openExisting(flags, thread);
+      return entry;
     } else {
       const {id: childId, file} = this.makeFileInternal(parentDirectory, name, mode);
       const fileDesc = new RamOpenRegularFileDescription(file, flags);

@@ -120,10 +120,16 @@ class DirectoryLocation extends FileLocation {
     return newFile;
   }
 
-  async openCreate(...args) {
-    const {fileDesc, childId} = await this.mount.fs.openCreate(this.id, ...args);
-    fileDesc.fileLoc = new RegularFileLocation(this.mount, childId);
-    return fileDesc;
+  async openCreate(flags, mode, component, thread) {
+    const ret = await this.mount.fs.openCreate(this.id, flags, mode, component, thread);
+    if (ret.fileDesc) {
+      const {fileDesc, childId} = ret;
+      fileDesc.fileLoc = new RegularFileLocation(this.mount, childId);
+      return fileDesc;
+    } else {
+      const {id, fmt} = ret;
+      return makeFileLocationFollowMounts(this.mount, id, fmt).openExisting(flags, thread);
+    }
   }
 }
 
