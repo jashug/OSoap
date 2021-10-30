@@ -1,4 +1,4 @@
-import {pathFromCString, isDot, isDotDot} from '../../fs/Path.js';
+import {pathFromCString, isDot, isDotDot, isDots} from '../../fs/Path.js';
 import {resolveParent} from '../../fs/resolve.js';
 import {AT} from '../../constants/at.js';
 import {IsADirectoryError, NoEntryError, NotEmptyError, BusyError} from '../../fs/errors.js';
@@ -8,7 +8,7 @@ const doUnlink = (path, curdir, rootdir, thread) => {
   if (path.isEmptyPath()) throw new NoEntryError();
   if (!path.hasLastComponent() || path.trailingSlash) throw new IsADirectoryError();
   return resolveParent(path, curdir, rootdir, {}, (parent) => {
-    if (isDot(path.lastComponent) || isDotDot(path.lastComponent)) throw new IsADirectoryError();
+    if (isDots(path.lastComponent)) throw new IsADirectoryError();
     return parent.unlink(path.lastComponent, thread);
   });
 };

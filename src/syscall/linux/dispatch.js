@@ -29,6 +29,7 @@ import {chdir} from './chdir.js';
 import {lseek} from './lseek.js';
 import {gettid, getpid, getppid} from './gettid.js';
 import {unlinkat, rmdir, unlink} from './unlink.js';
+import {renameat} from './rename.js';
 
 const defaultSyscall = (syscallNumber) => (sysbuf, thread) => {
   console.log(`Unimplemented syscall ${syscallNumber}`);
@@ -88,6 +89,7 @@ const linuxSyscallTable = new Map([
   [SYS.fadvise64, nullSyscall],
   [SYS.clock_gettime, clock_gettime],
   [SYS.unlinkat, unlinkat],
+  [SYS.renameat, renameat],
   [SYS.pselect6, pselect],
   [SYS.prlimit64, prlimit],
   [SYS.copy_file_range, nullSyscall],

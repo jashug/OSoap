@@ -13,6 +13,11 @@ const isDotDot = (component) => {
   return component.length === 2 &&
     component[0] === DOT_CODE && component[1] === DOT_CODE;
 };
+const isDots = (component) => {
+  if (!(component.length >= 1)) return false;
+  if (component[0] !== DOT_CODE) return false;
+  return (component.length === 1 || component.length === 2 && component[1] === DOT_CODE);
+};
 
 const equalComponents = (lhs, rhs) => {
   if (lhs === rhs) return true;
@@ -138,6 +143,7 @@ export {
   pathFromCString,
   isDot,
   isDotDot,
+  isDots,
   equalComponents,
   componentToBinaryString,
   binaryStringToComponent,
