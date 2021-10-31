@@ -1,23 +1,24 @@
 import {pathFromCString, isDot, isDotDot, isDots} from '../../fs/Path.js';
 import {resolveParent} from '../../fs/resolve.js';
 import {AT} from '../../constants/at.js';
-import {IsADirectoryError, NoEntryError, NotEmptyError, BusyError} from '../../fs/errors.js';
+import {NoEntryError, NotEmptyError, BusyError, PermissionError} from '../../fs/errors.js';
 import {InvalidError} from './InvalidError.js';
 
 const doUnlink = (path, curdir, rootdir, thread) => {
   if (path.isEmptyPath()) throw new NoEntryError();
-  if (!path.hasLastComponent() || path.trailingSlash) throw new IsADirectoryError();
+  if (path.isJustSlash()) throw new PermissionError();
   return resolveParent(path, curdir, rootdir, {}, (parent) => {
-    if (isDots(path.lastComponent)) throw new IsADirectoryError();
-    return parent.unlink(path.lastComponent, thread);
+    if (isDots(path.lastComponent)) throw new PermissionError();
+    return parent.unlink(path.lastComponent, path.trailingSlashAfterComponent, thread);
   });
 };
 
 const doRmdir = (path, curdir, rootdir, thread) => {
   if (path.isEmptyPath()) throw new NoEntryError();
-  if (!path.hasLastComponent()) throw new BusyError(); // Root directory of the process
+  if (path.isJustSlash()) throw new BusyError(); // Root directory of the process
   return resolveParent(path, curdir, rootdir, {}, (parent) => {
     if (isDot(path.lastComponent)) throw new InvalidError();
+    // rmdir /.. should probably throw new BusyError() instead of NotEmptyError when the root directory is empty
     if (isDotDot(path.lastComponent)) throw new NotEmptyError();
     return parent.rmdir(path.lastComponent, thread);
   });

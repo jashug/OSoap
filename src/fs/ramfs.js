@@ -224,7 +224,7 @@ class RamFS extends FileSystem {
     file.nlink -= 1;
   }
 
-  unlink(id, component, thread) {
+  unlink(id, component, trailingSlash, thread) {
     void thread;
     const directory = this.files.get(id);
     const name = componentToBinaryString(component);
@@ -232,6 +232,7 @@ class RamFS extends FileSystem {
     if (!entry) throw new NoEntryError();
     const {id: childId, fmt} = entry;
     if (fmt === FMT.DIRECTORY) throw new IsADirectoryError();
+    if (trailingSlash) throw new NotADirectoryError();
     const file = this.files.get(childId);
     this.decNLink(childId, file);
     directory.children.delete(name);

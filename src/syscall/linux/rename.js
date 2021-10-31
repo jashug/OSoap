@@ -12,7 +12,7 @@ const RENAME_FLAGS = (
 const doRename = (oldpath, oldcurdir, oldrootdir, newpath, newcurdir, newrootdir, flags, thread) => {
   if (flags & ~RENAME_FLAGS) throw new InvalidError();
   if (oldpath.isEmptyPath() || newpath.isEmptyPath()) throw new NoEntryError();
-  if (!oldpath.hasLastComponent() || !newpath.hasLastComponent()) throw new BusyError();
+  if (oldpath.isJustSlash() || newpath.isJustSlash()) throw new BusyError();
   if (isDots(oldpath.lastComponent) || isDots(newpath.lastComponent)) throw new InvalidError();
   // Consider trying to parallelize this
   return resolveParent(oldpath, oldcurdir, oldrootdir, {}, (oldparent) => {

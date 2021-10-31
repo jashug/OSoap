@@ -60,8 +60,16 @@ class Path {
     return !this.absolute && this.lastComponent === null;
   }
 
+  isJustSlash() {
+    return this.absolute && this.lastComponent === null;
+  }
+
   hasLastComponent() {
     return this.lastComponent !== null;
+  }
+
+  get trailingSlashAfterComponent() {
+    return this.trailingSlash && this.lastComponent !== null;
   }
 
   toString() {
