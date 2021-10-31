@@ -162,3 +162,13 @@ otherwise error. We end up with an inode that we know refers to a directory, but
 Then dealing with refcounts: seems a bit silly to take a reference to the current directory, then immediately forget it because the path is absolute.
 For path handling, take a function (isAbsolute) => owned reference that looks slightly different at the beginning and when handling a symlink.
 (Expects to be called once, so can release a reference to the current directory in the case of an absolute symlink.)
+
+
+==========
+
+Refer to "A Concurrent Specification of POSIX File Systems", Gian Ntzik, et. al.
+Paper: https://www.doc.ic.ac.uk/~pg/publications/Ntzik2018Concurrent.pdf
+Slides: https://pages.lip6.fr/Marc.Shapiro/workshop-2017-05-03/attachments/gardner-slides.pdf
+Thesis: https://vtss.doc.ic.ac.uk/publications/Ntzik2017Reasoning.pdf
+
+
