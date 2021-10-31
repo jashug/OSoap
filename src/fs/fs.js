@@ -1,4 +1,5 @@
 import {MultiSet} from '../util/MultiSet.js';
+import {BusyError} from './errors.js';
 
 let nonDeviceMountsCounter = 1;
 
@@ -6,7 +7,28 @@ class FileSystem {
   constructor(dev = {major: 0, minor: nonDeviceMountsCounter++}) {
     this.virtualLinksIn = new MultiSet(); // rmdir on these create orphan directories (unlinked but open)
     this.virtualLinksOut = new MultiSet(); // These return EBUSY on rmdir
+    this.orphans = new Set();
     this.dev = dev;
+  }
+
+  incLinkIn(id) {
+    this.virtualLinksIn.inc(id);
+  }
+
+  decLinkIn(id) {
+    if (this.virtualLinksIn.dec(id) === 0 && this.orphans.has(id)) this.freeFileId(id);
+  }
+
+  markOrphanedFileId(id) {
+    if (this.virtualLinksOut.has(id)) throw new BusyError();
+    if (!this.virtualLinksIn.has(id)) this.freeFileId(id);
+    else this.orphans.add(id); // TODO add extension for persistent orphan lists
+  }
+
+  freeFileId(id) {
+    void id;
+    debugger;
+    throw new Error("Unimplemented free file id filesystem method");
   }
 }
 
@@ -64,12 +86,12 @@ class Mount {
   }
 
   incRef(id) {
-    this.fs.virtualLinksIn.inc(id);
+    this.fs.incLinkIn(id);
     this.refCount += 1;
   }
 
   decRef(id) {
-    this.fs.virtualLinksIn.dec(id);
+    this.fs.decLinkIn(id);
     this.refCount -= 1;
   }
 }

@@ -1,6 +1,6 @@
 import {FMT, O} from '../constants/fs.js';
 import {InvalidError} from '../syscall/linux/InvalidError.js';
-import {AccessError, NotADirectoryError, IsADirectoryError} from './errors.js';
+import {AccessError, NotADirectoryError, IsADirectoryError, DifferentFileSystemsError} from './errors.js';
 
 const equalFileLocations = (lhs, rhs) => {
   return lhs.mount === rhs.mount && lhs.id === rhs.id;
@@ -213,6 +213,13 @@ const makeFileLocationFollowMounts = (mount, id, fmt) => {
   return makeFileLocation(mount, id, fmt);
 };
 
+const renameFileLocations = (oldparent, oldname, newparent, newname, flags, thread) => {
+  const mount = oldparent.mount;
+  if (mount !== newparent.mount) throw new DifferentFileSystemsError();
+  if (oldparent.fileType !== FMT.DIRECTORY || newparent.fileType !== FMT.DIRECTORY) throw new NotADirectoryError();
+  return mount.fs.rename(oldparent.id, oldname, newparent.id, newname, flags, thread);
+};
+
 export {
   DirectoryLocation,
   RegularFileLocation,
@@ -223,4 +230,5 @@ export {
   makeFileLocation,
   makeFileLocationFollowMounts,
   equalFileLocations,
+  renameFileLocations,
 };

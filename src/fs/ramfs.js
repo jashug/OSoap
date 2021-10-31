@@ -1,7 +1,7 @@
 import {FileSystem} from './fs.js';
 import {componentToBinaryString, binaryStringToComponent} from './Path.js';
 import {FMT, fmtToMode, O, SEEK} from '../constants/fs.js';
-import {NoEntryError, ExistsError, FileTooBigError, IsADirectoryError} from './errors.js';
+import {NoEntryError, ExistsError, FileTooBigError, IsADirectoryError, NotADirectoryError} from './errors.js';
 import {openDeviceFile} from '../devices/open.js';
 import {currentTimespec} from '../util/currentTime.js';
 import {OpenRegularFileDescription, OpenDirectoryDescription} from '../OpenFileDescription.js';
@@ -164,6 +164,10 @@ class RamFS extends FileSystem {
     this.files.set(this.rootId, rootDirectory);
   }
 
+  freeFileId(id) {
+    this.files.delete(id);
+  }
+
   makeFileInternal(parentDirectory, name, mode) {
     const id = this.idCounter++;
     parentDirectory.addLink(name, {id, fmt: FMT.REGULAR});
@@ -210,6 +214,16 @@ class RamFS extends FileSystem {
     return entry;
   }
 
+  incNLink(id, file) {
+    file.nlink += 1;
+  }
+
+  decNLink(id, file) {
+    if (file.nlink <= 0) throw new Error("file nlink inconsistency");
+    if (file.nlink === 1) this.markOrphanedFileId(id);
+    file.nlink -= 1;
+  }
+
   unlink(id, component, thread) {
     void thread;
     const directory = this.files.get(id);
@@ -219,16 +233,48 @@ class RamFS extends FileSystem {
     const {id: childId, fmt} = entry;
     if (fmt === FMT.DIRECTORY) throw new IsADirectoryError();
     const file = this.files.get(childId);
+    this.decNLink(childId, file);
     directory.children.delete(name);
-    file.nlink -= 1;
-    if (file.nlink < 0) throw new Error("negative nlink");
-    if (file.nlink <= 0) this.files.delete(childId);
     return 0;
   }
 
   rmdir(id, component, thread) {
     void thread;
     debugger;
+    return 0;
+  }
+
+  rename(oldid, oldcomponent, newid, newcomponent, flags, thread) {
+    void thread;
+    const olddirectory = this.files.get(oldid);
+    const newdirectory = this.files.get(newid);
+    const oldname = componentToBinaryString(oldcomponent);
+    const newname = componentToBinaryString(newcomponent);
+    const oldentry = olddirectory.children.get(oldname);
+    if (!oldentry) throw new NoEntryError();
+    const {id: oldId, fmt: oldFmt} = oldentry;
+    const fileToLink = this.files.get(oldId);
+    const newentry = newdirectory.children.get(newname);
+    if (newentry) {
+      const {id: newId, fmt: newFmt} = newentry;
+      if (oldId === newId) return 0;
+      if (oldFmt === FMT.DIRECTORY) {
+        if (newFmt !== FMT.DIRECTORY) throw new NotADirectoryError();
+        const fileToRemove = this.files.get(newId);
+        void fileToRemove;
+        debugger;
+        throw new Error("TODO: Unimplemented rename onto directory");
+      } else {
+        if (newFmt === FMT.DIRECTORY) throw new IsADirectoryError();
+        const fileToRemove = this.files.get(newId);
+        this.decNLink(newId, fileToRemove);
+        this.incNLink(oldId, fileToLink);
+        newdirectory.children.set(newname, oldentry);
+      }
+    } else {
+      this.incNLink(oldId, fileToLink);
+      newdirectory.children.set(newname, oldentry);
+    }
     return 0;
   }
 

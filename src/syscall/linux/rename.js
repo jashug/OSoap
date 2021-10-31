@@ -1,6 +1,8 @@
-import {pathFromCString} from '../../fs/Path.js';
+import {pathFromCString, isDots} from '../../fs/Path.js';
 import {resolveParent} from '../../fs/resolve.js';
+import {renameFileLocations} from '../../fs/FileLocation.js';
 import {InvalidError} from './InvalidError.js';
+import {NoEntryError, BusyError} from '../../fs/errors.js';
 
 // TODO: renameat2 flags
 
@@ -9,8 +11,15 @@ const RENAME_FLAGS = (
 
 const doRename = (oldpath, oldcurdir, oldrootdir, newpath, newcurdir, newrootdir, flags, thread) => {
   if (flags & ~RENAME_FLAGS) throw new InvalidError();
-  // TODO
-  throw new InvalidError();
+  if (oldpath.isEmptyPath() || newpath.isEmptyPath()) throw new NoEntryError();
+  if (!oldpath.hasLastComponent() || !newpath.hasLastComponent()) throw new BusyError();
+  if (isDots(oldpath.lastComponent) || isDots(newpath.lastComponent)) throw new InvalidError();
+  // Consider trying to parallelize this
+  return resolveParent(oldpath, oldcurdir, oldrootdir, {}, (oldparent) => {
+    return resolveParent(newpath, newcurdir, newrootdir, {}, (newparent) => {
+      return renameFileLocations(oldparent, oldpath.lastComponent, newparent, newpath.lastComponent, flags, thread);
+    });
+  });
 };
 
 const renameat = (sysbuf, thread) => {

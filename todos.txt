@@ -3,6 +3,9 @@ link mount file type
 getrusage
 getdents - handle mount points for inode
 getdents - add entries for . and ..
+choose easier option for link/unlink directories
+make sure FileLocations keep file ids alive
+handling of trailing slash for syscalls that work on links
 
 OSoap larger projects:
 signals
@@ -10,6 +13,7 @@ check file permissions
 convert to typescript
 persistant IndexedDB filesystem
 write a proper tty driver
+networking
 
 osoap-libc:
 src/time/timer_create.c uses setjmp/longjmp

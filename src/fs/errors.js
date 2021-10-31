@@ -13,6 +13,7 @@ const SocketOrPipeError = makeErrorWithErrno("SocketOrPipeError", E.SPIPE);
 const FileTooBigError = makeErrorWithErrno("FileTooBigError", E.FBIG);
 const NotEmptyError = makeErrorWithErrno("NotEmptyError", E.NOTEMPTY);
 const BusyError = makeErrorWithErrno("BusyError", E.BUSY);
+const DifferentFileSystemsError = makeErrorWithErrno("DifferentFileSystemsError", E.XDEV);
 
 export {
   AccessError,
@@ -27,4 +28,5 @@ export {
   FileTooBigError,
   NotEmptyError,
   BusyError,
+  DifferentFileSystemsError,
 };
