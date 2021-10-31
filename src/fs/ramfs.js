@@ -215,6 +215,10 @@ class RamFS extends FileSystem {
   }
 
   incNLink(id, file) {
+    if (file.nlink === 0) {
+      debugger;
+      // TODO: un-orphaning files
+    }
     file.nlink += 1;
   }
 
