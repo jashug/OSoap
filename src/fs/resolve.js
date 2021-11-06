@@ -1,6 +1,6 @@
 import {FMT} from '../constants/fs.js';
 import {NoEntryError, NotADirectoryError, LoopError} from './errors.js';
-import {isDot, isDotDot} from './Path.js';
+import {isDot, isDotDot, pathFromString} from './Path.js';
 import {equalFileLocations} from './FileLocation.js';
 
 const MAX_SYMLINK_COUNT = 100;
@@ -39,7 +39,8 @@ const walkComponent = async (component, predecessor, rootDir, options = {}) => {
     if (fileType === FMT.SYMLINK) {
       symlinkFuel.tick();
       const linkContents = await childEntry.readlink();
-      const result = await resolveToEntry(linkContents, predecessor, rootDir, {symlinkFuel}, (result) => {
+      const linkPath = pathFromString(linkContents);
+      const result = await resolveToEntry(linkPath, predecessor, rootDir, {symlinkFuel}, (result) => {
         result.incRefCount();
         return result;
       });
