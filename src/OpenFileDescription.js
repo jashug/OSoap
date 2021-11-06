@@ -19,7 +19,8 @@ class OpenFileDescription {
 
   get statusFlags() { return this._statusFlags; }
 
-  get flagAppend() { return this._statusFlags & O.APPEND; }
+  get flagAppend() { return Boolean(this._statusFlags & O.APPEND); }
+  get flagNonBlocking() { return Boolean(this._statusFlags & O.NONBLOCK); }
 
   decRefCount() {
     if (this.refCount <= 0) throw new Error("Decrement zero refCount");
@@ -122,9 +123,6 @@ class OpenDirectoryDescription extends OpenFileDescription {
 class OpenDeviceDescription extends OpenFileDescription {
 }
 
-class OpenFIFODescription extends OpenFileDescription {
-}
-
 class OpenSocketDescription extends OpenFileDescription {
 }
 
@@ -133,6 +131,5 @@ export {
   OpenRegularFileDescription,
   OpenDirectoryDescription,
   OpenDeviceDescription,
-  OpenFIFODescription,
   OpenSocketDescription,
 };

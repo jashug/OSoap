@@ -6,6 +6,7 @@ getdents - add entries for . and ..
 choose easier option for link/unlink directories
 make sure FileLocations keep file ids alive
 handling of trailing slash for syscalls that work on links
+intermittent error with sysbuf out of range on page refresh
 
 OSoap larger projects:
 signals
@@ -14,6 +15,7 @@ convert to typescript
 persistant IndexedDB filesystem
 write a proper tty driver
 networking
+get terminal to resize with the screen (needs signals for SIGWINCH)
 
 osoap-libc:
 src/time/timer_create.c uses setjmp/longjmp

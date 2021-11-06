@@ -96,4 +96,8 @@ class Mount {
   }
 }
 
-export {FileSystem, Mount};
+const makeRootMount = (fs, rootId) => {
+  return new Mount(fs, rootId, null, 0n);
+};
+
+export {FileSystem, Mount, makeRootMount};

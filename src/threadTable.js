@@ -496,6 +496,7 @@ const spawnProcess = (executableUrl, term, args, environment = defaultEnvironmen
     arguments: args,
   });
   void thread;
+  return session;
 };
 
 export {

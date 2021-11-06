@@ -14,6 +14,8 @@ const FileTooBigError = makeErrorWithErrno("FileTooBigError", E.FBIG);
 const NotEmptyError = makeErrorWithErrno("NotEmptyError", E.NOTEMPTY);
 const BusyError = makeErrorWithErrno("BusyError", E.BUSY);
 const DifferentFileSystemsError = makeErrorWithErrno("DifferentFileSystemsError", E.XDEV);
+const AgainError = makeErrorWithErrno("AgainError", E.AGAIN);
+const PipeError = makeErrorWithErrno("PipeError", E.PIPE);
 
 export {
   AccessError,
@@ -29,4 +31,6 @@ export {
   NotEmptyError,
   BusyError,
   DifferentFileSystemsError,
+  AgainError,
+  PipeError,
 };

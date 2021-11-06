@@ -1,4 +1,4 @@
-import {Mount} from './fs.js';
+import {Mount, makeRootMount} from './fs.js';
 import {RamFS} from './ramfs.js';
 import {ReadOnlyHttpFS, ROOT_ID as HttpFS_ROOT_ID} from './httpfs.js';
 import {DirectoryLocation, DeviceLocation} from './FileLocation.js';
@@ -14,7 +14,7 @@ const rootDirIds = new Map();
 for (const dirName of rootDirs) {
   rootDirIds.set(dirName, rootfs.mkdirString(rootfs.rootId, dirName));
 }
-const rootMount = new Mount(rootfs, rootfs.rootId, null, 0);
+const rootMount = makeRootMount(rootfs, rootfs.rootId);
 
 const usrfs = new ReadOnlyHttpFS('/filesystem');
 const usrMount = new Mount(usrfs, HttpFS_ROOT_ID, rootMount, rootDirIds.get('usr'));

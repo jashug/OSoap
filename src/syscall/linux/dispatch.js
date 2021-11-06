@@ -30,6 +30,7 @@ import {lseek} from './lseek.js';
 import {gettid, getpid, getppid} from './gettid.js';
 import {unlinkat, rmdir, unlink} from './unlink.js';
 import {renameat} from './rename.js';
+import {pipe, pipe2} from './pipe.js';
 
 const defaultSyscall = (syscallNumber) => (sysbuf, thread) => {
   console.log(`Unimplemented syscall ${syscallNumber}`);
@@ -62,6 +63,7 @@ const linuxSyscallTable = new Map([
   [SYS.readv, readv],
   [SYS.writev, writev],
   [SYS.access, access],
+  [SYS.pipe, pipe],
   [SYS.select, select],
   [SYS.dup, dup],
   [SYS.dup2, dup2],
@@ -91,6 +93,7 @@ const linuxSyscallTable = new Map([
   [SYS.unlinkat, unlinkat],
   [SYS.renameat, renameat],
   [SYS.pselect6, pselect],
+  [SYS.pipe2, pipe2],
   [SYS.prlimit64, prlimit],
   [SYS.copy_file_range, nullSyscall],
   [SYS.statx, statx],
@@ -119,7 +122,11 @@ const linuxSyscall = async (sysbuf, thread) => {
   const syscall_number = sysbuf.linux_syscall_n;
   const syscall = dispatchLinuxSyscall(syscall_number);
   const syscall_return = await tryLinuxSyscall(syscall, sysbuf, thread);
-  if (syscall_return === undefined) throw new Error("Linux syscalls should return");
+  if (syscall_return === undefined) {
+    console.log(`syscall #${syscall_number} returned undefined`);
+    debugger;
+    throw new Error("Linux syscalls should return");
+  }
   sysbuf.linux_syscall_return = syscall_return;
   sysbuf.tag = OSOAP_SYS.TAG.R.linux_syscall_return;
 };

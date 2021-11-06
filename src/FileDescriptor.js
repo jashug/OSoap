@@ -35,7 +35,6 @@ class FileDescriptor {
 
   copy({copyForExec = false, closeOnExec} = {}) {
     if (copyForExec && this.closeOnExec) return null;
-    this.openFileDescription.incRefCount();
     return new FileDescriptor(this.openFileDescription, closeOnExec ?? this.closeOnExec);
   }
 

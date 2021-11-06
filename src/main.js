@@ -23,7 +23,7 @@ window.term = term;
   [utf8Encoder.encode('argc'), utf8Encoder.encode('hi'), utf8Encoder.encode('there')],
 );*/
 // spawnProcess('/tmp/opt/fork_setjmp.wasm', term, []);
-spawnProcess('/sysroot/bin/bash', term, []);
+window.session = spawnProcess('/sysroot/bin/bash', term, []);
 
 // TODO: normally in chrome, JS can't intercept ctrl-w, ctrl-n, ctrl-t
 // In app mode, you can catch these keypresses.
