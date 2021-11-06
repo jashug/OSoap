@@ -253,15 +253,35 @@ class PipeFS extends FileSystem {
   // TODO: to support openat on a pipe, should implement openExisting
 
   stat(id, syncFlag, mask, thread) {
-    // TODO: fstat pipe
     void syncFlag, mask;
-    debugger;
-    thread.requestUserDebugger();
-    throw new InvalidError();
+    if (id === 1n) {
+      // TODO: root directory
+      debugger;
+      thread.requestUserDebugger();
+      throw new InvalidError();
+    } else {
+      const pipe = this.pipes.get(id);
+      // TODO: Intercept fstat for pipes at the open file description layer
+      return {
+        blksize: 1024,
+        nlink: 1,
+        uid: pipe.uid,
+        gid: pipe.gid,
+        mode: 0, // TODO
+        size: 0n, // maybe todo
+        blocks: 0n,
+        atime: nullTimestamp,
+        ctime: nullTimestamp,
+        mtime: nullTimestamp,
+        rdev: {major: 0, minor: 0},
+      };
+    }
   }
 }
 const pipeFS = new PipeFS();
 const pipeMount = makeRootMount(pipeFS, 1n);
+
+const nullTimestamp = {sec: 0n, nsec: 0};
 
 const makePipe = ({nonblocking}, thread) => {
   let statusFlags = 0;
