@@ -4,9 +4,10 @@ getrusage
 getdents - handle mount points for inode
 getdents - add entries for . and ..
 choose easier option for link/unlink directories
-make sure FileLocations keep file ids alive
 handling of trailing slash for syscalls that work on links
 intermittent error with sysbuf out of range on page refresh
+get EOF character working Ctrl-D ex. cat -
+Return exit status when a worker errors out
 
 OSoap larger projects:
 signals
@@ -16,11 +17,17 @@ persistant IndexedDB filesystem
 write a proper tty driver
 networking
 get terminal to resize with the screen (needs signals for SIGWINCH)
+Support vim
+Support git
+Support python
+Support clang
+Support rust?
 
 osoap-libc:
 src/time/timer_create.c uses setjmp/longjmp
 src/signal - sigsetjmp and siglongjmp are broken
 __unmapself is getting referenced from pthread_create, and we don't support threads yet
+add threading support
 
 coreutils:
 reenable HAVE_TIMER_SETTIME in timeout.c (implementation needs pthread operations)

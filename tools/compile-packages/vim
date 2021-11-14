@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -e
+
+cd "${OSOAP_ROOT}/vim"
+
+TARGET=wasm32
+SYSROOT="${OSOAP_ROOT}/sysroot"
+export CC="clang"
+export CFLAGS="--target=${TARGET} --sysroot=${SYSROOT} -g -pthread -fwasm-exceptions -mllvm -wasm-enable-sjlj"
+export LD="wasm-ld"
+export LDFLAGS="--target=${TARGET} --sysroot=${SYSROOT} -Wl,--import-memory -Wl,--shared-memory -Wl,--max-memory=4294967296"
+# export LIBS="-lstubfork"
+export AR="llvm-ar"
+export CPP="clang-cpp"
+export CPPFLAGS="--sysroot=${SYSROOT}"
+export RANLIB="llvm-ranlib"
+export STRIP="llvm-strip"
+
+# TODO: turn off fork feature
+
+export ac_cv_sizeof_int=4
+export vim_cv_getcwd_broken=no
+export vim_cv_memmove_handles_overlap=yes # UNSURE
+export vim_cv_stat_ignores_slash=no # UNSURE
+export vim_cv_tgetent="non-zero" # UNSURE
+export vim_cv_terminfo="yes"
+export vim_cv_toupper_broken="no"
+export vim_cv_tty_group="world" # UNSURE
+export vim_cv_tty_mode="0620" # UNSURE
+
+pushd src
+make distclean || true
+./configure --disable-gui --prefix="${SYSROOT}" --host="${TARGET}" --with-tlib=ncurses --disable-channel
+make
+make install
+popd # src
