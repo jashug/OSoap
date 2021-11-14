@@ -25,7 +25,7 @@ import {dup, dup2} from './dup.js';
 import {wait4} from './wait.js';
 import {execve} from './exec.js';
 import {getdents} from './getdents.js';
-import {chdir} from './chdir.js';
+import {chdir, fchdir} from './chdir.js';
 import {lseek} from './lseek.js';
 import {gettid, getpid, getppid} from './gettid.js';
 import {unlinkat, rmdir, unlink} from './unlink.js';
@@ -76,9 +76,11 @@ const linuxSyscallTable = new Map([
   [SYS.uname, uname],
   [SYS.fcntl, fcntl],
   [SYS.chdir, chdir],
+  [SYS.fchdir, fchdir],
   [SYS.rmdir, rmdir],
   [SYS.unlink, unlink],
   [SYS.readlink, readlink],
+  [SYS.sysinfo, nullSyscall],
   [SYS.getuid, getuid],
   [SYS.getgid, getgid],
   [SYS.geteuid, geteuid],
@@ -86,6 +88,7 @@ const linuxSyscallTable = new Map([
   [SYS.setpgid, setpgid],
   [SYS.getppid, getppid],
   [SYS.getpgid, getpgid],
+  [SYS.sigaltstack, nullSyscall],
   [SYS.gettid, gettid],
   [SYS.getdents64, getdents],
   [SYS.fadvise64, nullSyscall],

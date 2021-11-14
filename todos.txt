@@ -8,6 +8,7 @@ handling of trailing slash for syscalls that work on links
 intermittent error with sysbuf out of range on page refresh
 get EOF character working Ctrl-D ex. cat -
 Return exit status when a worker errors out
+Stop leaking file pointers to cwd in syscall/linux/chdir.js
 
 OSoap larger projects:
 signals

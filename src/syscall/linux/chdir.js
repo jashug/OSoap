@@ -10,8 +10,17 @@ const chdir = async (sysbuf, thread) => {
     allowEmptyPath: false,
     mustBeDirectory: true,
   }, (filePointer) => filePointer.incRefCount());
+  // TODO: free previous cwd pointer
   thread.process.currentWorkingDirectory = newCurDir;
   return 0;
 };
 
-export {chdir};
+const fchdir = (sysbuf, thread) => {
+  const fd = sysbuf.linuxSyscallArg(0).getFd();
+  const newCurDir = thread.process.fdtable.get(fd).openFileDescription.fileLoc.incRefCount();
+  // TODO: free previous cwd pointer
+  thread.process.currentWorkingDirectory = newCurDir;
+  return 0;
+};
+
+export {chdir, fchdir};
