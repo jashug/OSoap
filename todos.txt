@@ -9,6 +9,7 @@ intermittent error with sysbuf out of range on page refresh
 get EOF character working Ctrl-D ex. cat -
 Return exit status when a worker errors out
 Stop leaking file pointers to cwd in syscall/linux/chdir.js
+getcwd should return more than just /
 
 OSoap larger projects:
 signals

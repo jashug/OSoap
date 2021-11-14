@@ -1,7 +1,10 @@
 import {InvalidError} from './InvalidError.js';
 import {MAX_NUM_FDS} from '../../FileDescriptor.js';
 
+// From sys/resource.h
 const RLIM = {
+  INFINITY: (1n << 64n) - 1n,
+  DATA: 2,
   NPROC: 6,
   NOFILE: 7,
 };
@@ -27,7 +30,10 @@ const prlimit = (sysbuf, thread) => {
     thread.requestUserDebugger();
     throw new InvalidError();
   }
-  if (resource === RLIM.NPROC) {
+  if (resource === RLIM.DATA) {
+    const lim = (1n << 32n) - 1n;
+    writeRLimit(sysbuf.dv, oldbuf, {cur: lim, max: lim});
+  } else if (resource === RLIM.NPROC) {
     const lim = 1n << 31n;
     writeRLimit(sysbuf.dv, oldbuf, {cur: lim, max: lim});
   } else if (resource === RLIM.NOFILE) {

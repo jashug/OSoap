@@ -25,7 +25,7 @@ import {dup, dup2} from './dup.js';
 import {wait4} from './wait.js';
 import {execve} from './exec.js';
 import {getdents} from './getdents.js';
-import {chdir, fchdir} from './chdir.js';
+import {chdir, fchdir, getcwd} from './chdir.js';
 import {lseek} from './lseek.js';
 import {gettid, getpid, getppid} from './gettid.js';
 import {unlinkat, rmdir, unlink} from './unlink.js';
@@ -75,6 +75,7 @@ const linuxSyscallTable = new Map([
   [SYS.wait4, wait4],
   [SYS.uname, uname],
   [SYS.fcntl, fcntl],
+  [SYS.getcwd, getcwd],
   [SYS.chdir, chdir],
   [SYS.fchdir, fchdir],
   [SYS.rmdir, rmdir],

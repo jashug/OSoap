@@ -149,6 +149,8 @@ export {
   copyCString,
   pathFromString,
   pathFromCString,
+  SLASH_CODE,
+  DOT_CODE,
   isDot,
   isDotDot,
   isDots,

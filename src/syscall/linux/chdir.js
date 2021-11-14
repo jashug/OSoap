@@ -1,5 +1,18 @@
-import {pathFromCString} from '../../fs/Path.js';
+import {pathFromCString, SLASH_CODE} from '../../fs/Path.js';
 import {resolveToEntry} from '../../fs/resolve.js';
+import {LinuxRangeError} from './LinuxRangeError.js';
+
+const getcwd = (sysbuf, thread) => {
+  void thread;
+  // TODO: this is a stub, always returning /
+  const bufPtr = sysbuf.linuxSyscallArg(0).getPtr();
+  const size = sysbuf.linuxSyscallArg(0).getInt32(); // really size_t
+  const buf = sysbuf.subUint8Array(bufPtr, size);
+  if (size < 2) throw new LinuxRangeError();
+  buf[0] = SLASH_CODE;
+  buf[1] = 0;
+  return bufPtr;
+};
 
 const chdir = async (sysbuf, thread) => {
   const pathPtr = sysbuf.linuxSyscallArg(0).getPtr();
@@ -23,4 +36,4 @@ const fchdir = (sysbuf, thread) => {
   return 0;
 };
 
-export {chdir, fchdir};
+export {chdir, fchdir, getcwd};
