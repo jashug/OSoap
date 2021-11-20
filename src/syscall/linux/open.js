@@ -32,7 +32,7 @@ const open = async (sysbuf, thread) => {
   // const accessMode = flags & O.ACCMODE; // Read, Write, Path bits
   const curdir = thread.process.currentWorkingDirectory;
   const rootdir = thread.process.rootDirectory;
-  const mustBeDirectory = Boolean(flags & O.DIRECTORY) || path.trailingSlash || (path.hasLastComponent() && !isDots(path.lastComponent));
+  const mustBeDirectory = Boolean(flags & O.DIRECTORY) || path.trailingSlash || !path.hasLastComponent() || isDots(path.lastComponent);
   const openFile = await (() => {
     if (flags & O.CREAT && !mustBeDirectory) {
       // TODO: Also want mode for O.TMPFILE
