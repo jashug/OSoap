@@ -6,7 +6,7 @@ const getcwd = (sysbuf, thread) => {
   void thread;
   // TODO: this is a stub, always returning /
   const bufPtr = sysbuf.linuxSyscallArg(0).getPtr();
-  const size = sysbuf.linuxSyscallArg(0).getInt32(); // really size_t
+  const size = sysbuf.linuxSyscallArg(1).getInt32(); // really size_t
   const buf = sysbuf.subUint8Array(bufPtr, size);
   if (size < 2) throw new LinuxRangeError();
   buf[0] = SLASH_CODE;
