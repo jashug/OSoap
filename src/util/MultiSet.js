@@ -18,6 +18,10 @@ class MultiSet {
     else this.counts.set(key, newCount);
     return newCount;
   }
+
+  has(key) {
+    return this.counts.get(key) ?? 0;
+  }
 }
 
 export {MultiSet};

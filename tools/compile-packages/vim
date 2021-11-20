@@ -14,7 +14,8 @@ export AR="llvm-ar"
 export CPP="clang-cpp"
 export CPPFLAGS="--sysroot=${SYSROOT}"
 export RANLIB="llvm-ranlib"
-export STRIP="llvm-strip"
+# export STRIP="llvm-strip"
+export STRIP="/bin/true"
 
 # TODO: turn off fork feature
 

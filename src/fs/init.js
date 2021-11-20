@@ -34,4 +34,7 @@ void devMount;
 const absoluteRootLocation = new DirectoryLocation(rootMount, rootfs.rootId);
 const ttyLocation = new DeviceLocation(devMount, devttyId);
 
+const homedir = rootfs.mkdirString(rootDirIds.get('home'), 'default');
+void homedir;
+
 export {absoluteRootLocation, ttyLocation};

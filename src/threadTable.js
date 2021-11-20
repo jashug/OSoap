@@ -476,6 +476,7 @@ class Thread {
 const defaultEnvironment = [
   utf8Encoder.encode('TERM=xterm-256color'),
   utf8Encoder.encode('LANG=en_US.UTF-8'),
+  utf8Encoder.encode('HOME=/home/default'),
 ];
 
 // openFile is an OpenFileDescription that starts as std{in,out,err}
