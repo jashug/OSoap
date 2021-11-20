@@ -92,7 +92,7 @@ const resolveToEntry = async (path, curDir, rootDir, options, f) => {
   const entry = path.lastComponent ?
     await walkComponent(
       path.lastComponent, predecessor, rootDir,
-      {followSymlinks: followLastSymlink, mustBeDirectory: path.trailingSlash, symlinkFuel},
+      {followSymlinks: followLastSymlink, symlinkFuel},
     ) : predecessor;
   if (path.trailingSlash || mustBeDirectory) assertDirectory(entry);
   try {

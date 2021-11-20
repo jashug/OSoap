@@ -10,6 +10,7 @@ get EOF character working Ctrl-D ex. cat -
 Return exit status when a worker errors out
 Stop leaking file pointers to cwd in syscall/linux/chdir.js
 getcwd should return more than just /
+open handling of O_CREAT and interaction with O_NOFOLLOW, O_EXCL, O_PATH needs a rewrite
 
 OSoap larger projects:
 signals

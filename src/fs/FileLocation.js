@@ -236,7 +236,6 @@ export {
   FIFOLocation,
   SocketLocation,
   makeFileLocation,
-  makeFileLocationFollowMounts,
   equalFileLocations,
   renameFileLocations,
 };

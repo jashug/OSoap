@@ -16,6 +16,7 @@ const HANDLED_FLAGS = (
   O.DIRECTORY |
   O.TRUNC |
   O.APPEND |
+  O.NOFOLLOW |
 0);
 
 const open = async (sysbuf, thread) => {
@@ -46,6 +47,7 @@ const open = async (sysbuf, thread) => {
     } else {
       return resolveToEntry(path, curdir, rootdir, {
         allowEmptyPath: false,
+        followLastSymlink: !(flags & O.NOFOLLOW),
         mustBeDirectory,
       }, (entry) => {
         return entry.openExisting(flags, thread);
