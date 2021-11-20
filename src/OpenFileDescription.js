@@ -83,6 +83,7 @@ class OpenFileDescription {
   readlink(...args) { return this.fileLoc.readlink(...args); }
   unlink(...args) { return this.fileLoc.unlink(...args); }
   rmdir(...args) { return this.fileLoc.rmdir(...args); }
+  mkdir(...args) { return this.fileLoc.mkdir(...args); }
 }
 
 class OpenRegularFileDescription extends OpenFileDescription {

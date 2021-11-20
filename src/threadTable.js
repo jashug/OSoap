@@ -111,7 +111,7 @@ const initialProcessData = (openFile) => {
     parentProcess: null,
     setUserId: {real: 0, effective: 0, saved: 0},
     setGroupId: {real: 0, effective: 0, saved: 0},
-    fileModeCreationMask: null,
+    fileModeCreationMask: 0,
     fdtable,
     signalDisposition: new SignalDispositionSet(),
     hasExeced: false,
@@ -277,7 +277,7 @@ class Process {
       parentProcess: this,
       setUserId: {...this.setUserId},
       setGroupId: {...this.setGroupId},
-      fileModeCreationMask: null, // TODO: copy
+      fileModeCreationMask: this.fileModeCreationMask,
       fdtable: fdtable,
       signalDisposition: new SignalDispositionSet(this.signalDisposition),
       hasExeced: false,

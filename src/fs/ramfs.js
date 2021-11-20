@@ -180,7 +180,8 @@ class RamFS extends FileSystem {
     return this.mkdirString(parent, componentToBinaryString(component), ...args);
   }
 
-  mkdirString(parent, name) {
+  mkdirString(parent, name, mode, thread) {
+    void mode, thread;
     const id = this.idCounter++;
     const parentDirectory = this.files.get(parent);
     parentDirectory.addLink(name, {id, fmt: FMT.DIRECTORY});

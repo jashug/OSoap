@@ -31,6 +31,8 @@ import {gettid, getpid, getppid} from './gettid.js';
 import {unlinkat, rmdir, unlink} from './unlink.js';
 import {renameat} from './rename.js';
 import {pipe, pipe2} from './pipe.js';
+import {umask} from './umask.js';
+import {mkdir, mkdirat} from './mknode.js';
 
 const defaultSyscall = (syscallNumber) => (sysbuf, thread) => {
   console.log(`Unimplemented syscall ${syscallNumber}`);
@@ -51,6 +53,7 @@ const nullSyscall = () => {
   throw new SyscallError(E.NOSYS);
 };
 
+// Sorted by linux syscall number
 const linuxSyscallTable = new Map([
   [SYS.read, read],
   [SYS.write, write],
@@ -78,9 +81,11 @@ const linuxSyscallTable = new Map([
   [SYS.getcwd, getcwd],
   [SYS.chdir, chdir],
   [SYS.fchdir, fchdir],
+  [SYS.mkdir, mkdir],
   [SYS.rmdir, rmdir],
   [SYS.unlink, unlink],
   [SYS.readlink, readlink],
+  [SYS.umask, umask],
   [SYS.sysinfo, nullSyscall],
   [SYS.getuid, getuid],
   [SYS.getgid, getgid],
@@ -94,6 +99,7 @@ const linuxSyscallTable = new Map([
   [SYS.getdents64, getdents],
   [SYS.fadvise64, nullSyscall],
   [SYS.clock_gettime, clock_gettime],
+  [SYS.mkdirat, mkdirat],
   [SYS.unlinkat, unlinkat],
   [SYS.renameat, renameat],
   [SYS.pselect6, pselect],

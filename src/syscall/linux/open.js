@@ -36,7 +36,7 @@ const open = async (sysbuf, thread) => {
   const openFile = await (() => {
     if (flags & O.CREAT && !mustBeDirectory && path.lastComponent !== null) {
       // TODO: Also want mode for O.TMPFILE
-      const mode = sysbuf.linuxSyscallArg(2).getUint32(); // Only set sometimes
+      const mode = sysbuf.linuxSyscallArg(2).getMode(); // Only set sometimes
       return resolveParent(path, curdir, rootdir, {
         allowEmptyPath: false,
       }, (predecessor) => {

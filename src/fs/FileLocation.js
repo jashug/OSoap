@@ -59,6 +59,10 @@ class FileLocation {
     throw new NotADirectoryError();
   }
 
+  mkdir() {
+    throw new NotADirectoryError();
+  }
+
   openExisting(flags, thread) {
     debugger;
     thread.requestUserDebugger();
@@ -111,6 +115,10 @@ class DirectoryLocation extends FileLocation {
 
   rmdir(...args) {
     return this.mount.fs.rmdir(this.id, ...args);
+  }
+
+  mkdir(...args) {
+    return this.mount.fs.mkdir(this.id, ...args);
   }
 
   async openExisting(flags, ...args) {

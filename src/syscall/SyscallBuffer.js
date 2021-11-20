@@ -25,6 +25,7 @@ class LinuxSyscallArg {
 LinuxSyscallArg.prototype.getFd = LinuxSyscallArg.prototype.getInt32;
 LinuxSyscallArg.prototype.getPtr = LinuxSyscallArg.prototype.getUint32;
 LinuxSyscallArg.prototype.getPid = LinuxSyscallArg.prototype.getInt64;
+LinuxSyscallArg.prototype.getMode = LinuxSyscallArg.prototype.getUint32;
 
 class SyscallBuffer {
   constructor(buffer, sysBufAddr) {
