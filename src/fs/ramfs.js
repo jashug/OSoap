@@ -87,13 +87,14 @@ class RamOpenRegularFileDescription extends OpenRegularFileDescription {
     return totalLen;
   }
 
+  // This may be able to be pulled into OpenRegularFileDescription
   lseek(offset, whence) {
     if (whence === SEEK.SET) {
-      return this.setOffset_(offset);
+      return this.setOffsetChecked_(offset);
     } else if (whence === SEEK.CUR) {
-      return this.setOffset_(offset + this.offset);
+      return this.setOffsetChecked_(offset + this.offset);
     } else if (whence === SEEK.END) {
-      return this.setOffset_(offset + this.file.length);
+      return this.setOffsetChecked_(offset + this.file.length);
     }
   }
 }
