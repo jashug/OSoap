@@ -2,6 +2,9 @@
 // No support for reader/writer.
 // Not recursive.
 // Non-cancellable.
+// No timeout supported
+
+import {Queue} from './Queue.js';
 
 const alreadyUnlocked = () => {
   throw new Error("Attempt to unlock an unlocked lock");
@@ -9,34 +12,32 @@ const alreadyUnlocked = () => {
 
 class Lock {
   constructor() {
-    this.unlocked = Promise.resolve();
-    this._unlock = alreadyUnlocked;
+    this.waiters = new Queue();
     this.locked = false;
   }
 
-  async aquire() {
-    while (this.locked) await this.unlocked;
-    this._aquire();
-  }
-
-  // Must only be called when !this.locked
-  _aquire() {
-    if (this.locked) throw new Error("Attempting synchronous locking of locked lock");
-    this.unlocked = new Promise((resolve) => {
-      this._unlock = resolve;
-    });
-    this.locked = true;
+  aquire() {
+    if (this.locked) {
+      return new Promise((resolve) => {
+        this.waiters.enqueue(resolve);
+      });
+    } else {
+      this.locked = true;
+    }
   }
 
   release() {
     if (!this.locked) alreadyUnlocked();
-    this.locked = false;
-    this._unlock();
+    if (this.waiters.size) {
+      const resolve = this.waiters.dequeue();
+      resolve();
+    } else {
+      this.locked = false;
+    }
   }
 
   async withLockAsync(f) {
-    while (this.locked) await this.unlocked;
-    this._aquire();
+    await this.aquire();
     try {
       return await f();
     } finally {
@@ -45,8 +46,7 @@ class Lock {
   }
 
   async withLockSync(f) {
-    while (this.locked) await this.unlocked;
-    this._aquire();
+    await this.aquire();
     try {
       return f();
     } finally {
