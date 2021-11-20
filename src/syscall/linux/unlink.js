@@ -7,7 +7,7 @@ import {InvalidError} from './InvalidError.js';
 const doUnlink = (path, curdir, rootdir, thread) => {
   return resolveParent(path, curdir, rootdir, {}, (parent, name) => {
     if (name === null) throw new PermissionError();
-    return parent.unlink(path.lastComponent, path.trailingSlashAfterComponent, thread);
+    return parent.unlink(name, path.trailingSlashAfterComponent, thread);
   });
 };
 
@@ -42,7 +42,7 @@ const rmdir = (sysbuf, thread) => {
   const path = pathFromCString(sysbuf.buffer, pathname + sysbuf.byteOffset);
   const curdir = thread.process.fdtable.currentWorkingDirectory;
   const rootdir = thread.process.fdtable.rootDirectory;
-  return doRmdir(path, curdir, rootdir);
+  return doRmdir(path, curdir, rootdir, thread);
 };
 
 const unlink = (sysbuf, thread) => {
@@ -50,7 +50,7 @@ const unlink = (sysbuf, thread) => {
   const path = pathFromCString(sysbuf.buffer, pathname + sysbuf.byteOffset);
   const curdir = thread.process.fdtable.currentWorkingDirectory;
   const rootdir = thread.process.fdtable.rootDirectory;
-  return doUnlink(path, curdir, rootdir);
+  return doUnlink(path, curdir, rootdir, thread);
 };
 
 export {unlinkat, rmdir, unlink};

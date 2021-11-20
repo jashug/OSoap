@@ -246,7 +246,16 @@ class RamFS extends FileSystem {
 
   rmdir(id, component, thread) {
     void thread;
-    debugger;
+    const directory = this.files.get(id);
+    const name = componentToBinaryString(component);
+    const entry = directory.children.get(name);
+    if (!entry) throw new NoEntryError();
+    const {id: childId, fmt} = entry;
+    if (fmt !== FMT.DIRECTORY) throw new NotADirectoryError();
+    const file = this.files.get(childId);
+    this.decNLink(childId, file);
+    this.decNLink(id, directory);
+    directory.children.delete(name);
     return 0;
   }
 
