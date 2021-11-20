@@ -1,6 +1,7 @@
 import {UserMisbehaved} from '../UserError.js';
 import {E} from '../syscall/linux/errno.js';
 import {utf8Encoder} from '../util/utf8Encoder.js';
+import {NoEntryError} from './errors.js';
 
 const PATH_MAX = 4096; // from limits.h
 
@@ -84,6 +85,10 @@ class Path {
       if (this.trailingSlash) parts.push('/');
     }
     return parts.join('');
+  }
+
+  requireNonEmpty() {
+    if (this.isEmptyPath()) throw new NoEntryError();
   }
 }
 

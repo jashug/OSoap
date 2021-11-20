@@ -1,6 +1,6 @@
 import {FMT} from '../constants/fs.js';
-import {NoEntryError, NotADirectoryError, LoopError} from './errors.js';
-import {isDot, isDotDot, pathFromString} from './Path.js';
+import {NotADirectoryError, LoopError} from './errors.js';
+import {isDot, isDotDot, isDots, pathFromString} from './Path.js';
 import {equalFileLocations} from './FileLocation.js';
 
 const MAX_SYMLINK_COUNT = 100;
@@ -84,9 +84,7 @@ const resolveToEntry = async (path, curDir, rootDir, options, f) => {
     mustBeDirectory = false,
     symlinkFuel = MAX_SYMLINKS(),
   } = options;
-  if (!allowEmptyPath && path.isEmptyPath()) {
-    throw new NoEntryError();
-  }
+  if (!allowEmptyPath) path.requireNonEmpty();
   const predecessor = await resolvePrefix(path, curDir, rootDir, {
     followSymlinks: followPrefixSymlinks,
     symlinkFuel,
@@ -105,14 +103,13 @@ const resolveToEntry = async (path, curDir, rootDir, options, f) => {
 };
 
 const resolveParent = async (path, curDir, rootDir, options, f) => {
-  const {followSymlinks = true, allowEmptyPath = true, symlinkFuel = MAX_SYMLINKS()} = options;
-  if (!allowEmptyPath && path.isEmptyPath()) {
-    throw new NoEntryError();
-  }
+  const {followSymlinks = true, symlinkFuel = MAX_SYMLINKS()} = options;
+  path.requireNonEmpty();
   const parent = await resolvePrefix(path, curDir, rootDir, {followSymlinks, symlinkFuel});
   assertDirectory(parent);
   try {
-    return await f(parent);
+    const name = (path.hasLastComponent() && !isDots(path.lastComponent)) ? path.lastComponent : null;
+    return await f(parent, name);
   } finally {
     parent.decRefCount();
   }

@@ -1,5 +1,5 @@
 import {InvalidError} from './InvalidError.js';
-import {pathFromCString} from '../../fs/Path.js';
+import {pathFromCString, isDots} from '../../fs/Path.js';
 import {resolveParent, resolveToEntry} from '../../fs/resolve.js';
 import {O} from '../../constants/fs.js';
 import {FileDescriptor} from '../../FileDescriptor.js';
@@ -32,15 +32,16 @@ const open = async (sysbuf, thread) => {
   // const accessMode = flags & O.ACCMODE; // Read, Write, Path bits
   const curdir = thread.process.currentWorkingDirectory;
   const rootdir = thread.process.rootDirectory;
-  const mustBeDirectory = Boolean(flags & O.DIRECTORY) || path.trailingSlash;
+  const mustBeDirectory = Boolean(flags & O.DIRECTORY) || path.trailingSlash || (path.hasLastComponent() && !isDots(path.lastComponent));
   const openFile = await (() => {
-    if (flags & O.CREAT && !mustBeDirectory && path.lastComponent !== null) {
+    if (flags & O.CREAT && !mustBeDirectory) {
       // TODO: Also want mode for O.TMPFILE
       const mode = sysbuf.linuxSyscallArg(2).getMode(); // Only set sometimes
       return resolveParent(path, curdir, rootdir, {
         allowEmptyPath: false,
-      }, (predecessor) => {
-        return predecessor.openCreate(flags, mode, path.lastComponent, thread);
+      }, (predecessor, name) => {
+        if (name === null) throw new Error("invariant broken");
+        return predecessor.openCreate(flags, mode, name, thread);
       });
     } else {
       return resolveToEntry(path, curdir, rootdir, {
