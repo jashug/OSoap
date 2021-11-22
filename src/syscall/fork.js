@@ -5,7 +5,7 @@ import {SyscallBuffer} from './SyscallBuffer.js';
 // TODO: make pid_t 64 bits
 
 const copyWasmMemory = (memory) => {
-  const type = WebAssembly.Memory.type(memory);
+  const type = memory.type();
   const pages = memory.buffer.byteLength >> 16;
   if (memory.buffer.byteLength !== pages << 16) {
     throw new Error("WebAssembly memory buffer length not page aligned");
