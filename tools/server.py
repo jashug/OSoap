@@ -46,7 +46,7 @@ if __name__ == "__main__":
             help='Specify alternate bind address [default: localhost] (all means all interfaces)',
             default='localhost')
     parser.add_argument('--directory', '-d', default=default_serve_directory,
-            help='Specify alternate directory [default: current directory]')
+            help='Specify alternate directory [default: OSOAP_ROOT/OSoap || current directory]')
     parser.add_argument('port', action='store', default=8000, type=int, nargs='?',
             help='Specify alternate port [default 8000]')
     args = parser.parse_args()
@@ -58,6 +58,9 @@ if __name__ == "__main__":
                 self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
             return super().server_bind()
 
+        def finish_request(self, request, client_address):
+            self.RequestHandlerClass(request, client_address, self, directory=args.directory)
+
     bind = None if args.bind == 'all' else args.bind
     port = args.port
     DualStackServer.address_family, addr = get_best_family(bind, port)
@@ -65,7 +68,7 @@ if __name__ == "__main__":
     with DualStackServer(addr, CORPIsolatedHTTPRequestHandler) as httpd:
         host, port = httpd.socket.getsockname()[:2]
         url_host = f'[{host}]' if ':' in host else host
-        print(f"Serving HTTP on {host} port {port} (http://{url_host}:{port}/) ...")
+        print(f"Serving HTTP on {host} port {port} (http://{url_host}:{port}/), reflecting directory {args.directory} ...")
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
