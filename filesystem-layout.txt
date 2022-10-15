@@ -1,0 +1,13 @@
+Try to follow the Filesystem Hierarchy Standard https://refspecs.linuxfoundation.org/FHS_3.0/fhs/index.html
+
+/usr/local is a RW filesystem (maybe ram, maybe browser persistent)
+
+/usr is a R only filesystem shared, coming from the web
+
+Not sure if / should be a RW ramfs with lots of static fs children or a R only static filesystem.
+
+Source code for binaries in /bin or /usr/bin or /sbin or /usr/sbin goes in /usr/src, probably as the output of git archive as .tar.gz.
+
+Users can install in /usr/local or /opt.
+
+/etc should be RW local filesystem, with defaults.
