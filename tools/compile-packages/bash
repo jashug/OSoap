@@ -16,7 +16,7 @@ cd "${OSOAP_ROOT}/bash"
 TARGET=wasm32
 SYSROOT="${OSOAP_ROOT}/sysroot"
 export CC="clang"
-export CFLAGS="--target=${TARGET} --sysroot=${SYSROOT} -g -D OSOAP_USE_FORK"
+export CFLAGS="--target=${TARGET} --sysroot=${SYSROOT} -g"
 export CFLAGS_FOR_BUILD="-g"
 export LD=wasm-ld
 export LDFLAGS="-Wl,--import-memory -Wl,--shared-memory -Wl,--max-memory=4294967296 -Wl,--export=__stack_pointer -Wl,--export=__tls_base -lasyncify -Wl,--stack-first"
