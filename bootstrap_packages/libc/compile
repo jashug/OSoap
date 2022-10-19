@@ -62,6 +62,20 @@ if __name__ == '__main__':
     workspace.mkdir()
     source.download(workspace / 'src')
     shutil.make_archive(workspace / 'osoap-libc', 'gztar', workspace / 'src')
-    subprocess.run([workspace / 'src' / 'configure-wasm'],
-                   cwd=workspace / 'src', check=True)
+
+    subprocess.run(
+        [
+            workspace / 'src' / 'configure',
+            f'--prefix={sysroot}',
+            f'--syslibdir={sysroot / "lib"}',
+            '--target=wasm32',
+            '--enable-wrapper=no',
+            '--disable-shared',
+            '--enable-debug',
+            'CC=clang',
+            'CFLAGS=--target=wasm32 -pthread -ftls-model=local-exec -Os',
+            'CROSS_COMPILE=llvm-',
+        ],
+        cwd=workspace / 'src', check=True,
+    )
     subprocess.run(['make'], cwd=workspace / 'src', check=True)
