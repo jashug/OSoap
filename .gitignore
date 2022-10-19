@@ -1,3 +1,7 @@
-node_modules
-tmp
-filesystem
+/node_modules
+/tmp
+/filesystem
+
+/bootstrap_packages/*/workspace
+
+/bootstrap_packages/libc/source_override

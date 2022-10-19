@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+
+import argparse
+from pathlib import Path
+import shutil
+import subprocess
+
+LOCAL_SOURCE_OVERRIDE_FILE = Path('source_override')
+DEFAULT_SOURCE = [
+    'https://github.com/jashug/osoap-libc.git',
+    '15e0b373f466ed64a677b2b9a0e194125e7b6a05'
+]
+
+parser = argparse.ArgumentParser(
+        description="Compile the OSoap standard library.")
+parser.add_argument(
+        'sysroot', metavar='SYSROOT', type=Path,
+        help="where packages get installed")
+parser.add_argument(
+        'workspace', metavar='WORKSPACE', type=Path,
+        help="A location to put temporary files and save compiled files.")
+
+
+class GitCommit:
+    def __init__(self, remote, commit):
+        self.remote = remote
+        self.commit = commit
+
+    def download(self, dest):
+        subprocess.run(['git', 'init', dest], check=True)
+        subprocess.run(['git', 'remote', 'add', 'origin', self.remote],
+                       cwd=dest, check=True)
+        subprocess.run(['git', 'fetch', '--depth', '1', 'origin', self.commit],
+                       cwd=dest, check=True)
+        subprocess.run(['git', 'checkout', 'FETCH_HEAD'],
+                       cwd=dest, check=True)
+
+
+def remove_trailing_newline(line):
+    assert line.endswith('\n')
+    return line[:-1]
+
+
+if __name__ == '__main__':
+    args = parser.parse_args()
+    sysroot = args.sysroot.resolve()
+    workspace = args.workspace.resolve()
+
+    try:
+        with open(LOCAL_SOURCE_OVERRIDE_FILE, 'r') as source_override:
+            lines = source_override.readlines()
+    except FileNotFoundError:
+        pass  # No override, so use the defaults
+        source = GitCommit(*DEFAULT_SOURCE)
+    else:
+        while lines and lines[-1] == '\n':
+            lines.pop()
+        if len(lines) != 2:
+            raise Exception("Expected exactly 2 lines in source_override file")
+        source = GitCommit(*map(remove_trailing_newline, lines))
+
+    workspace.mkdir()
+    source.download(workspace / 'src')
+    shutil.make_archive(workspace / 'osoap-libc', 'gztar', workspace / 'src')
+    subprocess.run([workspace / 'src' / 'configure-wasm'],
+                   cwd=workspace / 'src', check=True)
+    subprocess.run(['make'], cwd=workspace / 'src', check=True)
