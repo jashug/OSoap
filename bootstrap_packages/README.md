@@ -1,6 +1,7 @@
 These are packages to be cross-compiled for OSoap.
 The exact local requirements are not fully enumerated, but include
 - Python 3
+- Python 3.10 (hardcoded in the shebang for osoap-ld)
 - Clang >= 14
 - Web Assembly Binary Toolkit
 - Binaryen

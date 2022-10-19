@@ -26,9 +26,7 @@ CFLAGS ::= \
   -pthread \
   -g \
   -O0 \
-  -Wl,--import-memory \
-  -Wl,--shared-memory \
-  -Wl,--max-memory=4294967296
+  -fuse-ld="/mnt/c/Users/Jasper Hugunin/Documents/OSoap/OSoap/tools/osoap-ld"
 ifdef VERBOSE
   CFLAGS += -v
 endif

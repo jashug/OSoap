@@ -1,0 +1,86 @@
+#!/usr/bin/env python3.10
+
+# Use with -fuse-ld=<absolute path>
+# TODO: File a bug/PR with clang to use --ld-path= in
+# https://github.com/llvm/llvm-project/blob/main/clang/lib/Driver/ToolChains/WebAssembly.cpp
+
+"""Wrapper for wasm-ld that calls Asyncify on the output when necessary."""
+
+import subprocess
+import sys
+
+if __name__ == '__main__':
+    output_file_name = 'a.out'
+    opt_level = None
+    other_args = []
+    i = 1
+    while i < len(sys.argv):
+        if sys.argv[i] == '-o' and i + 1 < len(sys.argv):
+            i += 1
+            output_file_name = sys.argv[i]
+        elif sys.argv[i] == '-O' and i + 1 < len(sys.argv):
+            i += 1
+            opt_level = sys.argv[i]
+        else:
+            other_args.append(sys.argv[i])
+        i += 1
+
+    ld_output = subprocess.run(
+        ['wasm-ld', '--export=__stack_pointer', '--export=__tls_base',
+         '--import-memory', '--shared-memory', '--max-memory=4294967296']
+        + sys.argv[1:])
+    if ld_output.returncode != 0:
+        sys.exit(ld_output.returncode)
+        assert False
+
+    imports = subprocess.run(
+        ['wasm-objdump', '-j', 'import', '-x', output_file_name],
+        check=True, capture_output=True,
+    )
+    async_imports = [
+        b' <- env.setjmp',
+        b' <- env.longjmp',
+        b' <- env.fork',
+    ]
+    start_details = False
+    should_asyncify = False
+    for line in imports.stdout.splitlines():
+        if line == b'Section Details:':
+            start_details = True
+        elif (line.startswith(b' - func[')
+              and any(line.endswith(poss) for poss in async_imports)
+              and start_details):
+            should_asyncify = True
+    if not start_details:
+        raise Exception(
+                "Expected wasm-objdump to include line 'Section Details:'")
+
+    globals_ = subprocess.run(
+        ['wasm-objdump', '-j', 'global', '-x', output_file_name],
+        check=True, capture_output=True,
+    )
+    mutable_globals = [
+        b'<__stack_pointer>',
+        b'<__tls_base>',
+    ]
+    start_details = False
+    for line in globals_.stdout.splitlines():
+        if line == b'Section Details:':
+            start_details = True
+        elif line.startswith(b' - global[') and start_details:
+            i = line.find(b'mutable=')
+            if line[i:].startswith(b'mutable=1'):
+                assert any(line[i+len(b'mutable=1 '):].startswith(poss)
+                           for poss in mutable_globals)
+
+    wasm_opt_args = ['wasm-opt', '-all', '-o', output_file_name]
+    if should_asyncify:
+        wasm_opt_args += [
+            '--asyncify',
+            '--pass-arg=asyncify-imports@env.fork,env.setjmp,env.longjmp',
+        ]
+    wasm_opt_args.append('-O')  # Adjust based on llvm opt level?
+    wasm_opt_args.append('-g')  # Make configurable?
+    wasm_opt_args.append(output_file_name)
+
+    subprocess.run(wasm_opt_args, check=True)
