@@ -75,6 +75,7 @@ if __name__ == '__main__':
 
     wasm_opt_args = ['wasm-opt', '-all', '-o', output_file_name]
     if should_asyncify:
+        print(f"Running Asyncify on {output_file_name}!", file=sys.stderr)
         wasm_opt_args += [
             '--asyncify',
             '--pass-arg=asyncify-imports@env.fork,env.setjmp,env.longjmp',

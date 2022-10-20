@@ -10,6 +10,7 @@ The exact local requirements are not fully enumerated, but include
 
 A package consists of a directory in this folder, containing a script named `compile`, a script named `install`, and a file named `dependencies`.
 The package name is the name of the directory, and should include no whitespace and no forward slash characters, and should not be the reserved name `all`.
+Packages must be listed in the file `packages` in this directory.
 
 The `compile` script is run with the current working directory set to the package directory.
 `compile SYSROOT WORKSPACE`: The listed dependencies have been installed in `SYSROOT`.
@@ -17,7 +18,7 @@ Create the directory `WORKSPACE`, copy the package source into it, and compile t
 If anything goes wrong, exit with a non-zero exit code.
 The driver program will handle deleting the directory `WORKSPACE`.
 
-The `install` script is run with the current working directory set to the package directory. `install SYSROOT WORKSPACE`: Install the package compiled in `WORKSPACE` into `SYSROOT`. If anything goes wrong, exit with a non-zero exit code. `SYSROOT` will be the same path as when `compile` was run to create `WORKSPACE`.
+The `install` script is run with the current working directory set to the package directory. `install SYSROOT WORKSPACE`: Install the package compiled in `WORKSPACE` into `SYSROOT`. If anything goes wrong, exit with a non-zero exit code. `SYSROOT` will be the same path as when `compile` was run to create `WORKSPACE`. The `install` script MUST NOT modify `WORKSPACE`.
 
 The `dependencies` file contains one package name per line.
 
