@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
-cd "$2"/src
-make install
+cd "$2"/src || exit 1
+export OSOAP_INSTALL_PRESERVE_MODIFICATION_TIME=yes
+make install || exit 1

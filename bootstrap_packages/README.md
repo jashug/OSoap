@@ -9,7 +9,7 @@ The exact local requirements are not fully enumerated, but include
 # Package Specification
 
 A package consists of a directory in this folder, containing a script named `compile`, a script named `install`, and a file named `dependencies`.
-The package name is the name of the directory, and should include no whitespace and no forward slash characters, and should not be the reserved name `all`.
+The package name is the name of the directory, and should include no whitespace and no forward slash characters, and should not be the reserved name `all` or `sysroot`.
 Packages must be listed in the file `packages` in this directory.
 
 The `compile` script is run with the current working directory set to the package directory.
@@ -17,6 +17,7 @@ The `compile` script is run with the current working directory set to the packag
 Create the directory `WORKSPACE`, copy the package source into it, and compile the package.
 If anything goes wrong, exit with a non-zero exit code.
 The driver program will handle deleting the directory `WORKSPACE`.
+The environment variable `LD` will be set to the absolute path of `osoap-ld`, the required linker.
 
 The `install` script is run with the current working directory set to the package directory. `install SYSROOT WORKSPACE`: Install the package compiled in `WORKSPACE` into `SYSROOT`. If anything goes wrong, exit with a non-zero exit code. `SYSROOT` will be the same path as when `compile` was run to create `WORKSPACE`. The `install` script MUST NOT modify `WORKSPACE`.
 
